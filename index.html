@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Desk Date Display</title>
+    <script type="module" src="/src/main.ts" defer></script>
+    <script type="module" src="/src/p5.min.js"></script>
+  </head>
+
+  <body>
+    <main>
+      <div class="container">
+        <h1 class="time text"><span id="time"></span></h1>
+      </div>
+      <div class="container">
+        <h1 class="date text"><span id="date"></span></h1>
+      </div>
+      <div class="container">
+        <script>
+          const WIDTH = 300;
+          const HEIGHT = 60;
+          const cx = WIDTH / 2;
+          const cy = HEIGHT / 2;
+
+          const DENSITY = 10;
+
+          function setup() {
+            createCanvas(WIDTH, HEIGHT);
+            pixelDensity(2);
+          }
+
+          function draw() {
+            clear();
+            stroke(255);
+            noFill();
+            beginShape();
+            for (let i = -1; i < 2 * DENSITY + 2; i++) {
+              let r = map(
+                sin(2 * i + frameCount * 0.01),
+                -1,
+                1,
+                0,
+                HEIGHT * 0.5
+              );
+              ellipse(
+                map(
+                  (i + sin(0.5 * i + frameCount * 0.01)) % DENSITY,
+                  0,
+                  DENSITY,
+                  -HEIGHT * 0.5,
+                  WIDTH + HEIGHT * 0.5
+                ),
+                HEIGHT / 2,
+                r,
+                r
+              );
+            }
+            endShape();
+          }
+        </script>
+      </div>
+      <!-- <div class="container">
+        <h1 class="song-box">
+          <span class="back" id="back">&lt;</span>
+          <span class="play" id="play">?</span>
+          <span class="next" id="next">&gt;</span>
+          <span class="song-name text" id="song"></span>
+        </h1>
+      </div> -->
+    </main>
+  </body>
+</html>
