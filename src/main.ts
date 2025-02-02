@@ -7,7 +7,7 @@ let s_container: HTMLElement | null = null;
 
 window.addEventListener("DOMContentLoaded", async () => {
   get_containers();
-  do_repeat(set_data, 397);
+  do_repeat(set_data, 997);
 });
 
 async function do_repeat(f: () => void, interval: number) {
@@ -39,7 +39,7 @@ async function get_song() {
 async function set_data() {
   let m = moment();
   if (d_container) {
-    d_container.textContent = m.format("dddd, d MMMM YYYY");
+    d_container.textContent = m.format("dddd, Do MMMM YYYY");
   }
   if (t_container) {
     t_container.textContent = m.format("h:mm A");
