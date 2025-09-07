@@ -1,0 +1,140 @@
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  color: #0f0f0f;
+  background-color: #f6f6f6;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+body,
+html,
+#root {
+  height: 100%;
+  width: 100%;
+  /* overflow: hidden; */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  display: grid;
+  height: 100vh;
+  width: 100vw;
+  padding: 2rem;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr;
+}
+
+.today {
+  display: grid;
+  grid-template:
+    "time divider date" auto
+    "time divider weather" auto
+    / 1fr auto 1fr;
+  gap: 0.5rem;
+  justify-content: center;
+
+  & .time {
+    font-size: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  & .divider {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 0 1rem;
+    &::after {
+      content: "";
+      width: 3px;
+      background-color: black;
+    }
+  }
+
+  & .date {
+    margin-top: 4px;
+    font-size: 1.5rem;
+    grid-area: date;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  & .weather {
+    margin-bottom: 4px;
+    grid-area: weather;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+}
+
+.media-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+
+  padding: 1rem;
+
+  & .media-cover {
+    margin-bottom: 1rem;
+    & img {
+      width: 200px;
+      height: 200px;
+      object-fit: cover;
+    }
+  }
+
+  & .media-title {
+    grid-area: title;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  & .media-artist {
+    grid-area: artist;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #555;
+  }
+}
+
+.performance {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 1rem;
+
+  & .perf-box {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    & .perf-box-content {
+      width: 200px;
+      height: 100px;
+    }
+  }
+
+  & .fft {
+    flex:1;
+    & canvas {
+      width: 100%;
+    }
+  }
+}
