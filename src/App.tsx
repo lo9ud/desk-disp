@@ -86,10 +86,10 @@ function Performance() {
   return (
     <div className="performance">
       <PerfBox title="CPU" refresh={100} hook={useCpuUsage} />
-      <PerfBox title="Memory" refresh={100} hook={useMemoryUsage} />
+      {/* <PerfBox title="Memory" refresh={100} hook={useMemoryUsage} /> */}
       <FFT />
-      <PerfBox title="GPU" refresh={100} hook={useCpuUsage} />
-      <PerfBox title="VRAM" refresh={100} hook={useMemoryUsage} />
+      <PerfBox title="GPU" refresh={100} hook={() => 0} />
+      <PerfBox title="VRAM" refresh={100} hook={() => 0} />
     </div>
   );
 }
@@ -114,26 +114,33 @@ function FFT() {
       ctx.beginPath();
       ctx.moveTo(0, height);
       frequencyData.forEach((value, index) => {
-        const barHeight = (value - min) / (max - min) * height;
-        // ctx.fillStyle = `rgb(${value}, ${255 - value}, 0)`;
-        // ctx.fillRect(
-        //   index * barWidth,
-        //   height - barHeight,
-        //   barWidth - 1,
-        //   barHeight
-        // );
-        ctx.lineTo(index * barWidth, height - barHeight);
+        const barHeight = ((value - min) / (max - min)) * height;
+        ctx.fillStyle = `rgb(${value}, ${255 - value}, 0)`;
+        ctx.fillRect(
+          index * barWidth,
+          height - barHeight,
+          barWidth - 1,
+          barHeight
+        );
+        // ctx.lineTo(index * barWidth, height - barHeight);
       });
       ctx.stroke();
       ctx.fillText(`FFT: ${max} - ${min}`, 10, 20);
     }
-  }, [frequencyData]);
+  }, [frequencyData, min, max]);
 
   useEffect(() => {
+    const scale = () => {
+      if (canvasRef.current) {
+        const canvas = canvasRef.current;
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+      }
+    };
     if (canvasRef.current) {
-      const canvas = canvasRef.current;
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+      scale();
+      window.addEventListener("resize", scale);
+      return () => window.removeEventListener("resize", scale);
     }
   }, []);
 
@@ -154,8 +161,8 @@ function PerfBox({
   hook: (refresh: number) => number | null;
 }>) {
   const value = hook(refresh);
-  const smoothed = useSmoothed(value || 0, 30);
-  const history = useHistory(value || 0, refresh / 2);
+  const smoothed = useSmoothed(value || 0, 3);
+  const history = useHistory(smoothed || 0, refresh / 2);
 
   return (
     <div className="perf-box">

@@ -1,11 +1,16 @@
 use std::{fmt, future::IntoFuture};
 
+use crate::AppState;
+
 use super::Metadata;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
 
-use tauri::async_runtime::{block_on, spawn_blocking};
+use tauri::{
+    async_runtime::{block_on, spawn_blocking},
+    Manager,
+};
 
 fn to_string_err<T: fmt::Debug>(e: T) -> String {
     format!("{:?}", e)
@@ -68,69 +73,6 @@ pub async fn get_media_metadata() -> Result<Metadata, String> {
             .unwrap_or("Unknown Album".into()),
         album_art: album_art.map(|art| art.ok()).flatten(),
     });
-}
-
-pub async fn get_media_frequency_data() -> Result<Vec<f32>, String> {
-    let dev = cpal::default_host()
-        .default_output_device()
-        .ok_or("No output device found".to_string())?;
-    let config = dev
-        .default_output_config()
-        .map_err(|_| "No output config found".to_string())?;
-
-    let sample_format = config.sample_format();
-    let config: cpal::StreamConfig = config.into();
-    let (tx, rx) = std::sync::mpsc::channel();
-    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
-    let stream = match sample_format {
-        cpal::SampleFormat::F32 => dev.build_input_stream(
-            &config,
-            move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                let _ = tx.send(data.to_vec());
-            },
-            err_fn,
-            None,
-        ),
-        cpal::SampleFormat::I16 => dev.build_input_stream(
-            &config,
-            move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                let data_f32: Vec<f32> = data.iter().map(|&s| s as f32 / i16::MAX as f32).collect();
-                let _ = tx.send(data_f32);
-            },
-            err_fn,
-            None,
-        ),
-        cpal::SampleFormat::U16 => dev.build_input_stream(
-            &config,
-            move |data: &[u16], _: &cpal::InputCallbackInfo| {
-                let data_f32: Vec<f32> = data
-                    .iter()
-                    .map(|&s| s as f32 / u16::MAX as f32 - 0.5)
-                    .collect();
-                let _ = tx.send(data_f32);
-            },
-            err_fn,
-            None,
-        ),
-        fmt => return Err(format!("Unsupported sample format: {}", fmt)),
-    }
-    .map_err(to_string_err)?;
-
-    stream.play().map_err(to_string_err)?;
-
-    let samples = rx.recv().map_err(to_string_err)?;
-    let fft_size = 1024;
-    let mut planner = rustfft::FftPlanner::new();
-    let fft = planner.plan_fft_forward(fft_size);
-    let mut buffer: Vec<rustfft::num_complex::Complex<f32>> = samples
-        .iter()
-        .take(fft_size)
-        .map(|&s| rustfft::num_complex::Complex { re: s, im: 0.0 })
-        .collect();
-    buffer.resize(fft_size, rustfft::num_complex::Complex { re: 0.0, im: 0.0 });
-    fft.process(&mut buffer);
-    let magnitudes: Vec<f32> = buffer.iter().map(|c| c.norm()/((buffer.len() as f32).sqrt())).collect();
-    Ok(magnitudes)
 }
 
 pub async fn get_media_position() -> Result<u32, String> {

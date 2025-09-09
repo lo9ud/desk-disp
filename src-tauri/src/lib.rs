@@ -48,7 +48,7 @@ pub fn run() {
                 ),
                 disks: sysinfo::Disks::new_with_refreshed_list(),
                 components: sysinfo::Components::new_with_refreshed_list(),
-                visualizer: media::MusicVisualizerFFT::new(44100.0, 1024, 32, 0.2, 0.08),
+                visualizer: media::MusicVisualizerFFT::default(),
             })));
             Ok(())
         })
