@@ -2,7 +2,7 @@ use crate::AppState;
 use tauri::Manager;
 
 pub mod cpu {
-    use std::{collections::HashMap, hash::Hash};
+    use std::collections::HashMap;
 
     use super::{AppState, Manager};
 
@@ -29,14 +29,16 @@ pub mod cpu {
     #[tauri::command]
     pub async fn get_processors(app: tauri::AppHandle) -> Result<Processors, String> {
         let state = app.state::<AppState>();
-        let mut state = state.lock().unwrap();
+        let mut state = state.lock().await;
         state.system_info.refresh_cpu_all();
         let mut cores = HashMap::new();
         for cpu in state.system_info.cpus() {
-            let entry = cores.entry(cpu.brand().to_string()).or_insert_with(|| Processor {
-                brand: cpu.brand().trim().to_string(),
-                cores: Vec::new(),
-            });
+            let entry = cores
+                .entry(cpu.brand().to_string())
+                .or_insert_with(|| Processor {
+                    brand: cpu.brand().trim().to_string(),
+                    cores: Vec::new(),
+                });
             entry.cores.push(Core {
                 name: cpu.name().to_string(),
                 frequency: cpu.frequency(),
@@ -54,45 +56,18 @@ pub mod cpu {
     #[tauri::command]
     pub async fn get_cpu_usage(app: tauri::AppHandle) -> Result<f32, String> {
         let state = app.state::<AppState>();
-        let mut state = state.lock().unwrap();
+        let mut state = state.lock().await;
         state.system_info.refresh_cpu_usage();
         Ok(state.system_info.global_cpu_usage())
     }
 }
-
-pub mod gpu {
-    #![allow(dead_code, unused_imports)]
-    use super::{AppState, Manager};
-
-    #[derive(serde::Serialize)]
-    pub struct GpuDetails {
-        pub name: String,
-        pub vendor: String,
-        pub memory: u64,
-    }
-
-    #[tauri::command]
-    pub async fn get_gpu_details(_app: tauri::AppHandle) -> Result<Vec<GpuDetails>, String> {
-        Err("Not implemented".into())
-    }
-
-    #[tauri::command]
-    pub async fn get_gpu_usage(_app: tauri::AppHandle) -> Result<f32, String> {
-        Err("Not implemented".into())
-    }
-    #[tauri::command]
-    pub async fn get_vram_usage(_app: tauri::AppHandle) -> Result<(u64, u64), String> {
-        Err("Not implemented".into())
-    }
-}
-
 pub mod memory {
     use super::{AppState, Manager};
 
     #[tauri::command]
     pub async fn get_memory_usage(app: tauri::AppHandle) -> Result<(u64, u64), String> {
         let state = app.state::<AppState>();
-        let mut state = state.lock().unwrap();
+        let mut state = state.lock().await;
         state.system_info.refresh_memory();
         Ok((
             state.system_info.used_memory(),
@@ -103,7 +78,7 @@ pub mod memory {
     #[tauri::command]
     pub async fn get_swap_usage(app: tauri::AppHandle) -> Result<(u64, u64), String> {
         let state = app.state::<AppState>();
-        let mut state = state.lock().unwrap();
+        let mut state = state.lock().await;
         state.system_info.refresh_memory();
         Ok((
             state.system_info.used_swap(),
@@ -128,7 +103,7 @@ pub mod disk {
     #[tauri::command]
     pub async fn get_disk_details(app: tauri::AppHandle) -> Result<Vec<DiskDetails>, String> {
         let state = app.state::<AppState>();
-        let mut state = state.lock().unwrap();
+        let mut state = state.lock().await;
         state.disks.refresh(true);
         Ok(state
             .disks
@@ -159,7 +134,7 @@ pub mod temperature {
     #[tauri::command]
     pub async fn get_temperatures(app: tauri::AppHandle) -> Result<Vec<Temperature>, String> {
         let state = app.state::<AppState>();
-        let mut state = state.lock().unwrap();
+        let mut state = state.lock().await;
         state.components.refresh(true);
         Ok(state
             .components
@@ -169,6 +144,46 @@ pub mod temperature {
                 label: comp.label().to_string(),
                 current: comp.temperature().unwrap_or(f32::NAN),
                 max: comp.max().unwrap_or(f32::NAN),
+            })
+            .collect())
+    }
+}
+
+pub mod network {
+    use super::{AppState, Manager};
+
+    #[derive(serde::Serialize)]
+    pub struct NetworkInterface {
+        pub name: String,
+        pub received: u64,
+        pub transmitted: u64,
+        pub mtu: u64,
+        pub mac_address: String,
+    }
+
+    #[tauri::command]
+    pub async fn get_network_interfaces(
+        app: tauri::AppHandle,
+    ) -> Result<Vec<NetworkInterface>, String> {
+        let state = app.state::<AppState>();
+        let mut state = state.lock().await;
+        state.networks.refresh(false);
+        Ok(state
+            .networks
+            .iter()
+            .filter_map(|(name, data)| {
+                let mac_address = data.mac_address();
+                if mac_address.is_unspecified() {
+                    None
+                } else {
+                    Some(NetworkInterface {
+                        name: name.clone(),
+                        received: data.received(),
+                        transmitted: data.transmitted(),
+                        mtu: data.mtu(),
+                        mac_address: mac_address.to_string(),
+                    })
+                }
             })
             .collect())
     }

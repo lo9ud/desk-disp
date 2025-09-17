@@ -1,101 +1,55 @@
-import { useEffect, useState } from "react";
-import {
-  getCpuDetails,
-  getCpuUsage,
-  getDiskDetails,
-  getGpuDetails,
-  getGpuUsage,
-  getMediaFrequencyData,
-  getMediaMetadata,
-  getMediaPosition,
-  getMemoryUsage,
-  getTemperatures,
-  getVramUsage,
-  getWeather,
-} from "./utils";
-import type {
-  Metadata,
-  Processors,
-  GpuDetails,
-  DiskDetails,
-  Temperature,
-  Weather,
-} from "./types";
-export function useStat<T>(
-  getter: () => Promise<T | null>,
+import { useCallback, useEffect, useRef, useState } from "react";
+
+export function useStat<
+  Type,
+  Output = Type,
+  Getter extends (...args: any[]) => Promise<Type | null> = (
+    ...args: any[]
+  ) => Promise<Type | null>,
+  Transform extends (v: Type | null) => Promise<Output> = (v: Type | null) => Promise<Output> 
+>(
+  getter: Getter,
+  transform: Transform,
+  args: Parameters<Getter>,
   refresh: number
-): T | null {
-  const [value, setValue] = useState<T | null>(null);
+): Output | null {
+  const [value, setValue] = useState<Output | null>(null);
+
+  const update = useCallback(async () => {
+    getter(...args)
+      .then(transform)
+      .then((t) => setValue((old) => t ?? old));
+  }, [getter, args, transform]);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      getter().then((v) => setValue((old) => v ?? old));
-    }, refresh);
-    void (async () => setValue(await getter()))();
-
+    update();
+    const interval = setInterval(update, refresh);
     return () => clearInterval(interval);
   }, [getter, refresh]);
+
 
   return value;
 }
 
-export const useMediaMetadata = (refresh: number) =>
-  useStat<Metadata>(getMediaMetadata, refresh);
-
-export const useMediaPosition = (refresh: number) =>
-  useStat<number>(getMediaPosition, refresh);
-
-export const useMediaFrequencyData = (refresh: number) =>
-  useStat<number[]>(getMediaFrequencyData, refresh);
-
-export const useCpuDetails = (refresh: number) =>
-  useStat<Processors>(getCpuDetails, refresh);
-
-export const useCpuUsage = (refresh: number) =>
-  useStat<number>(getCpuUsage, refresh);
-
-export const useGpuDetails = (refresh: number) =>
-  useStat<GpuDetails[]>(getGpuDetails, refresh);
-
-export const useGpuUsage = (refresh: number) =>
-  useStat<number>(getGpuUsage, refresh);
-
-export const useVramUsage = (refresh: number) =>
-  useStat<number>(getVramUsage, refresh);
-
-export const useMemoryUsage = (refresh: number) =>
-  useStat<number>(
-    () => getMemoryUsage().then((mem) => mem && (mem[0] / mem[1]) * 100),
-    refresh
-  );
-
-export const useMemory = (refresh: number) =>
-  useStat<[number, number]>(getMemoryUsage, refresh);
-
-export const useDiskDetails = (refresh: number) =>
-  useStat<DiskDetails[]>(getDiskDetails, refresh);
-
-export const useTemperatures = (refresh: number) =>
-  useStat<Temperature[]>(getTemperatures, refresh);
-
-export const useWeather = (lat: number, lon: number, refresh: number) =>
-  useStat<Weather>(() => getWeather(lat, lon), refresh);
-
-export function useSmoothed(latest: number, alpha: number = 4): number {
-  const [prev, setPrev] = useState<number>(0);
+export function useSmoothed(latest: number | null, alpha: number = 4): number {
+  const [prev, setPrev] = useState<number | null>(null);
 
   useEffect(() => {
-    setPrev((p) => p + (latest - p) / alpha);
+    if (!prev) {
+      setPrev(latest);
+    } else {
+      setPrev((p) => (latest ? p! + (latest - p!) / alpha : p));
+    }
   }, [latest, alpha]);
 
-  return prev;
+  return prev ?? latest ?? 0;
 }
 
-export function useHistory(value: number, length: number): number[] {
-  const [history, setHistory] = useState<number[]>(Array(length).fill(0));
+export function useHistory<T>(value: T, length: number): T[] {
+  const [history, setHistory] = useState<T[]>([value]);
 
   useEffect(() => {
-    setHistory((h) => [value, ...h].slice(0, length));
+    setHistory((h) => [...h, value].slice(-length, undefined));
   }, [value, length]);
 
   return history;

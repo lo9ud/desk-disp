@@ -1,0 +1,77 @@
+.networks {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: repeat(auto-fill, minmax(80px, min-content));
+
+  & > :not(:first-child) {
+    border-bottom: 1px solid #333;
+  }
+}
+
+.network {
+  display: grid;
+  grid-template:
+    "name mac" min-content
+    "bars bars" 1fr;
+  gap: 4px;
+  grid-template-columns: subgrid;
+  grid-column: span 2;
+  place-items: stretch;
+}
+
+.networkName {
+  grid-area: name;
+  font-size: small;
+  font-weight: bold;
+}
+
+.networkMac {
+  grid-area: mac;
+  font-size: small;
+  text-align: right;
+  color: #aaa;
+}
+
+.bars {
+  grid-area: bars;
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+
+.rx,
+.tx {
+  display: grid;
+  grid-column: span 2;
+  grid-template:
+    "icon value" 1fr
+    "percent bar" 1fr;
+  grid-template-columns: subgrid;
+  gap: 4px 4px;
+}
+
+.icon {
+  grid-area: icon;
+  place-self: center end;
+  padding: 2px;
+}
+
+.value {
+  grid-area: value;
+  font-family: monospace;
+  font-size: smaller;
+}
+
+.percent {
+  grid-area: percent;
+  font-size: x-small;
+  text-align: right;
+  color: #aaa;
+}
+
+.bar {
+  grid-area: bar;
+  height: 8px;
+  background: #444;
+  align-self: center;
+  min-width: 2px;
+}

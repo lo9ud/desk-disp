@@ -1,0 +1,62 @@
+.weather {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.graphContainer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* .svg {
+  width: 100%;
+  height: 100%;
+} */
+
+.pointGroup {
+  & > .pointInner {
+    r: 2;
+    fill: #777;
+  }
+
+  & > .pointOuter {
+    r: 12;
+    fill: transparent;
+  }
+
+  & > .pointLabel {
+    position: relative;
+    top: -4rem;
+    opacity: 0;
+    font-size: 0.8rem;
+    fill: #aaa;
+    text-anchor: middle;
+    transition: opacity 0.2s ease-out;
+  }
+
+  &:has(circle:hover) {
+    & > .pointInner {
+      r: 4;
+      opacity: 0.2;
+      fill: #fff;
+    }
+
+    & > .pointLabel {
+      opacity: 1;
+      fill: #ddd;
+    }
+  }
+}
+
+

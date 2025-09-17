@@ -1,4 +1,11 @@
 import { DateTime } from "luxon";
+import { Widget } from "./widgetTypes";
+
+
+export type Config = {
+  monitor: number
+  widgets: Widget[];
+}
 
 export type Metadata = {
   title: string;
@@ -55,4 +62,18 @@ export type Weather = {
   };
   daily: { at: DateTime; type: string }[];
   hourly: { at: DateTime; temp: number }[];
+};
+
+export type FrequencyReading = {
+  freq_hi: number;
+  freq_lo: number;
+  magnitude: number;
+};
+
+export type NetworkInterface = {
+  name: string;
+  received: number;
+  transmitted: number;
+  mtu: number;
+  mac_address: string;
 };

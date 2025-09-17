@@ -1,16 +1,10 @@
 use std::{fmt, future::IntoFuture};
 
-use crate::AppState;
-
 use super::Metadata;
 
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
 
-use tauri::{
-    async_runtime::{block_on, spawn_blocking},
-    Manager,
-};
+use tauri::async_runtime::{block_on, spawn_blocking};
 
 fn to_string_err<T: fmt::Debug>(e: T) -> String {
     format!("{:?}", e)

@@ -1,0 +1,63 @@
+.disks {
+  display: grid;
+  grid-template-columns: auto min-content 1fr;
+  grid-template-rows: repeat(auto-fit, minmax(60px, max-content));
+  gap: 4px;
+}
+
+.disk {
+  display: grid;
+  grid-template:
+    "type    mount name" min-content
+    "type    size  size" min-content
+    "percent bar   bar " 14px;
+  grid-template-columns: subgrid;
+  grid-column: span 3;
+  place-items: stretch;
+}
+
+.diskType {
+  grid-area: type;
+  font-size: x-small;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  aspect-ratio: 1 / 1;
+  margin: 6px;
+}
+
+.diskMount {
+  grid-area: mount;
+  font-size: small;
+  place-self: center;
+}
+
+.diskUsage {
+  grid-area: size;
+  font-size: small;
+  color: #aaa;
+}
+
+.diskName {
+  grid-area: name;
+  place-self: center start;
+  font-size: small;
+}
+
+.diskBar {
+  grid-area: bar;
+  background-color: #333;
+}
+
+.diskBarFill {
+  height: 100%;
+  background-color: #888;
+}
+
+.diskPercent {
+  grid-area: percent;
+  font-size: small;
+  font-weight: bold;
+  place-self: center;
+}

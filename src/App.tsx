@@ -1,210 +1,245 @@
-import { useEffect, useRef, useState } from "react";
+import { ReactElement, Suspense } from "react";
 import "./App.css";
-import {
-  useCpuUsage,
-  useHistory,
-  useMax,
-  useMediaFrequencyData,
-  useMediaMetadata,
-  useMediaPosition,
-  useMemoryUsage,
-  useMin,
-  useSmoothed,
-  useWeather,
-} from "./hooks";
-import { DateTime } from "luxon";
-import { convertBytes, translateWeatherCode } from "./utils";
-import { registerables, Chart as ChartJS } from "chart.js";
-import { Line } from "react-chartjs-2";
+import { getCpuUsage, getMemoryUsage } from "./utils";
+import { WidgetProps } from "./components/Widget";
+import { ErrorBoundary } from "react-error-boundary";
 
-ChartJS.register(...registerables);
+// const FftBars = lazy(() => import("./components/FftBars"));
+import FftBars from "./components/FftBars";
+// const PerfBox = lazy(() => import("./components/PerfBox"));
+import PerfBox from "./components/PerfBox";
+// const Visualiser = lazy(() => import("./components/Visualiser"));
+import Visualiser from "./components/Visualiser";
+// const MediaInfo = lazy(() => import("./components/MediaInfo"));
+import MediaInfo from "./components/MediaInfo";
+// const TimeDate = lazy(() => import("./components/TimeDate"));
+import TimeDate from "./components/TimeDate";
+// const Disks = lazy(() => import("./components/Disks"));
+import Disks from "./components/Disks";
+// const Weather = lazy(() => import("./components/Weather"));
+import Weather from "./components/Weather";
+// const Networks = lazy(() => import("./components/Networks"));
+import Networks from "./components/Networks";
+
+// function Loading() {
+//   const [dots, setDots] = useState(0);
+
+//   useEffect(() => {
+//     const interval = setInterval(() => {
+//       setDots((d) => (d + 1) % 4);
+//     }, 500);
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   const dotStr = ".".repeat(Math.min(dots, 2) + 1).padEnd(3, " ");
+//   const loadingText = `Loading config${dotStr}`;
+//   return (
+//     <div className="app-splash">
+//       <span className="loading">
+//         <pre>
+//           {loadingText.split("").map((char, i) => (
+//             <span key={i}>{char}</span>
+//           ))}
+//         </pre>
+//       </span>
+//     </div>
+//   );
+// }
+
+function ErrorDisplay({
+  message,
+  style,
+}: {
+  message: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div className="app-splash" style={style}>
+      <span className="error">{message}</span>
+    </div>
+  );
+}
 
 export default function App() {
+  // const [config, setConfig] = useState<Config | null>(null);
+  // const [error, setError] = useState<string | null>(null);
+
+  // useEffect(() => {
+  //   getConfig()
+  //     .then((data) => setConfig(data))
+  //     .catch((err) => setError(err.message));
+  // }, []);
+
+  // if (error) {
+  //   return <ErrorDisplay message={error} />;
+  // }
+
+  // if (!config) {
+  //   return <Loading />;
+  // }
+
   return (
-    <main className="container">
-      <Today />
-      <Media />
-      <Performance />
-    </main>
+    // <ConfigProvider config={config}>
+    <Container>
+      <Disks col={1} row={1} colSpan={1} rowSpan={2} />
+      <Weather col={2} row={1} colSpan={5} rowSpan={1} />
+      <Networks col={7} row={1} colSpan={1} rowSpan={2} />
+      <TimeDate col={3} row={2} colSpan={3} rowSpan={1} />
+      <MediaInfo col={3} row={3} colSpan={3} rowSpan={2} />
+      <PerfBox
+        col={2}
+        row={5}
+        colSpan={1}
+        rowSpan={1}
+        title="CPU"
+        refresh={100}
+        getter={getCpuUsage}
+        args={[]}
+        transform={async (v) => v ?? 0}
+      />
+      <Visualiser col={3} row={5} colSpan={3} rowSpan={1} component={FftBars} />
+      <PerfBox
+        col={6}
+        row={5}
+        colSpan={1}
+        rowSpan={1}
+        title="Memory"
+        refresh={100}
+        getter={getMemoryUsage}
+        args={[]}
+        transform={async (v) => (v ? (v[0] / v[1]) * 100 : 0)}
+      />
+    </Container>
+    // </ConfigProvider>
   );
 }
 
-function Today() {
-  const [now, setNow] = useState(DateTime.now());
-  const weather = useWeather(51.5074, -0.1278, 15 * 60 * 1000); // London coords
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(DateTime.now());
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
-  return (
-    <div className="today">
-      <div className="time">
-        <span>
-          {now.hour.toString().padStart(2, "0")}:
-          {now.minute.toString().padStart(2, "0")}
-          {now.hour < 12 ? " AM" : " PM"}
-        </span>
-      </div>
-      <div className="divider"></div>
-      <div className="date">
-        <span>
-          {now.weekdayLong}, {now.monthLong} {now.day}, {now.year}
-        </span>
-      </div>
-      <div className="weather">
-        <span>
-          {weather?.current.temperature.toFixed(0)}°C{" "}
-          {translateWeatherCode(weather?.current.weather_code || 100)}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function Media() {
-  const metadata = useMediaMetadata(4000);
-  const position = useMediaPosition(800);
+function Container<Children extends React.ReactElement<WidgetProps>[]>({
+  children,
+}: {
+  children: Children;
+}) {
+  let { children: newChildren } = fillGrid<Children>(children);
 
   return (
-    <div className="media-container">
-      <div className="media-cover">
-        <img
-          src={"data:image/jpeg;base64," + metadata?.album_art}
-          alt={metadata?.title}
-          className="cover-image"
-        />
-      </div>
-      <div className="media-title">{metadata?.title}</div>
-      <div className="media-artist">{metadata?.artist}</div>
-    </div>
-  );
-}
-
-function Performance() {
-  return (
-    <div className="performance">
-      <PerfBox title="CPU" refresh={100} hook={useCpuUsage} />
-      {/* <PerfBox title="Memory" refresh={100} hook={useMemoryUsage} /> */}
-      <FFT />
-      <PerfBox title="GPU" refresh={100} hook={() => 0} />
-      <PerfBox title="VRAM" refresh={100} hook={() => 0} />
-    </div>
-  );
-}
-
-function FFT() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frequencyData = useMediaFrequencyData(100);
-  const max = useMax(frequencyData?.reduce((a, b) => Math.max(a, b), 0) || 0);
-  const min = useMin(frequencyData?.reduce((a, b) => Math.min(a, b), 0) || 0);
-
-  useEffect(() => {
-    if (canvasRef.current && frequencyData) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      const width = canvas.width;
-      const height = canvas.height;
-      const barWidth = width / frequencyData.length;
-
-      ctx.clearRect(0, 0, width, height);
-      ctx.beginPath();
-      ctx.moveTo(0, height);
-      frequencyData.forEach((value, index) => {
-        const barHeight = ((value - min) / (max - min)) * height;
-        ctx.fillStyle = `rgb(${value}, ${255 - value}, 0)`;
-        ctx.fillRect(
-          index * barWidth,
-          height - barHeight,
-          barWidth - 1,
-          barHeight
+    <div className="container">
+      {newChildren.map((child, i) => {
+        const { col, row, colSpan, rowSpan } = child.props;
+        const style = {
+          gridColumn: colSpan ? `${col} / span ${colSpan}` : `${col}`,
+          gridRow: rowSpan ? `${row} / span ${rowSpan}` : `${row}`,
+        };
+        return (
+          <WidgetWrapper key={i} style={style}>
+            {child}
+          </WidgetWrapper>
         );
-        // ctx.lineTo(index * barWidth, height - barHeight);
-      });
-      ctx.stroke();
-      ctx.fillText(`FFT: ${max} - ${min}`, 10, 20);
-    }
-  }, [frequencyData, min, max]);
-
-  useEffect(() => {
-    const scale = () => {
-      if (canvasRef.current) {
-        const canvas = canvasRef.current;
-        canvas.width = canvas.clientWidth;
-        canvas.height = canvas.clientHeight;
-      }
-    };
-    if (canvasRef.current) {
-      scale();
-      window.addEventListener("resize", scale);
-      return () => window.removeEventListener("resize", scale);
-    }
-  }, []);
-
-  return (
-    <div className="fft">
-      <canvas ref={canvasRef}></canvas>
+      })}
     </div>
   );
 }
 
-function PerfBox({
-  title,
-  refresh,
-  hook,
-}: Readonly<{
-  title: string;
-  refresh: number;
-  hook: (refresh: number) => number | null;
-}>) {
-  const value = hook(refresh);
-  const smoothed = useSmoothed(value || 0, 3);
-  const history = useHistory(smoothed || 0, refresh / 2);
-
+function WidgetWrapper({
+  style,
+  children,
+}: {
+  style: React.CSSProperties;
+  children: React.ReactElement<WidgetProps>;
+}) {
+  //@ts-expect-error name does exist on type
+  const name = children.type.name || "Unknown";
   return (
-    <div className="perf-box">
-      <div className="perf-box-title">{title}</div>
-      <div className="perf-box-content">
-        <Line
-          datasetIdKey="id"
-          data={{
-            labels: history.map((_, i) => i),
-            datasets: [
-              {
-                id: "1",
-                data: history,
-                borderColor: "black",
-                borderWidth: 2,
-                fill: false,
-                tension: 0.1,
-                pointRadius: 0,
-              },
-            ],
-          }}
-          options={{
-            responsive: true,
-            scales: {
-              x: { display: false },
-              y: {
-                min: 0,
-                max: 100,
-                ticks: {
-                  display: false,
-                },
-              },
-            },
-            plugins: {
-              legend: {
-                display: false,
-                position: "top",
-              },
-            },
-          }}
+    <ErrorBoundary
+      key={"err-boundary-"}
+      fallbackRender={({ error }) => (
+        <ErrorDisplay
+          style={style}
+          message={`Something went wrong: ${name}: ${error.message}`}
         />
-      </div>
+      )}
+    >
+      <Suspense fallback={<span>Loading...</span>}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function fillGrid<Children extends React.ReactElement<WidgetProps>[]>(
+  children: Children
+) {
+  // Set CSS variables for grid dimensions
+  const maxCol = Math.max(
+    ...children.map((child) => child.props.col + (child.props.colSpan || 1) - 1)
+  );
+  const maxRow = Math.max(
+    ...children.map((child) => child.props.row + (child.props.rowSpan || 1) - 1)
+  );
+  document.documentElement.style.setProperty("--grid-cols", String(maxCol));
+  document.documentElement.style.setProperty("--grid-rows", String(maxRow));
+
+  // Create a grid to track occupied cells
+  let grid: {
+    content: ReactElement<WidgetProps> | string | null;
+    drawn: boolean;
+  }[][] = Array.from({ length: maxRow }, () =>
+    Array.from({ length: maxCol }, () => ({ content: null, drawn: false }))
+  );
+
+  // Populate the grid and check for overlaps
+  for (const child of children) {
+    //@ts-expect-error name does exist on type
+    const name = child.type.name || "Unknown";
+    const { col, row, colSpan = 1, rowSpan = 1 } = child.props;
+
+    for (let r = row - 1; r < row - 1 + rowSpan; r++) {
+      for (let c = col - 1; c < col - 1 + colSpan; c++) {
+        if (grid[r][c].content) {
+          console.warn(
+            `Warning: Overlapping widgets at row ${r + 1}, col ${c + 1}`
+          );
+        }
+        grid[r][c].content = name;
+      }
+    }
+
+    grid[row - 1][col - 1].content = child;
+  }
+
+  // Fill empty cells with placeholders
+  for (let r = 0; r < maxRow; r++) {
+    for (let c = 0; c < maxCol; c++) {
+      if (!grid[r][c].content) {
+        grid[r][c].content = (
+          <Box col={c + 1} row={r + 1} colSpan={1} rowSpan={1} />
+        );
+      }
+    }
+  }
+
+  // Flatten the grid to get the final list of children
+  const childrenList: ReactElement<WidgetProps>[] = [];
+  for (let r = 0; r < maxRow; r++) {
+    for (let c = 0; c < maxCol; c++) {
+      const { content, drawn } = grid[r][c];
+      if (!drawn && content && typeof content !== "string") {
+        childrenList.push(content);
+        grid[r][c].drawn = true;
+      }
+    }
+  }
+
+  return { children: childrenList };
+}
+
+function Box({ col, row, colSpan, rowSpan }: Readonly<WidgetProps>) {
+  const style = {
+    gridColumn: colSpan ? `${col} / span ${colSpan}` : `${col}`,
+    gridRow: rowSpan ? `${row} / span ${rowSpan}` : `${row}`,
+  };
+  return (
+    <div className="widget-border" style={style}>
+      {`(${col}, ${row})`}
     </div>
   );
 }

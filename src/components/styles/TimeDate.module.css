@@ -1,0 +1,44 @@
+.timeDate {
+  display: grid;
+  grid-template:
+    "time divider date" 1fr
+    "time divider weather" 1fr
+    / 1fr 4rem 1fr;
+  place-items: center stretch;
+  margin: auto 0;
+}
+
+.time {
+  grid-area: time;
+  font-size: 3rem;
+  text-align: right;
+}
+
+.divider {
+  grid-area: divider;
+  height: 90%;
+  &::after {
+    content: "";
+    display: block;
+    width: 2px;
+    height: 100%;
+    background: #fafafa;
+    opacity: 0.2;
+    margin: 0 auto;
+  }
+}
+.date {
+  grid-area: date;
+  font-size: 1.5rem;
+  text-align: left;
+}
+.weather {
+  grid-area: weather;
+  font-size: 1.2rem;
+  text-align: left;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
