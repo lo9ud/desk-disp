@@ -26,6 +26,12 @@
 - compilation and packaging for distribution
   - needs github actions for merge -> compile -> release pipeline
   - need to set up proper branching strategy
+- complete CI/CD pipeline with testing, linting, etc.
+  - unit tests for Rust code; integration tests for Tauri API and overall app behaviour; snapshot or visual regression tests for React components and layouts
+  - linting with clippy for Rust and eslint for TypeScript, with strict rules to enforce code quality and consistency
+  - build
+  - releases
+  - needs versioning strategy and changelog management
 
 ## Refinements - improvements to existing features or code quality
 
@@ -48,7 +54,6 @@
   - maybe add a client logo/icon alot to relevant widgets and/or the media subscription? e.g. Playing &lt;song title&gt; via &lt;client logo&gt; etc.
 - Modal has slightly weird semantics around titles/actions, rather have it accept something like:
   - a object/array of objects describing the buttons
-
     - ```tsx
       <Modal
         title="Title"
@@ -65,6 +70,7 @@
   - presets? (more complex that warranted perhaps)
   - multiple layout/sizing options? small confirmation dialog vs full-page overlay for critical errors or onboarding etc.
   - should help the temptation to constantly special-case everything, rather have a consistent API for actions across the app
+
 - widgets should have an error boundary to contain issues and keep local problems from affecting the whole app
   - should explain the error and offer options to reset the widget or open settings to fix it
 - widget backgrounds should properly border the actual widget content, to maximise legibility over transparent backgrounds + complex wallpapers
@@ -89,12 +95,12 @@
     - waiting on APOD/quote widgets to be added to have enough for this
 - "Confirm discard changes?" popup in edit mode when trying to navigate away with unsaved changes
 - Free-placement mode as an option?
-  - just set an arbitrary number of rows and columns (note some collisions are O(n*m) in rows/columns)
+  - just set an arbitrary number of rows and columns (note some collisions are O(n\*m) in rows/columns)
   - secondary renderer?
     - repurpose rwo/col/rowspan/colspan as absolute positioning and size in px instead of grid units?
   - look into faster geometric algorithms for collision detection/bounds
   - snap-grid option (measured in px not grid units) for free-placement mode to help with alignment?
-- visualizer needs completion 
+- visualizer needs completion
   - horizontal bars
   - colour options
     - rainbow mode? (+ hue-rotate?)
@@ -110,7 +116,7 @@
   - Possibly extend to other streams, e.g. media subscription, if similar thrashing is observed there
 - Some inconsistencies found with when stream are opened and closed across layout edit boundary, needs investigation as to when widgets are actually broadcasting subscribe/unsubscribe events, and whether any streams are left open unnecessarily or fail to reopen when needed
 - widget settings null on layout load — covered by the widget settings type system overhaul refinement (`collectDefaults` + `coerceSettings` at layout load time)
-- properly define and enforce the widget min/max sizes in the registry and edit grid, currently they are just ignored and any widget can be resized to any size 
+- properly define and enforce the widget min/max sizes in the registry and edit grid, currently they are just ignored and any widget can be resized to any size
   - pixels or grid units?
   - better api for responsive widgets maybe? i.e.small/wide/tall/big variants? hook into registerWidget (provide all variants and let the widget pick which one to use based on its size? - override manually?)
 - really need proper handling of corrupted/out-of-date config/layout/theme files, very mixed behaviour depending on field and widget type; some fields are silently ignored, some cause errors, some cause silent fallback to defaults, etc. Should be a consistent approach across all fields and widgets, with user-friendly error messages and fallback to defaults where possible (e.g. unknown fields dropped with a warn log, wrong-typed values replaced with the setting's default if any and a warn log, otherwise dropped with a warn log)
