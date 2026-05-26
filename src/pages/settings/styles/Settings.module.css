@@ -1,0 +1,80 @@
+.page {
+  background: var(--ui-base);
+  color: var(--ui-text);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* gap: 12px; */
+  height: 100vh;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--ui-text);
+  margin-left: 1rem;
+  margin-top: 1rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: row;
+  &::after {
+    content: "";
+    flex: 1;
+    border-bottom: 2px solid var(--ui-border);
+  }
+}
+
+.tabContent {
+  padding: 1rem;
+  overflow-y: scroll;
+  flex: 1;
+}
+
+.contentContainer {
+  height: 100%;
+}
+
+.sectionTitle {
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ui-text-muted);
+  border: none;
+  border-bottom: 2px solid var(--ui-border);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+
+  &.active {
+    color: var(--ui-text);
+    border-color: var(--ui-accent);
+    border-width: 3px;
+    padding-bottom: 1rem;
+    font-weight: 700;
+  }
+}
+
+.hidden {
+  display: none;
+}
+
+hr {
+  border: none;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.button_row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}

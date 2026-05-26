@@ -1,0 +1,44 @@
+.readout {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-self: stretch;
+  align-items: baseline;
+  gap: 0.5rem;
+
+  &:has(>:only-child) {
+    justify-content: center;
+  }
+}
+
+.title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+}
+
+.subtitle {
+  font-size: 0.66rem;
+  color: var(--color-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}

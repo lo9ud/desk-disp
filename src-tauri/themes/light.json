@@ -1,0 +1,20 @@
+{
+  "id": "3227d82e-90a3-421e-8a36-29b43d5ab18c",
+  "name": "Light",
+  "color_scheme": "light",
+  "vars": [
+    { "type": "color", "label": "base",        "value": "#f5f5f5" },
+    { "type": "color", "label": "surface",     "value": "#e8e8e8" },
+    { "type": "color", "label": "border",      "value": "#cccccc" },
+    { "type": "color", "label": "text",        "value": "#1a1a1a" },
+    { "type": "color", "label": "text-dim",    "value": "#333333" },
+    { "type": "color", "label": "text-muted",  "value": "#666666" },
+    { "type": "color", "label": "text-subtle", "value": "#999999" },
+    { "type": "color", "label": "accent",      "value": "hsl(200, 65%, 40%)" },
+    { "type": "color", "label": "success",     "value": "hsl(120, 55%, 35%)" },
+    { "type": "color", "label": "warning",     "value": "hsl(45, 75%, 40%)" },
+    { "type": "color", "label": "danger",      "value": "hsl(0, 65%, 45%)" },
+    { "type": "font",  "label": "ui",          "value": ["Quicksand", "sans-serif"] },
+    { "type": "font",  "label": "mono",        "value": ["monospace"] }
+  ]
+}

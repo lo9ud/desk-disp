@@ -1,114 +1,164 @@
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
 use crate::AppState;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+use ts_rs::TS;
 
-pub mod cpu {
-    use std::collections::HashMap;
+#[derive(serde::Serialize, Clone, TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+pub struct Core {
+    pub name: String,
+    pub frequency: u64,
+    pub usage: f32,
+}
 
-    use super::{AppState, Manager};
+#[derive(serde::Serialize, Clone, TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+pub struct Processor {
+    pub brand: String,
+    pub cores: Vec<Core>,
+}
 
-    #[derive(serde::Serialize)]
-    pub struct Core {
-        pub name: String,
-        pub frequency: u64,
-        pub usage: f32,
-    }
+#[derive(serde::Serialize, Clone, TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+pub struct CpuStats {
+    pub global_usage: f32,
+    pub processors: Vec<Processor>,
+    pub total_physical_cores: usize,
+    pub total_logical_cores: usize,
+}
 
-    #[derive(serde::Serialize)]
-    pub struct Processor {
-        pub brand: String,
-        pub cores: Vec<Core>,
-    }
+#[derive(serde::Serialize, Clone, TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+pub struct MemoryStats {
+    pub used: u64,
+    pub total: u64,
+    pub swap_used: u64,
+    pub swap_total: u64,
+}
 
-    #[derive(serde::Serialize)]
-    pub struct Processors {
-        processors: Vec<Processor>,
-        total_physical_cores: usize,
-        total_logical_cores: usize,
-    }
+#[derive(serde::Serialize, Clone, TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+pub struct SystemStats {
+    pub cpu: CpuStats,
+    pub memory: MemoryStats,
+}
 
-    #[tauri::command]
-    pub async fn get_processors(app: tauri::AppHandle) -> Result<Processors, String> {
-        let state = app.state::<AppState>();
-        let mut state = state.lock().await;
-        state.system_info.refresh_cpu_all();
-        let mut cores = HashMap::new();
-        for cpu in state.system_info.cpus() {
-            let entry = cores
-                .entry(cpu.brand().to_string())
-                .or_insert_with(|| Processor {
-                    brand: cpu.brand().trim().to_string(),
-                    cores: Vec::new(),
-                });
-            entry.cores.push(Core {
-                name: cpu.name().to_string(),
-                frequency: cpu.frequency(),
-                usage: cpu.cpu_usage(),
+#[derive(serde::Serialize, Clone, TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+pub struct DiskInfo {
+    pub name: String,
+    pub mount_point: String,
+    pub file_system: String,
+    pub kind: String,
+    pub total_space: u64,
+    pub available_space: u64,
+}
+
+#[derive(serde::Serialize, Clone, TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+pub struct NetworkInterfaceInfo {
+    pub name: String,
+    pub received: u64,
+    pub transmitted: u64,
+    pub total_received: u64,
+    pub total_transmitted: u64,
+    pub mac_address: String,
+}
+
+#[derive(serde::Serialize, Clone, TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+pub struct TemperatureReading {
+    pub label: String,
+    pub current: f32,
+    pub max: f32,
+}
+
+#[derive(serde::Serialize, Clone, TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+pub struct HardwareStats {
+    pub disks: Vec<DiskInfo>,
+    pub networks: Vec<NetworkInterfaceInfo>,
+    pub temperatures: Vec<TemperatureReading>,
+}
+
+fn collect_system_stats(sys: &sysinfo::System) -> SystemStats {
+    let mut processors: HashMap<String, Processor> = HashMap::new();
+    for cpu in sys.cpus() {
+        let entry = processors
+            .entry(cpu.brand().to_string())
+            .or_insert_with(|| Processor {
+                brand: cpu.brand().trim().to_string(),
+                cores: Vec::new(),
             });
-        }
+        entry.cores.push(Core {
+            name: cpu.name().to_string(),
+            frequency: cpu.frequency(),
+            usage: cpu.cpu_usage(),
+        });
+    }
 
-        Ok(Processors {
-            processors: cores.into_values().collect(),
+    SystemStats {
+        cpu: CpuStats {
+            global_usage: sys.global_cpu_usage(),
+            processors: processors.into_values().collect(),
             total_physical_cores: num_cpus::get_physical(),
             total_logical_cores: num_cpus::get(),
-        })
-    }
-
-    #[tauri::command]
-    pub async fn get_cpu_usage(app: tauri::AppHandle) -> Result<f32, String> {
-        let state = app.state::<AppState>();
-        let mut state = state.lock().await;
-        state.system_info.refresh_cpu_usage();
-        Ok(state.system_info.global_cpu_usage())
-    }
-}
-pub mod memory {
-    use super::{AppState, Manager};
-
-    #[tauri::command]
-    pub async fn get_memory_usage(app: tauri::AppHandle) -> Result<(u64, u64), String> {
-        let state = app.state::<AppState>();
-        let mut state = state.lock().await;
-        state.system_info.refresh_memory();
-        Ok((
-            state.system_info.used_memory(),
-            state.system_info.total_memory(),
-        ))
-    }
-
-    #[tauri::command]
-    pub async fn get_swap_usage(app: tauri::AppHandle) -> Result<(u64, u64), String> {
-        let state = app.state::<AppState>();
-        let mut state = state.lock().await;
-        state.system_info.refresh_memory();
-        Ok((
-            state.system_info.used_swap(),
-            state.system_info.total_swap(),
-        ))
+        },
+        memory: MemoryStats {
+            used: sys.used_memory(),
+            total: sys.total_memory(),
+            swap_used: sys.used_swap(),
+            swap_total: sys.total_swap(),
+        },
     }
 }
 
-pub mod disk {
-    use super::{AppState, Manager};
-
-    #[derive(serde::Serialize)]
-    pub struct DiskDetails {
-        pub name: String,
-        pub mount_point: String,
-        pub file_system: String,
-        pub kind: String,
-        pub total_space: u64,
-        pub available_space: u64,
+pub async fn run_system_loop(app: tauri::AppHandle, subscribers: Arc<AtomicUsize>, poll_interval: Duration) {
+    const TARGET: &str = "system";
+    tracing::info!(target: TARGET, "system loop started");
+    let mut interval = tokio::time::interval(poll_interval);
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    let mut last_had_subs = false;
+    loop {
+        interval.tick().await;
+        let sub_count = subscribers.load(Ordering::Relaxed);
+        if sub_count == 0 {
+            if last_had_subs {
+                tracing::info!(target: TARGET, "no subscribers — pausing system updates");
+                last_had_subs = false;
+            }
+            continue;
+        }
+        if !last_had_subs {
+            tracing::info!(target: TARGET, sub_count, "subscriber(s) active — resuming system updates");
+            last_had_subs = true;
+        }
+        let stats = {
+            let state = app.state::<AppState>();
+            let mut state = state.lock().await;
+            state.system_info.refresh_cpu_all();
+            state.system_info.refresh_memory();
+            collect_system_stats(&state.system_info)
+        };
+        if let Ok(value) = serde_json::to_value(&stats) {
+            app.state::<crate::ChannelCache>().set("system", value);
+        }
+        let _ = app.emit(crate::events::STREAM_SYSTEM, stats);
     }
+}
 
-    #[tauri::command]
-    pub async fn get_disk_details(app: tauri::AppHandle) -> Result<Vec<DiskDetails>, String> {
-        let state = app.state::<AppState>();
-        let mut state = state.lock().await;
-        state.disks.refresh(true);
-        Ok(state
-            .disks
+fn collect_hardware_stats(
+    disks: &sysinfo::Disks,
+    networks: &sysinfo::Networks,
+    components: &sysinfo::Components,
+) -> HardwareStats {
+    HardwareStats {
+        disks: disks
             .iter()
-            .map(|disk| DiskDetails {
+            .map(|disk| DiskInfo {
                 name: disk.name().to_string_lossy().to_string(),
                 mount_point: disk.mount_point().to_string_lossy().to_string(),
                 file_system: disk.file_system().to_string_lossy().to_string(),
@@ -116,75 +166,66 @@ pub mod disk {
                 total_space: disk.total_space(),
                 available_space: disk.available_space(),
             })
-            .collect())
-    }
-}
-
-pub mod temperature {
-    use super::{AppState, Manager};
-
-    #[derive(serde::Serialize)]
-    pub struct Temperature {
-        pub id: String,
-        pub label: String,
-        pub current: f32,
-        pub max: f32,
-    }
-
-    #[tauri::command]
-    pub async fn get_temperatures(app: tauri::AppHandle) -> Result<Vec<Temperature>, String> {
-        let state = app.state::<AppState>();
-        let mut state = state.lock().await;
-        state.components.refresh(true);
-        Ok(state
-            .components
+            .collect(),
+        networks: networks
             .iter()
-            .map(|comp| Temperature {
-                id: comp.id().unwrap_or("Unknown").to_string(),
+            .filter_map(|(name, data)| {
+                let mac = data.mac_address();
+                if mac.is_unspecified() {
+                    return None;
+                }
+                Some(NetworkInterfaceInfo {
+                    name: name.clone(),
+                    received: data.received(),
+                    transmitted: data.transmitted(),
+                    total_received: data.total_received(),
+                    total_transmitted: data.total_transmitted(),
+                    mac_address: mac.to_string(),
+                })
+            })
+            .collect(),
+        temperatures: components
+            .iter()
+            .map(|comp| TemperatureReading {
                 label: comp.label().to_string(),
                 current: comp.temperature().unwrap_or(f32::NAN),
                 max: comp.max().unwrap_or(f32::NAN),
             })
-            .collect())
+            .collect(),
     }
 }
 
-pub mod network {
-    use super::{AppState, Manager};
-
-    #[derive(serde::Serialize)]
-    pub struct NetworkInterface {
-        pub name: String,
-        pub received: u64,
-        pub transmitted: u64,
-        pub mtu: u64,
-        pub mac_address: String,
-    }
-
-    #[tauri::command]
-    pub async fn get_network_interfaces(
-        app: tauri::AppHandle,
-    ) -> Result<Vec<NetworkInterface>, String> {
-        let state = app.state::<AppState>();
-        let mut state = state.lock().await;
-        state.networks.refresh(false);
-        Ok(state
-            .networks
-            .iter()
-            .filter_map(|(name, data)| {
-                let mac_address = data.mac_address();
-                if mac_address.is_unspecified() {
-                    None
-                } else {
-                    Some(NetworkInterface {
-                        name: name.clone(),
-                        received: data.received(),
-                        transmitted: data.transmitted(),
-                        mtu: data.mtu(),
-                        mac_address: mac_address.to_string(),
-                    })
-                }
-            })
-            .collect())
+pub async fn run_hardware_loop(app: tauri::AppHandle, subscribers: Arc<AtomicUsize>, poll_interval: Duration) {
+    const TARGET: &str = "hardware";
+    tracing::info!(target: TARGET, "hardware loop started");
+    let mut interval = tokio::time::interval(poll_interval);
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    let mut last_had_subs = false;
+    loop {
+        interval.tick().await;
+        let sub_count = subscribers.load(Ordering::Relaxed);
+        if sub_count == 0 {
+            if last_had_subs {
+                tracing::info!(target: TARGET, "no subscribers — pausing hardware updates");
+                last_had_subs = false;
+            }
+            continue;
+        }
+        if !last_had_subs {
+            tracing::info!(target: TARGET, sub_count, "subscriber(s) active — resuming hardware updates");
+            last_had_subs = true;
+        }
+        let stats = {
+            let state = app.state::<AppState>();
+            let mut state = state.lock().await;
+            state.disks.refresh(false);
+            state.networks.refresh(false);
+            state.components.refresh(false);
+            collect_hardware_stats(&state.disks, &state.networks, &state.components)
+        };
+        if let Ok(value) = serde_json::to_value(&stats) {
+            app.state::<crate::ChannelCache>().set("hardware", value);
+        }
+        let _ = app.emit(crate::events::STREAM_HARDWARE, stats);
     }
 }

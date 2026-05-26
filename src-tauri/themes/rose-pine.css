@@ -1,0 +1,15 @@
+/* desk-disp — Rosé Pine Moon */
+:root {
+  color-scheme: dark;
+  --color-base:        #232136;
+  --color-surface:     #2a273f;
+  --color-border:      #44415a;
+  --color-text:        #e0def4;
+  --color-text-dim:    #c8c2e0;
+  --color-text-muted:  #908caa;
+  --color-text-subtle: #6e6a86;
+  --color-accent:      #c4a7e7;
+  --color-success:     #9ccfd8;
+  --color-warning:     #f6c177;
+  --color-danger:      #eb6f92;
+}

@@ -1,0 +1,17 @@
+.container {
+  display: flex;
+  align-content: center;
+  gap: 4px;
+}
+
+.simple {
+  flex-direction: row;
+}
+
+.dense {
+  flex-direction: column;
+}
+
+.container > * {
+  flex: 1 1 0;
+}

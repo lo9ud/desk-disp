@@ -1,21 +1,69 @@
 @font-face {
   font-family: Quicksand;
-  src: url("./assets/fonts/Quicksand-VariableFont_wght.ttf");
+  src: url("./assets/fonts/Quicksand-VariableFont_wght.ttf")
+    format("truetype-variations");
   font-weight: 300 700;
-
+  font-style: normal;
+  font-display: block;
 }
 
-
-
 :root {
-  font-family: Quicksand, sans-serif;
-  font-size: 16px;
-  /* line-height: 24px; */
+  /* Surfaces */
+  --color-base: #0b0d10;
+  --color-surface: #1a1d22;
+  --color-border: #2a2a2a;
+
+  /* Text hierarchy */
+  --color-text: #fafafa;
+  --color-text-dim: #e0e0e0;
+  --color-text-muted: #888888;
+  --color-text-subtle: #555555;
+
+  /* Status / accent  */
+  --color-accent: hsl(200, 65%, 55%);
+  --color-success: hsl(120, 65%, 50%);
+  --color-warning: hsl(45, 80%, 55%);
+  --color-danger: hsl(0, 65%, 50%);
+
+  /* Typography */
+  --font-ui: Quicksand, sans-serif;
+  --font-mono: monospace;
+  --scale-font: 1;
+
+  /* Animation */
+  --duration-fast: 150ms;
+  --duration-normal: 400ms;
+
+  /* Geometry */
+  --radius-sm: 3px;
+  --radius-md: 16px;
+  --radius-full: 9999px;
+  --grid-gap: 6px;
+
+  /* UI chrome (dev-only, adapts to theme color-scheme)*/
+  --ui-base: light-dark(#f0f0f2, #0d0f12);
+  --ui-control: light-dark(#d5d5d5, #22252c);
+  --ui-control-hover: light-dark(#c8c8c8, #2c3040);
+  --ui-control-active: light-dark(#b8b8b8, #181a20);
+  --ui-surface: light-dark(#e4e4e4, #1a1d22);
+  --ui-border: light-dark(#c0c0c0, #2e2e2e);
+  --ui-text: light-dark(#141414, #fafafa);
+  --ui-text-muted: light-dark(#666666, #888888);
+  --ui-text-subtle: light-dark(#999999, #555555);
+  --ui-accent: light-dark(hsl(200, 65%, 40%), hsl(200, 65%, 55%));
+  --ui-success: light-dark(hsl(120, 55%, 35%), hsl(120, 55%, 45%));
+  --ui-warning: light-dark(hsl(45, 75%, 38%), hsl(45, 75%, 50%));
+  --ui-danger: light-dark(hsl(0, 65%, 42%), hsl(0, 65%, 50%));
+  --ui-radius-control: 4px;
+  --ui-radius-panel: 8px;
+
+  /* Applied */
+  font-family: var(--font-ui);
   font-weight: 400;
 
-  font-synthesis: weight;
+  font-synthesis: none;
   text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+  shape-rendering: geometricPrecision;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 }
@@ -25,62 +73,23 @@ html,
 #root {
   height: 100%;
   width: 100%;
-  background: #0b0d10;
+  color: var(--color-text);
 }
+
+/* debug: show all elements */
+/* #root > * > .widget {
+  outline: 1px magenta dashed;
+} */
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   background: none;
-  color: #fafafa;
   user-select: none;
-}
-
-.container {
-  display: grid;
-  grid-template-rows: repeat(var(--grid-rows), 1fr);
-  grid-template-columns: repeat(var(--grid-cols), 1fr);
-  height: 100vh;
-  width: 100vw;
-  padding: 25px;
-  place-items: stretch;
-  gap: 60px;
-}
-
-.app-splash {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  width: 100%;
-  background: #0b0d10;
-  outline: 1px solid #222;
-  padding: 1rem;
-}
-
-.loading {
-  font-size: 1.5rem;
-  color: #888;
-  & pre {
-    display: inline;
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: inherit;
-    & span {
-      display: inline-block;
-      min-width: 0.5ch;
-      text-align: center;
-    }
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox, Safari 18.2+, Chromium 121+ */
+  &::-webkit-scrollbar {
+    display: none; /* Older Safari and Chromium */
   }
-}
-
-.widget-border {
-  display: none;
-  border: 1px solid #222;
-  /* display: flex; */
-  justify-content: center;
-  align-items: center;
-  font-size: 0.8rem;
-  color: #444;
 }

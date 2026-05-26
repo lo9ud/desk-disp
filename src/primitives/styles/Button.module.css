@@ -1,0 +1,121 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: var(--ui-radius-control);
+  border: 1px solid var(--ui-border);
+  background: var(--ui-control);
+  color: var(--ui-text);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+
+  &:hover:not(:disabled) {
+    background: var(--ui-control-hover);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--ui-control-active);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  & > svg {
+    width: 1.2em;
+    height: 1.2em;
+  }
+  
+  &:has(svg:only-child) {
+    padding: 0.3rem;
+  }
+}
+
+.sm {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ui-text-muted);
+
+  &:hover:not(:disabled) {
+    background: var(--ui-control);
+    border-color: var(--ui-border);
+    color: var(--ui-text);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--ui-control-active);
+  }
+}
+
+.accent {
+  background: color-mix(in srgb, var(--ui-accent) 20%, var(--ui-control));
+  border-color: color-mix(in srgb, var(--ui-accent) 40%, var(--ui-border));
+  color: var(--ui-accent);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ui-accent) 30%, var(--ui-control));
+  }
+
+  &:active:not(:disabled) {
+    background: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-control));
+  }
+}
+
+.danger {
+  background: color-mix(in srgb, var(--ui-danger) 20%, var(--ui-control));
+  border-color: color-mix(in srgb, var(--ui-danger) 40%, var(--ui-border));
+  color: var(--ui-danger);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ui-danger) 30%, var(--ui-control));
+  }
+
+  &:active:not(:disabled) {
+    background: color-mix(in srgb, var(--ui-danger) 45%, var(--ui-control));
+  }
+}
+
+.warning {
+  background: color-mix(in srgb, var(--ui-warning) 20%, var(--ui-control));
+  border-color: color-mix(in srgb, var(--ui-warning) 40%, var(--ui-border));
+  color: var(--ui-warning);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ui-warning) 30%, var(--ui-control));
+  }
+
+  &:active:not(:disabled) {
+    background: color-mix(in srgb, var(--ui-warning) 45%, var(--ui-control));
+  }
+}
+
+
+.ghost_danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ui-text-muted);
+
+  &:hover:not(:disabled) {
+    color: var(--ui-danger);
+    background: color-mix(in srgb, var(--ui-danger) 5%, var(--ui-control));
+    border-color: color-mix(in srgb, var(--ui-danger) 10%, var(--ui-border));
+  }
+
+  &:active:not(:disabled) {
+    background: color-mix(in srgb, var(--ui-danger) 45%, var(--ui-control));
+  }
+}

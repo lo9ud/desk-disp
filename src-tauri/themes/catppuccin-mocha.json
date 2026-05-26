@@ -1,0 +1,20 @@
+{
+  "id": "4d6cef34-219c-4b4a-8005-989ad37e70d3",
+  "name": "Catppuccin Mocha",
+  "color_scheme": "dark",
+  "vars": [
+    { "type": "color", "label": "base",        "value": "#1e1e2e" },
+    { "type": "color", "label": "surface",     "value": "#313244" },
+    { "type": "color", "label": "border",      "value": "#45475a" },
+    { "type": "color", "label": "text",        "value": "#cdd6f4" },
+    { "type": "color", "label": "text-dim",    "value": "#bac2de" },
+    { "type": "color", "label": "text-muted",  "value": "#a6adc8" },
+    { "type": "color", "label": "text-subtle", "value": "#7f849c" },
+    { "type": "color", "label": "accent",      "value": "#89b4fa" },
+    { "type": "color", "label": "success",     "value": "#a6e3a1" },
+    { "type": "color", "label": "warning",     "value": "#f9e2af" },
+    { "type": "color", "label": "danger",      "value": "#f38ba8" },
+    { "type": "font",  "label": "ui",          "value": ["Quicksand", "sans-serif"] },
+    { "type": "font",  "label": "mono",        "value": ["monospace"] }
+  ]
+}

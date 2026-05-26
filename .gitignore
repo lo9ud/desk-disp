@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# generated license attribution data (rebuilt on each build via pnpm gen-licenses)
+src/generated/licenses-npm.json
+src/generated/licenses-cargo.json
+src/generated/licenses-cargo-raw.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

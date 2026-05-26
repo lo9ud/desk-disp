@@ -1,0 +1,227 @@
+{
+  "id": "3dd07989-2eda-4a0b-83f8-ef66323e85a4",
+  "name": "Demo Layout",
+  "grid_rows": 6,
+  "grid_cols": 5,
+  "gap": 6,
+  "padding": { "top": 24, "right": 24, "bottom": 24, "left": 24 },
+  "widgets": [
+    {
+      "id": "8f4259a6eea5ecbc",
+      "type": "bandwidth",
+      "placement": {
+        "col": 5,
+        "row": 1,
+        "col_span": 1,
+        "row_span": 1
+      }
+    },
+    {
+      "id": "e7944dd43b3b93c1",
+      "type": "album_art",
+      "placement": {
+        "col": 1,
+        "row": 2,
+        "col_span": 2,
+        "row_span": 3
+      },
+      "options": {
+        "blur": true,
+        "style": "square"
+      }
+    },
+    {
+      "id": "3fe6420187d1fc86",
+      "type": "media_detail",
+      "placement": {
+        "col": 1,
+        "row": 5,
+        "col_span": 2,
+        "row_span": 1
+      },
+      "options": {
+        "showControls": true
+      }
+    },
+    {
+      "id": "af2363de8185001f",
+      "type": "performance",
+      "placement": {
+        "col": 1,
+        "row": 1,
+        "col_span": 1,
+        "row_span": 1
+      },
+      "options": {
+        "style": "simple"
+      }
+    },
+    {
+      "id": "aeb089d48025f3b0",
+      "type": "visualizer",
+      "placement": {
+        "col": 1,
+        "row": 6,
+        "col_span": 2,
+        "row_span": 1
+      },
+      "options": {
+        "barCount": 76,
+        "barStyle": "bar",
+        "direction": "vertical",
+        "flip": "both",
+        "freqTrimBottom": 0,
+        "freqTrimTop": 0,
+        "innerRadius": 0.5,
+        "mirror": "both",
+        "reflect": "horiz",
+        "showWhenIdle": true,
+        "smoothing": 0.7,
+        "style": "bars"
+      }
+    },
+    {
+      "id": "91f98b34c4e750b3",
+      "type": "system_temp",
+      "placement": {
+        "col": 3,
+        "row": 1,
+        "col_span": 1,
+        "row_span": 1
+      }
+    },
+    {
+      "id": "dd18a5acdf679063",
+      "type": "quote",
+      "placement": {
+        "col": 4,
+        "row": 1,
+        "col_span": 1,
+        "row_span": 1
+      },
+      "options": {
+        "updateUnit": "hour"
+      }
+    },
+    {
+      "id": "6404ab1ce9940022",
+      "type": "performance",
+      "placement": {
+        "col": 2,
+        "row": 1,
+        "col_span": 1,
+        "row_span": 1
+      },
+      "options": {
+        "style": "dense"
+      }
+    },
+    {
+      "id": "8155c51b2895b064",
+      "type": "visualizer",
+      "placement": {
+        "col": 3,
+        "row": 2,
+        "col_span": 2,
+        "row_span": 4
+      },
+      "options": {
+        "barCount": 36,
+        "barStyle": "radial",
+        "direction": "circular",
+        "flip": "none",
+        "freqTrimBottom": 0,
+        "freqTrimTop": 0,
+        "innerRadius": 0.5,
+        "mirror": "horiz",
+        "showWhenIdle": true,
+        "style": "bars"
+      }
+    },
+    {
+      "id": "5bbe21f8bea56094",
+      "type": "cpu",
+      "placement": {
+        "col": 5,
+        "row": 2,
+        "col_span": 1,
+        "row_span": 1
+      },
+      "options": {
+        "showDetail": true,
+        "style": "bar"
+      }
+    },
+    {
+      "id": "5f6c3ba68a8ef0c4",
+      "type": "memory",
+      "placement": {
+        "col": 5,
+        "row": 3,
+        "col_span": 1,
+        "row_span": 1
+      },
+      "options": {
+        "showDetail": true,
+        "style": "bar"
+      }
+    },
+    {
+      "id": "f7c049b0bb1b1021",
+      "type": "swap",
+      "placement": {
+        "col": 5,
+        "row": 4,
+        "col_span": 1,
+        "row_span": 1
+      },
+      "options": {
+        "showDetail": true,
+        "style": "bar"
+      }
+    },
+    {
+      "id": "e17d0d83cdab78ed",
+      "type": "media_info",
+      "placement": {
+        "col": 5,
+        "row": 5,
+        "col_span": 1,
+        "row_span": 1
+      }
+    },
+    {
+      "id": "e183184dc07a20bd",
+      "type": "media_progress",
+      "placement": {
+        "col": 3,
+        "row": 6,
+        "col_span": 1,
+        "row_span": 1
+      }
+    },
+    {
+      "id": "4a355cd2e87ad8ba",
+      "type": "media_controls",
+      "placement": {
+        "col": 4,
+        "row": 6,
+        "col_span": 1,
+        "row_span": 1
+      }
+    },
+    {
+      "id": "12f158cd6b630c2f",
+      "type": "error_test",
+      "placement": {
+        "col": 5,
+        "row": 6,
+        "col_span": 1,
+        "row_span": 1
+      },
+      "options": {
+        "throwOn": "render"
+      }
+    }
+  ]
+}

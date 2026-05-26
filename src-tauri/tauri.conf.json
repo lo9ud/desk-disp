@@ -4,24 +4,19 @@
   "version": "0.1.0",
   "identifier": "com.adamd.desk-disp",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm tauri:predev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "pnpm tauri:prebuild",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "desk-disp",
-        "label": "main",
-        "alwaysOnBottom": true,
-        "resizable": false,
-        "decorations": false,
-        "transparent": true,
-        "shadow": false,
-        "skipTaskbar": true,
-        "maximized": true,
-        "visible": false
+        "title": "desk-disp - Settings",
+        "label": "settings",
+        "visible": false,
+        "width": 1200,
+        "height": 800
       }
     ],
     "security": {
@@ -33,11 +28,11 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
+      "icons/dark/32x32.png",
+      "icons/dark/128x128.png",
+      "icons/dark/128x128@2x.png",
+      "icons/dark/icon.icns",
+      "icons/dark/icon.ico"
     ]
   }
 }

@@ -1,0 +1,42 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+}
+
+.control {
+  background: none;
+  border: none;
+}
+
+.control > * {
+  background: transparent;
+  border: none;
+  transition:
+    background-color 150ms ease-out,
+    backdrop-filter 150ms ease-out,
+    box-shadow 150ms ease-out;
+  color: var(--color-text);
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--color-text) 20%, transparent);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 8px 8px
+      color-mix(in srgb, var(--color-text) 25%, transparent);
+  }
+}
+
+.control:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: all;
+}

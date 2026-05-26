@@ -1,0 +1,51 @@
+.track {
+  position: relative;
+  width: 40px;
+  height: 1rem;
+  border: 1px solid var(--ui-border);
+  background-color: var(--ui-control);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.track:has(input:checked) {
+  background-color: var(--ui-accent);
+  border-color: var(--ui-accent);
+}
+
+.thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1rem - 6px);
+  height: calc(1rem - 6px);
+  background-color: var(--ui-text);
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.track:has(input:checked) .thumb {
+  transform: translateX(23px);
+}
+
+.hiddenInput {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.track:has(input:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+
+  & .hiddenInput {
+    cursor: not-allowed;
+  }
+}

@@ -1,0 +1,21 @@
+.colorInput {
+  width: 2.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-control);
+  background: none;
+  padding: 1px;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--ui-control);
+  }
+}
+
+.colorInputWithTransparent {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  justify-content: space-between;
+}

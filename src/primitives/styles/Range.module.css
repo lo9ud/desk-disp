@@ -1,0 +1,21 @@
+.group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.range {
+  flex: 1;
+  accent-color: var(--ui-accent);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.value {
+  font-size: 0.75rem;
+  color: var(--ui-text-muted);
+  min-width: 5ch;
+  text-align: right;
+  flex-shrink: 0;
+}

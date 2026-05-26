@@ -1,0 +1,28 @@
+.pie {
+  width: var(--pie-size, 64px);
+  height: var(--pie-size, 64px);
+  display: block;
+}
+
+.track {
+  fill: none;
+  stroke: var(--color-surface);
+  stroke-width: var(--pie-thickness, 4);
+}
+
+.fill {
+  fill: none;
+  stroke: var(--pie-color);
+  stroke-width: var(--pie-thickness, 4);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.4s ease, stroke 0.4s ease;
+}
+
+.label {
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  fill: var(--color-text-dim);
+}

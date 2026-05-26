@@ -1,0 +1,20 @@
+{
+  "id": "e58e167b-8c7d-4b88-9c20-46b25147ab25",
+  "name": "Dark",
+  "color_scheme": "dark",
+  "vars": [
+    { "type": "color", "label": "base",        "value": "#0b0d10" },
+    { "type": "color", "label": "surface",     "value": "#1a1d22" },
+    { "type": "color", "label": "border",      "value": "#2a2a2a" },
+    { "type": "color", "label": "text",        "value": "#fafafa" },
+    { "type": "color", "label": "text-dim",    "value": "#e0e0e0" },
+    { "type": "color", "label": "text-muted",  "value": "#888888" },
+    { "type": "color", "label": "text-subtle", "value": "#555555" },
+    { "type": "color", "label": "accent",      "value": "hsl(200, 65%, 55%)" },
+    { "type": "color", "label": "success",     "value": "hsl(120, 65%, 50%)" },
+    { "type": "color", "label": "warning",     "value": "hsl(45, 80%, 55%)" },
+    { "type": "color", "label": "danger",      "value": "hsl(0, 65%, 50%)" },
+    { "type": "font",  "label": "ui",          "value": ["Quicksand", "sans-serif"] },
+    { "type": "font",  "label": "mono",        "value": ["monospace"] }
+  ]
+}

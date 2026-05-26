@@ -1,0 +1,20 @@
+{
+  "id": "29b963d4-15f2-4436-974f-535e273b75a3",
+  "name": "Dracula",
+  "color_scheme": "dark",
+  "vars": [
+    { "type": "color", "label": "base",        "value": "#282a36" },
+    { "type": "color", "label": "surface",     "value": "#44475a" },
+    { "type": "color", "label": "border",      "value": "#6272a4" },
+    { "type": "color", "label": "text",        "value": "#f8f8f2" },
+    { "type": "color", "label": "text-dim",    "value": "#e0e0e0" },
+    { "type": "color", "label": "text-muted",  "value": "#6272a4" },
+    { "type": "color", "label": "text-subtle", "value": "#44475a" },
+    { "type": "color", "label": "accent",      "value": "#bd93f9" },
+    { "type": "color", "label": "success",     "value": "#50fa7b" },
+    { "type": "color", "label": "warning",     "value": "#f1fa8c" },
+    { "type": "color", "label": "danger",      "value": "#ff5555" },
+    { "type": "font",  "label": "ui",          "value": ["Quicksand", "sans-serif"] },
+    { "type": "font",  "label": "mono",        "value": ["monospace"] }
+  ]
+}

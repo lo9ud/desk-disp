@@ -1,0 +1,182 @@
+.window_controls {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px; /* proximity buffer */
+  border-bottom-right-radius: 8px;
+  border-width: 0 1px 1px 0;
+  border-color: transparent;
+  border-style: solid;
+  z-index: 1000;
+  transition: opacity 250ms ease-in-out;
+  opacity: 0;
+
+  color: var(--ui-text);
+  fill: var(--ui-text);
+  background-color: var(--ui-surface);
+
+  &:hover {
+    border-color: var(--ui-border);
+    background-color: var(--ui-surface);
+    opacity: 1;
+
+    & > * {
+      opacity: 1;
+    }
+  }
+
+  & > * {
+    opacity: 0;
+  }
+
+  & svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 3px;
+  }
+
+  & option,
+  optgroup {
+    background-color: var(--ui-control);
+    color: var(--ui-text);
+  }
+}
+
+.buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.exit_button {
+  &:hover {
+    color: var(--ui-danger);
+  }
+}
+
+.control_button {
+  position: relative;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 2px solid var(--ui-border);
+  border-radius: var(--ui-radius-control);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 150ms ease-in-out;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: var(--ui-text-muted);
+  }
+}
+
+.selector {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  color: inherit;
+  /* override control_button fixed dimensions */
+  width: auto;
+  height: auto;
+  border: none;
+}
+
+.selector_label {
+  font-size: 0.8rem;
+  color: var(--ui-text-muted);
+}
+
+.selector_select {
+  width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: var(--ui-radius-control);
+  background-color: var(--ui-control);
+  color: var(--ui-text);
+  border: 2px solid var(--ui-border);
+  padding: 2px 4px;
+  font-size: 0.8rem;
+
+  &:hover {
+    border-color: var(--ui-text-muted);
+  }
+}
+
+.hover_text {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  padding: 2px 6px;
+  background-color: var(--ui-surface);
+  color: var(--ui-text);
+  font-size: 0.8rem;
+  font-weight: normal;
+  border-radius: var(--ui-radius-control);
+  border: 1px solid var(--ui-border);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1001;
+}
+
+/* Widget add modal */
+
+.widget_list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.widget_selector {
+  display: grid;
+  grid-template: "name id add" auto "description description description" auto / auto 1fr auto;
+  gap: 4px 8px;
+  padding: 8px;
+  border-radius: var(--ui-radius-control);
+  background-color: var(--ui-control);
+  border: 1px solid var(--ui-border);
+  place-items: center stretch;
+
+  &:hover {
+    background-color: var(--ui-control-hover);
+  }
+}
+
+.widget_name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  grid-area: name;
+}
+
+.widget_id {
+  font-size: 0.75rem;
+  color: var(--ui-text-muted);
+  grid-area: id;
+}
+
+.widget_description {
+  font-size: 0.8rem;
+  color: var(--ui-text-muted);
+  grid-area: description;
+}
+
+/* Force control bar visible during onboarding tour */
+:global([data-tour-active]) .window_controls {
+  opacity: 1;
+  z-index: 2001;
+  border-color: var(--ui-border);
+}
+
+:global([data-tour-active]) .window_controls > * {
+  opacity: 1;
+}

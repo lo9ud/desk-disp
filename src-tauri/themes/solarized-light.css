@@ -1,0 +1,15 @@
+/* desk-disp — Solarized Light */
+:root {
+  color-scheme: light;
+  --color-base:        #fdf6e3;
+  --color-surface:     #eee8d5;
+  --color-border:      #93a1a1;
+  --color-text:        #002b36;
+  --color-text-dim:    #073642;
+  --color-text-muted:  #657b83;
+  --color-text-subtle: #839496;
+  --color-accent:      #268bd2;
+  --color-success:     #859900;
+  --color-warning:     #b58900;
+  --color-danger:      #dc322f;
+}

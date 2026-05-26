@@ -1,0 +1,202 @@
+/* Layout list */
+
+.layoutListActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.layoutListTitle {
+  font-size: 0.8rem;
+  color: var(--ui-text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.layoutList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.layoutItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.1s ease;
+
+  &:hover {
+    background: var(--ui-control);
+  }
+
+  &.active {
+    border-color: var(--ui-accent);
+    background: color-mix(in srgb, var(--ui-accent) 10%, transparent);
+  }
+}
+
+.layoutItemIndicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--ui-border);
+  flex-shrink: 0;
+
+  .active & {
+    background: var(--ui-accent);
+    border-color: var(--ui-accent);
+  }
+}
+
+.layoutItemName {
+  flex: 1;
+  font-weight: 500;
+}
+
+.renameInput {
+  flex: 1;
+  font-weight: 500;
+  font-size: inherit;
+  font-family: inherit;
+  background: var(--ui-control);
+  color: var(--ui-text);
+  border: 1px solid var(--ui-accent);
+  border-radius: 3px;
+  padding: 0 0.25rem;
+  outline: none;
+}
+
+.layoutItemNamespace {
+  font-size: 0.75rem;
+  color: var(--ui-text-muted);
+}
+
+.layoutItemActions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0.4;
+  transition: opacity 0.1s ease;
+
+  .layoutItem:hover & {
+    opacity: 1;
+  }
+
+  & svg {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.builtinNotice {
+  font-size: 0.8rem;
+  color: var(--ui-text-muted);
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
+/* Copied verbatim from ThemeSection.module.css */
+.themeBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.themeSelector {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.themeLabel {
+  font-size: 0.8rem;
+  color: var(--ui-text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.themeDropdown {
+  min-width: 160px;
+  font-size: 0.85rem;
+}
+
+.themeBarActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.colorSchemeToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--ui-text-muted);
+  padding-right: 0.5rem;
+  border-right: 1px solid var(--ui-border);
+}
+/* end of copy */
+
+.gridSettings{
+  display: grid;
+  grid-template: 1fr / 1fr 1fr;
+  gap: 0.2rem;
+  justify-content: stretch;
+  align-items: start;
+}
+
+.gridPreviewContainer {
+  justify-self: center;
+  display: grid;
+  grid-template: auto 1fr / 1fr;
+  margin: 0 0.5rem;
+  padding: 0.5rem;
+  align-items: center;
+  border: 1px solid var(--ui-border);
+  border-radius: 4px;
+}
+
+.gridPreviewLabel {
+  font-size: small;
+  color: var(--ui-text-muted);
+  grid-column: 1/-1;
+  place-self: center;
+}
+
+.gridPreview {
+  aspect-ratio: 16/9;
+  height: 16rem;
+  display: grid;
+  padding: calc(var(--grid-preview-padding, 0)/6);
+  grid-template: repeat(var(--grid-preview-rows), 1fr) / repeat(
+      var(--grid-preview-cols),
+      1fr
+    );
+  place-items: stretch;
+  gap: calc(var(--grid-preview-spacing)/4);
+  border: 2px solid color-mix(in srgb, var(--ui-border) 80%, #ffffff);
+  border-radius: 2px;
+  & > div {
+    container: size 100% 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0.8rem;
+    border: 1px solid var(--ui-border);
+    border-radius: 4px;
+    &:hover {
+      background-color: var(--ui-control);
+    }
+  }
+}

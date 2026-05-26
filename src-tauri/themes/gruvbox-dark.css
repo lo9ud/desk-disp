@@ -1,0 +1,15 @@
+/* desk-disp — Gruvbox Dark */
+:root {
+  color-scheme: dark;
+  --color-base:        #282828;
+  --color-surface:     #3c3836;
+  --color-border:      #504945;
+  --color-text:        #ebdbb2;
+  --color-text-dim:    #d5c4a1;
+  --color-text-muted:  #bdae93;
+  --color-text-subtle: #928374;
+  --color-accent:      #83a598;
+  --color-success:     #b8bb26;
+  --color-warning:     #fabd2f;
+  --color-danger:      #fb4934;
+}

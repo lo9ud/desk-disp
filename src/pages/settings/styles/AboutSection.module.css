@@ -1,0 +1,76 @@
+.container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    & > h2 {
+        width: 100%;
+        color: var(--ui-text-muted);
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    &:last-child {
+        flex: 1 0 auto;
+    }
+}
+
+.licenseList {
+    overflow-y: scroll;
+    height: 20rem;
+
+    flex: 1 0 auto;
+
+    & table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    & td, & th {
+        padding: 0.25rem 0.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--ui-surface);
+    text-align: left;
+}
+
+.licenseButton {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    background: var(--ui-control);
+    color: var(--ui-text);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease-out;
+
+    &:hover {
+        background: var(--ui-accent);
+    }
+}
+
+.repoLink {
+    color: var(--ui-text);
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.2s ease-out;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

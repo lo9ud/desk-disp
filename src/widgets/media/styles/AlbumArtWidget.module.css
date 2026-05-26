@@ -1,0 +1,113 @@
+.container {
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: min(10%, 2.2rem);
+  position: relative;
+
+  --f-blur: 0px;
+  --f-lighten: 1;
+  --f-saturation: 1;
+}
+
+.art,
+.blur {
+  width: var(--size);
+  height: var(--size);
+  object-fit: cover;
+  /* animation: rotate 60s linear infinite; */
+  transition: filter 0.1s ease;
+}
+
+.art {
+  --size: calc(min(100cqw, 100cqh) * 0.98);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 4px 4px var(--color-base) inset;
+}
+
+.blurActive {
+  --f-blur: 1.5rem;
+}
+
+.lighten {
+  --f-lighten: 1.5;
+}
+
+.darken {
+  --f-lighten: 0.8;
+}
+
+.satMax {
+  --f-saturation: 200%;
+}
+
+.satBoost {
+  --f-saturation: 140%;
+}
+
+.greyPartial {
+  --f-saturation: 40%;
+}
+
+.greyFull {
+  --f-saturation: 0%;
+}
+
+.blur {
+  --size: min(100cqw, 100cqh);
+  filter: blur(var(--f-blur)) brightness(var(--f-lighten))
+    saturate(var(--f-saturation));
+  position: absolute;
+  z-index: 0;
+}
+
+.pause,
+.stop {
+  --size: calc(min(100cqw, 100cqh) * 0.3);
+  width: var(--size);
+  height: var(--size);
+  object-fit: cover;
+  position: absolute;
+  z-index: 2;
+  opacity: 0.5;
+}
+
+.circle {
+  border-radius: 50%;
+}
+
+.rounded {
+  border-radius: 5%;
+}
+
+.square {
+  border-radius: 0;
+}
+
+.rotate {
+  animation: rotate 60s linear infinite;
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.paused {
+  animation-play-state: paused;
+  &.blur {
+    filter: blur(1rem) grayscale(40%) brightness(70%);
+  }
+  &.art {
+    filter: blur(0.25rem) grayscale(40%) brightness(80%);
+  }
+}

@@ -1,0 +1,15 @@
+/* desk-disp — Dracula */
+:root {
+  color-scheme: dark;
+  --color-base:        #282a36;
+  --color-surface:     #44475a;
+  --color-border:      #6272a4;
+  --color-text:        #f8f8f2;
+  --color-text-dim:    #e0e0e0;
+  --color-text-muted:  #6272a4;
+  --color-text-subtle: #44475a;
+  --color-accent:      #bd93f9;
+  --color-success:     #50fa7b;
+  --color-warning:     #f1fa8c;
+  --color-danger:      #ff5555;
+}

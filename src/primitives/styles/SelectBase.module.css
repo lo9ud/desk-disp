@@ -1,0 +1,28 @@
+.select {
+  background: var(--ui-control);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-control);
+  color: var(--ui-text);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  min-width: 0;
+  transition: border-color var(--duration-fast) ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--ui-accent);
+  }
+
+  & option,
+  & optgroup {
+    background: var(--ui-control);
+    color: var(--ui-text);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}

@@ -1,0 +1,41 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 4px;
+    padding: 2px;
+    text-align: center;
+    width: 100%;
+}
+
+.title {
+    font-size: x-large;
+    font-weight: bold;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    color: var(--color-text);
+}
+
+.album {
+    font-size: medium;
+    font-weight: lighter;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    color: var(--color-text);
+}
+
+.artist {
+    font-size: large;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    color: var(--color-text);
+}
+
+.inactive {
+    opacity: 0.6;
+    font-size: large;
+}

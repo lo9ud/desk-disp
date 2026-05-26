@@ -1,0 +1,20 @@
+{
+  "id": "2310da9d-6cc3-4891-88a9-1322784d6293",
+  "name": "Rosé Pine Moon",
+  "color_scheme": "dark",
+  "vars": [
+    { "type": "color", "label": "base",        "value": "#232136" },
+    { "type": "color", "label": "surface",     "value": "#2a273f" },
+    { "type": "color", "label": "border",      "value": "#44415a" },
+    { "type": "color", "label": "text",        "value": "#e0def4" },
+    { "type": "color", "label": "text-dim",    "value": "#c8c2e0" },
+    { "type": "color", "label": "text-muted",  "value": "#908caa" },
+    { "type": "color", "label": "text-subtle", "value": "#6e6a86" },
+    { "type": "color", "label": "accent",      "value": "#c4a7e7" },
+    { "type": "color", "label": "success",     "value": "#9ccfd8" },
+    { "type": "color", "label": "warning",     "value": "#f6c177" },
+    { "type": "color", "label": "danger",      "value": "#eb6f92" },
+    { "type": "font",  "label": "ui",          "value": ["Quicksand", "sans-serif"] },
+    { "type": "font",  "label": "mono",        "value": ["monospace"] }
+  ]
+}

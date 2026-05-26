@@ -1,0 +1,15 @@
+/* desk-disp — Nord */
+:root {
+  color-scheme: dark;
+  --color-base:        #2e3440;
+  --color-surface:     #3b4252;
+  --color-border:      #4c566a;
+  --color-text:        #eceff4;
+  --color-text-dim:    #e5e9f0;
+  --color-text-muted:  #d8dee9;
+  --color-text-subtle: #81a1c1;
+  --color-accent:      #88c0d0;
+  --color-success:     #a3be8c;
+  --color-warning:     #ebcb8b;
+  --color-danger:      #bf616a;
+}

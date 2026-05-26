@@ -1,0 +1,13 @@
+.panel {
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-panel);
+}
+
+.sm {
+  padding: 0.5rem;
+}
+
+.md {
+  padding: 1rem;
+}

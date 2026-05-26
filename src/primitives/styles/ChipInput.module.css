@@ -1,0 +1,80 @@
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: var(--ui-control);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-control);
+  align-items: center;
+  min-width: 0;
+  cursor: text;
+  transition: border-color var(--duration-fast) ease;
+
+  &:focus-within {
+    border-color: var(--ui-accent);
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px 1px 8px;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-control);
+  font-size: 0.75rem;
+  color: var(--ui-text);
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+.chipLocked {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  background: var(--ui-surface);
+  border: 1px dashed var(--ui-border);
+  border-radius: var(--ui-radius-control);
+  font-size: 0.75rem;
+  color: var(--ui-text-muted);
+  white-space: nowrap;
+  line-height: 1.6;
+  cursor: default;
+}
+
+.removeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--ui-text-subtle);
+  font-size: 0.85rem;
+  line-height: 1;
+  margin-left: 1px;
+  transition: color var(--duration-fast) ease;
+
+  &:hover {
+    color: var(--ui-danger);
+  }
+}
+
+.input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--ui-text);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  min-width: 100px;
+  flex: 1;
+  padding: 1px 4px;
+
+  &::placeholder {
+    color: var(--ui-text-subtle);
+  }
+}

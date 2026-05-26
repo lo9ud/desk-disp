@@ -1,0 +1,20 @@
+{
+  "id": "6dcea86b-f7fe-48b4-8e61-9c35c381000a",
+  "name": "Solarized Dark",
+  "color_scheme": "dark",
+  "vars": [
+    { "type": "color", "label": "base",        "value": "#002b36" },
+    { "type": "color", "label": "surface",     "value": "#073642" },
+    { "type": "color", "label": "border",      "value": "#586e75" },
+    { "type": "color", "label": "text",        "value": "#fdf6e3" },
+    { "type": "color", "label": "text-dim",    "value": "#eee8d5" },
+    { "type": "color", "label": "text-muted",  "value": "#93a1a1" },
+    { "type": "color", "label": "text-subtle", "value": "#657b83" },
+    { "type": "color", "label": "accent",      "value": "#268bd2" },
+    { "type": "color", "label": "success",     "value": "#859900" },
+    { "type": "color", "label": "warning",     "value": "#b58900" },
+    { "type": "color", "label": "danger",      "value": "#dc322f" },
+    { "type": "font",  "label": "ui",          "value": ["Quicksand", "sans-serif"] },
+    { "type": "font",  "label": "mono",        "value": ["monospace"] }
+  ]
+}

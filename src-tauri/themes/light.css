@@ -1,0 +1,15 @@
+/* desk-disp — Light */
+:root {
+  color-scheme: light;
+  --color-base:        #f5f5f5;
+  --color-surface:     #e8e8e8;
+  --color-border:      #cccccc;
+  --color-text:        #1a1a1a;
+  --color-text-dim:    #333333;
+  --color-text-muted:  #666666;
+  --color-text-subtle: #999999;
+  --color-accent:      hsl(200, 65%, 40%);
+  --color-success:     hsl(120, 55%, 35%);
+  --color-warning:     hsl(45,  75%, 40%);
+  --color-danger:      hsl(0,   65%, 45%);
+}

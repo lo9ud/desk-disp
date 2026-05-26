@@ -1,0 +1,20 @@
+{
+  "id": "269f80e2-7517-4a65-a6b7-27551b06e4a8",
+  "name": "Media Highlight",
+  "grid_rows": 6,
+  "grid_cols": 5,
+  "gap": 0,
+  "padding": { "top": 48, "right": 48, "bottom": 48, "left": 48 },
+  "widgets": [
+    {
+      "type": "album_art",
+      "placement": { "col": 1, "row": 1, "col_span": 5, "row_span": 5 },
+      "options": {}
+    },
+    {
+      "type": "media_detail",
+      "placement": { "col": 2, "row": 6, "col_span": 3, "row_span": 1 },
+      "options": {}
+    }
+  ]
+}

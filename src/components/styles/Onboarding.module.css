@@ -1,0 +1,141 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1998;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: default;
+}
+
+.card {
+  position: fixed;
+  z-index: 2002;
+  width: 280px;
+  background-color: var(--ui-surface);
+  border: 2px solid var(--ui-border);
+  border-radius: var(--ui-radius-panel);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 0 8px 4px rgba(0, 0, 0, 0.35);
+}
+
+/*
+  Arrows: left is set inline (center of the triangle tip, relative to card left edge).
+  The border trick on a zero-width element means the visual triangle is symmetric
+  around the element's left position — no translateX needed.
+*/
+
+/* Card is below the target — arrow points up from the top of the card */
+.arrow_up {
+  position: absolute;
+  top: -7px;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 7px solid var(--ui-border);
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: -6px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid var(--ui-surface);
+  }
+}
+
+/* Card is above the target — arrow points down from the bottom of the card */
+.arrow_down {
+  position: absolute;
+  bottom: -7px;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid var(--ui-border);
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    left: -6px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid var(--ui-surface);
+  }
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  color: var(--ui-accent);
+
+  & svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ui-text);
+}
+
+.body {
+  font-size: 0.8rem;
+  color: var(--ui-text-muted);
+  line-height: 1.4;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.dots {
+  display: flex;
+  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dot,
+.dot_active {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--ui-border);
+  transition: background-color 150ms ease;
+}
+
+.dot_active {
+  background-color: var(--ui-accent);
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 0 1 auto;
+  &> button {
+    flex: 1 0 max-content;
+  }
+}

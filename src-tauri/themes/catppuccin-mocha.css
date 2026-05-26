@@ -1,0 +1,15 @@
+/* desk-disp — Catppuccin Mocha */
+:root {
+  color-scheme: dark;
+  --color-base:        #1e1e2e;
+  --color-surface:     #313244;
+  --color-border:      #45475a;
+  --color-text:        #cdd6f4;
+  --color-text-dim:    #bac2de;
+  --color-text-muted:  #a6adc8;
+  --color-text-subtle: #7f849c;
+  --color-accent:      #89b4fa;
+  --color-success:     #a6e3a1;
+  --color-warning:     #f9e2af;
+  --color-danger:      #f38ba8;
+}

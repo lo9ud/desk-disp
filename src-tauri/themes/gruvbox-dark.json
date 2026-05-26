@@ -1,0 +1,20 @@
+{
+  "id": "b1e3eaa5-d37a-4dc4-90b4-ba7a4fbcacf2",
+  "name": "Gruvbox Dark",
+  "color_scheme": "dark",
+  "vars": [
+    { "type": "color", "label": "base",        "value": "#282828" },
+    { "type": "color", "label": "surface",     "value": "#3c3836" },
+    { "type": "color", "label": "border",      "value": "#504945" },
+    { "type": "color", "label": "text",        "value": "#ebdbb2" },
+    { "type": "color", "label": "text-dim",    "value": "#d5c4a1" },
+    { "type": "color", "label": "text-muted",  "value": "#bdae93" },
+    { "type": "color", "label": "text-subtle", "value": "#928374" },
+    { "type": "color", "label": "accent",      "value": "#83a598" },
+    { "type": "color", "label": "success",     "value": "#b8bb26" },
+    { "type": "color", "label": "warning",     "value": "#fabd2f" },
+    { "type": "color", "label": "danger",      "value": "#fb4934" },
+    { "type": "font",  "label": "ui",          "value": ["Quicksand", "sans-serif"] },
+    { "type": "font",  "label": "mono",        "value": ["monospace"] }
+  ]
+}

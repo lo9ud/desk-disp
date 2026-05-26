@@ -1,0 +1,15 @@
+{
+  "id": "6e76b291-efd3-4b14-a92c-65da440f3045",
+  "name": "Minimal Media",
+  "grid_rows": 6,
+  "grid_cols": 8,
+  "gap": 0,
+  "padding": { "top": 48, "right": 48, "bottom": 48, "left": 48 },
+  "widgets": [
+    {
+      "type": "media_detail",
+      "placement": { "col": 4, "row": 3, "col_span": 2, "row_span": 1 },
+      "options": {}
+    }
+  ]
+}

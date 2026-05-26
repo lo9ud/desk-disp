@@ -1,0 +1,6 @@
+.separator {
+  border: none;
+  border-bottom: 1px solid var(--ui-border);
+  width: 100%;
+  margin: 0;
+}

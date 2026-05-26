@@ -1,0 +1,20 @@
+{
+  "id": "eb57973a-f744-4617-bfbc-41e01c67d9a9",
+  "name": "Nord",
+  "color_scheme": "dark",
+  "vars": [
+    { "type": "color", "label": "base",        "value": "#2e3440" },
+    { "type": "color", "label": "surface",     "value": "#3b4252" },
+    { "type": "color", "label": "border",      "value": "#4c566a" },
+    { "type": "color", "label": "text",        "value": "#eceff4" },
+    { "type": "color", "label": "text-dim",    "value": "#e5e9f0" },
+    { "type": "color", "label": "text-muted",  "value": "#d8dee9" },
+    { "type": "color", "label": "text-subtle", "value": "#81a1c1" },
+    { "type": "color", "label": "accent",      "value": "#88c0d0" },
+    { "type": "color", "label": "success",     "value": "#a3be8c" },
+    { "type": "color", "label": "warning",     "value": "#ebcb8b" },
+    { "type": "color", "label": "danger",      "value": "#bf616a" },
+    { "type": "font",  "label": "ui",          "value": ["Quicksand", "sans-serif"] },
+    { "type": "font",  "label": "mono",        "value": ["monospace"] }
+  ]
+}
