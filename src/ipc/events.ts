@@ -24,4 +24,4 @@ export type BackendEvents = {
   "preferences::preview": Preferences;
 };
 
-export type Events = { [K in ChannelName]: BackendEvents[`stream::${K}`] };
+export type StreamEvents = { [K in ChannelName]: BackendEvents[`stream::${K}`] };

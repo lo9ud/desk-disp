@@ -60,6 +60,8 @@ export const ipc = {
     invoke<void>("update_widget", { widgetId: id, config }),
 
   openSettings: () => invoke<void>("open_settings"),
+  closeSettings: () => invoke<void>("close_settings"),
+  toggleSettingsVisibility: () => invoke<void>("toggle_settings_visibility"),
 
   togglePlayback: () => invoke<void>("toggle_playback"),
   nextTrack: () => invoke<void>("next_track"),

@@ -1,5 +1,4 @@
 use dirs::config_dir;
-use tauri::Monitor;
 
 mod commands;
 mod file;
@@ -8,6 +7,7 @@ mod widget;
 pub use self::commands::*;
 pub use self::file::*;
 pub use self::widget::{WidgetConfig, WidgetId};
+pub use self::commands::{get_or_create_settings_window};
 
 use std::{
     fs,

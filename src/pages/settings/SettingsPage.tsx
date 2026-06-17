@@ -6,6 +6,7 @@ import AdvancedSection from "./AdvancedSection";
 import AboutSection from "./AboutSection";
 import { combineClassNames } from "../../utils/format";
 import LayoutSection from "./LayoutSection";
+import KeysSection from "./KeysSection";
 
 /* Component  */
 
@@ -13,13 +14,13 @@ const TABS = {
   general: GeneralSection,
   themes: ThemeSection,
   layouts: LayoutSection,
+  keys: KeysSection,
   advanced: AdvancedSection,
   licenses: AboutSection,
 };
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<keyof typeof TABS>("general");
-  const TabComponent = TABS[tab];
   return (
     <div className={styles.page}>
       <h1 className={styles.pageTitle}>Settings</h1>

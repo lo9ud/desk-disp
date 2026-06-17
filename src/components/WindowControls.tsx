@@ -17,14 +17,7 @@ import { logger } from "../utils/logger";
 const { warn } = logger("window-controls");
 
 async function toggleSettings() {
-  const win = await WebviewWindow.getByLabel("settings");
-  if (!win) return;
-  if (await win.isVisible()) {
-    await win.hide();
-  } else {
-    await win.show();
-    await win.setFocus();
-  }
+  ipc.toggleSettingsVisibility()
 }
 
 export default function WindowControls() {

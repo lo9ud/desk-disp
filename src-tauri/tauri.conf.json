@@ -10,15 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [
-      {
-        "title": "desk-disp - Settings",
-        "label": "settings",
-        "visible": false,
-        "width": 1200,
-        "height": 800
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }

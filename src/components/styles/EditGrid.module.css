@@ -6,7 +6,8 @@
   width: 100%;
   height: 100%;
   gap: var(--grid-gap);
-  padding: var(--grid-padding-top) var(--grid-padding-right) var(--grid-padding-bottom) var(--grid-padding-left);
+  padding: var(--grid-padding-top) var(--grid-padding-right)
+    var(--grid-padding-bottom) var(--grid-padding-left);
   background: var(--ui-base);
   box-sizing: border-box;
 }
@@ -23,7 +24,8 @@
 }
 
 @keyframes flashDanger {
-  0%, 100% {
+  0%,
+  100% {
     outline-color: color-mix(in srgb, var(--ui-accent) 60%, transparent);
     background: transparent;
   }
@@ -344,6 +346,7 @@
   gap: 4px;
   padding: 8px;
   border: 1px solid var(--ui-border);
+  border-radius: 5px;
   place-items: center stretch;
 }
 
@@ -394,6 +397,14 @@
   color: var(--ui-text-muted);
 }
 
+.widgetSettingsOpen {
+  max-height: 500px; /* arbitrary large value to allow full expansion */
+}
+
+.widgetSettingsClosed {
+  max-height: 0;
+}
+
 .widgetSettings {
   grid-area: settings;
   font-size: 0.85em;
@@ -403,6 +414,8 @@
 .settingsList {
   margin-top: 4px;
   padding-left: 20px;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
 }
 
 .settingItem {
@@ -557,6 +570,14 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  transition: max-width 0.3s ease;
+  overflow: hidden;
+}
+.gapControlOpen {
+  max-width: 200px;
+}
+.gapControlClosed {
+  max-width: 0;
 }
 
 .gapToggle {

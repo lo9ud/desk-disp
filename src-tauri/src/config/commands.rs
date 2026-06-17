@@ -1,6 +1,6 @@
 use std::fs;
 
-use tauri::Manager;
+use tauri::{Manager, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 use crate::{config::ThemeVar, place_window};
 
@@ -130,16 +130,59 @@ pub async fn open_themes_folder(app: tauri::AppHandle) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+pub fn get_or_create_settings_window(app: &tauri::AppHandle) -> Result<WebviewWindow, String> {
+    if let Some(win) = app.get_webview_window("settings") {
+        return Ok(win);
+    }
+
+    tracing::info!(target: TARGET, "creating settings window");
+    let win = WebviewWindowBuilder::new(app, "settings", tauri::WebviewUrl::App("".into()))
+        .title("desk-disp - Settings")
+        .inner_size(1200.0, 800.0)
+        .resizable(true)
+        .visible(false)
+        .build()
+        .map_err(|e| format!("{:?}", e))?;
+
+    let win_clone = win.clone();
+    win.on_window_event(move |event| {
+        if let WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
+            let _ = win_clone.hide();
+        }
+    });
+
+    Ok(win)
+}
+
 #[tauri::command]
 pub async fn open_settings(app: tauri::AppHandle) -> Result<(), String> {
     tracing::info!(target: TARGET, "open_settings");
-    if let Some(win) = app.get_webview_window("settings") {
-        let _ = win.set_focus();
-        win.show().map_err(|e| format!("{:?}", e))
-    } else {
-        tracing::warn!(target: TARGET, "settings window not found");
-        Err("Failed to open settings window".into())
-    }
+    let win = get_or_create_settings_window(&app)?;
+    let _ = win.set_focus();
+    win.show().map_err(|e| format!("{:?}", e))
+}
+
+#[tauri::command]
+pub async fn close_settings(app: tauri::AppHandle) -> Result<(), String> {
+    tracing::info!(target: TARGET, "close_settings");
+    let win = get_or_create_settings_window(&app)?;
+    win.hide().map_err(|e| format!("{:?}", e))
+}
+
+#[tauri::command]
+pub async fn toggle_settings_visibility(app: tauri::AppHandle) -> Result<(), String> {
+    tracing::info!(target: TARGET, "toggle_settings_visibility");
+    let win = get_or_create_settings_window(&app)?;
+    win.is_visible()
+        .map_err(|e| format!("{:?}", e))
+        .and_then(|visible| {
+            if visible {
+                win.hide().map_err(|e| format!("{:?}", e))
+            } else {
+                win.show().map_err(|e| format!("{:?}", e))
+            }
+        })
 }
 
 /* Layout commands  */
@@ -576,7 +619,7 @@ pub async fn generate_theme(seed_hex: String, app: tauri::AppHandle) -> Result<(
     }
     let json = serde_json::to_string_pretty(&dark_theme).map_err(|e| e.to_string())?;
     fs::write(&dark_path, json).map_err(|e| e.to_string())?;
-    
+
     let light_path = theme_path("_generated_light")?;
     if let Some(parent) = light_path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;

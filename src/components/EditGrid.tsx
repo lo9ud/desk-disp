@@ -1,4 +1,11 @@
-import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { WidgetPlacement } from "../ffi_types";
 import { useEditMode } from "../context/EditModeContext";
 import {
@@ -15,7 +22,11 @@ import {
   useWidgetInstanceIds,
 } from "../registry/instanceRegistry";
 import type { GridDims, GridPadding } from "../utils/validation";
-import { errorSeverity, TooSmallError, widgetErrorText } from "../utils/widgetErrors";
+import {
+  errorSeverity,
+  TooSmallError,
+  widgetErrorText,
+} from "../utils/widgetErrors";
 import { RenderWidget } from "../widgets/widget";
 import WidgetSettingsPanel from "./WidgetSettingsPanel";
 import styles from "./styles/EditGrid.module.css";
@@ -37,6 +48,7 @@ import {
 } from "@heroicons/react/16/solid";
 import { PlusIcon as PlusIconLarge } from "@heroicons/react/24/outline";
 import { logger } from "../utils/logger";
+import { combineClassNames } from "../utils/format";
 
 const { error } = logger("edit-grid");
 
@@ -58,10 +70,14 @@ function getBlockedWidgetIds(
     .getAll()
     .filter(({ placement: p }) => {
       switch (edge) {
-        case "top": return p.row === 1;
-        case "bottom": return p.row + p.row_span - 1 >= dims.rows;
-        case "left": return p.col === 1;
-        case "right": return p.col + p.col_span - 1 >= dims.cols;
+        case "top":
+          return p.row === 1;
+        case "bottom":
+          return p.row + p.row_span - 1 >= dims.rows;
+        case "left":
+          return p.col === 1;
+        case "right":
+          return p.col + p.col_span - 1 >= dims.cols;
       }
     })
     .map(({ id }) => id);
@@ -415,6 +431,7 @@ function WidgetEntry({
   def: WidgetDefinition;
   onAdd: (defId: string) => void;
 }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const hasSettings =
     def.settingsDef && Object.keys(def.settingsDef).length > 0;
   return (
@@ -433,15 +450,31 @@ function WidgetEntry({
         ))}
       </div>
       <div className={styles.widgetAddButtonContainer}>
-        <Button variant="default" onClick={() => onAdd(def.id)}>
+        <Button variant="default" onClick={() => onAdd(def.id)} title="Add widget">
           <PlusCircleIcon />
         </Button>
       </div>
       <div className={styles.widgetDescription}>{def.description}</div>
       {hasSettings && (
         <div className={styles.widgetSettings}>
-          <p className={styles.settingsLabel}>Available Settings:</p>
-          <ul className={styles.settingsList}>
+          <p className={styles.settingsLabel}>
+            Available Settings:{" "}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSettingsOpen((open) => !open)}
+            >
+              {settingsOpen ? "Hide" : "Show"}
+            </Button>
+          </p>
+          <ul
+            className={combineClassNames(
+              styles.settingsList,
+              settingsOpen
+                ? styles.widgetSettingsOpen
+                : styles.widgetSettingsClosed,
+            )}
+          >
             {Object.values(def.settingsDef).map((s) => (
               <SettingDescription key={s.label} setting={s} />
             ))}
@@ -500,9 +533,14 @@ export default function EditGrid() {
   const [openSettingsId, setOpenSettingsId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [gapOpen, setGapOpen] = useState(false);
-  const [flashingIds, setFlashingIds] = useState<ReadonlySet<string>>(new Set());
+  const [flashingIds, setFlashingIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
-  const [containerSize, setContainerSize] = useState<{ w: number; h: number } | null>(null);
+  const [containerSize, setContainerSize] = useState<{
+    w: number;
+    h: number;
+  } | null>(null);
   const interactionRef = useRef<Interaction | null>(null);
   const paddingDragRef = useRef<PaddingDragState | null>(null);
   const gapDragRef = useRef<{ startX: number; startGap: number } | null>(null);
@@ -521,7 +559,8 @@ export default function EditGrid() {
         const sign = edge === "top" || edge === "left" ? 1 : -1;
         const newVal = Math.max(
           PADDING_MIN,
-          Math.round((startPadding[edge] + sign * delta)/PADDING_STEP)*PADDING_STEP,
+          Math.round((startPadding[edge] + sign * delta) / PADDING_STEP) *
+            PADDING_STEP,
         );
         updateGridDims({ padding: { ...startPadding, [edge]: newVal } });
         return;
@@ -562,12 +601,14 @@ export default function EditGrid() {
   );
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      if (interactionRef.current) {
-        setInteraction(null);
-        setGhost(null);
-      }
-      paddingDragRef.current = null;
+    console.log("Key pressed: ", e.key);
+    switch (e.key) {
+      case "Escape":
+        cancel();
+        break;
+      case "Enter":
+        save();
+        break;
     }
   }, []);
 
@@ -590,7 +631,11 @@ export default function EditGrid() {
     if (!gapDragRef.current) return;
     const delta = e.clientX - gapDragRef.current.startX;
     updateGridDims({
-      gap: Math.max(GAP_MIN, Math.round((gapDragRef.current.startGap + delta / 2)/GAP_STEP)*GAP_STEP),
+      gap: Math.max(
+        GAP_MIN,
+        Math.round((gapDragRef.current.startGap + delta / 2) / GAP_STEP) *
+          GAP_STEP,
+      ),
     });
   }
 
@@ -669,15 +714,26 @@ export default function EditGrid() {
       setFlashingIds(new Set());
       requestAnimationFrame(() => {
         setFlashingIds(new Set(blocked));
-        flashTimeoutRef.current = setTimeout(() => setFlashingIds(new Set()), 620);
+        flashTimeoutRef.current = setTimeout(
+          () => setFlashingIds(new Set()),
+          620,
+        );
       });
       return;
     }
     switch (edge) {
-      case "top": shiftWidgets(0, -1, { rows: dims.rows - 1 }); break;
-      case "bottom": updateGridDims({ rows: dims.rows - 1 }); break;
-      case "left": shiftWidgets(-1, 0, { cols: dims.cols - 1 }); break;
-      case "right": updateGridDims({ cols: dims.cols - 1 }); break;
+      case "top":
+        shiftWidgets(0, -1, { rows: dims.rows - 1 });
+        break;
+      case "bottom":
+        updateGridDims({ rows: dims.rows - 1 });
+        break;
+      case "left":
+        shiftWidgets(-1, 0, { cols: dims.cols - 1 });
+        break;
+      case "right":
+        updateGridDims({ cols: dims.cols - 1 });
+        break;
     }
   }
 
@@ -703,10 +759,17 @@ export default function EditGrid() {
     const cellH = (h - padding.top - padding.bottom - gap * (rows - 1)) / rows;
     return editRegistry.getAll().flatMap((inst) => {
       const def = getWidgetDefinition(inst.definitionId);
-      const err = checkWidgetSize(inst.id, inst.placement, def?.minSize ?? [null, null], cellW, cellH, gap);
+      const err = checkWidgetSize(
+        inst.id,
+        inst.placement,
+        def?.minSize ?? [null, null],
+        cellW,
+        cellH,
+        gap,
+      );
       return err ? [err] : [];
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allIds, dims, containerSize, widgetErrors]);
 
   const allErrors = [...widgetErrors, ...sizeErrors];
@@ -728,7 +791,10 @@ export default function EditGrid() {
 
   function handleSaveClick() {
     if (hasBlockingErrors) return;
-    if (hasWarnings) { setConfirmSaveOpen(true); return; }
+    if (hasWarnings) {
+      setConfirmSaveOpen(true);
+      return;
+    }
     performSave();
   }
 
@@ -760,9 +826,11 @@ export default function EditGrid() {
           const def = getWidgetDefinition(inst.definitionId);
           const hasError = errorWidgetIds.has(id);
           const errorClass = hasError
-            ? (allErrors.some((e) => e.widgetIds.includes(id) && errorSeverity(e) === "error")
-                ? styles.widgetError
-                : styles.widgetWarning)
+            ? allErrors.some(
+                (e) => e.widgetIds.includes(id) && errorSeverity(e) === "error",
+              )
+              ? styles.widgetError
+              : styles.widgetWarning
             : "";
           return (
             <div
@@ -931,45 +999,48 @@ export default function EditGrid() {
       {/* Save/cancel bar */}
       <div className={styles.editBar}>
         {allErrors.length > 0 && (
-          <span className={hasBlockingErrors ? styles.errorBadge : styles.warningBadge}>
-            {allErrors.length} {hasBlockingErrors ? "error" : "warning"}{allErrors.length > 1 ? "s" : ""}
+          <span
+            className={
+              hasBlockingErrors ? styles.errorBadge : styles.warningBadge
+            }
+          >
+            {allErrors.length} {hasBlockingErrors ? "error" : "warning"}
+            {allErrors.length > 1 ? "s" : ""}
           </span>
         )}
-        <button
-          className={`${styles.barButton} ${styles.secondary}`}
-          onClick={cancel}
-        >
+        <Button variant="ghost" onClick={cancel}>
           Cancel
-        </button>
-        <button
-          className={`${styles.barButton} ${styles.primary}`}
+        </Button>
+        <Button
+          variant="accent"
           disabled={hasBlockingErrors || saving}
           onClick={handleSaveClick}
         >
           {saving ? "Saving…" : "Save"}
-        </button>
-        <div className={styles.gapControl}>
-          {gapOpen && (
-            <>
-              <span>Gap:</span>
-              <div
-                className={styles.gapScrubber}
-                onPointerDown={handleGapPointerDown}
-                onPointerMove={handleGapPointerMove}
-                onPointerUp={handleGapPointerUp}
-              >
-                <ArrowLongLeftIcon /> {dims.gap}px <ArrowLongRightIcon />
-              </div>
-            </>
+        </Button>
+        <div
+          className={combineClassNames(
+            styles.gapControl,
+            gapOpen ? styles.gapControlOpen : styles.gapControlClosed,
           )}
-          <button
-            className={styles.gapToggle}
-            onClick={() => setGapOpen((v) => !v)}
-            title="More settings"
+        >
+          <span>Gap:</span>
+          <div
+            className={styles.gapScrubber}
+            onPointerDown={handleGapPointerDown}
+            onPointerMove={handleGapPointerMove}
+            onPointerUp={handleGapPointerUp}
           >
-            {gapOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          </button>
+            <ArrowLongLeftIcon /> {dims.gap}px <ArrowLongRightIcon />
+          </div>
         </div>
+        <Button
+          // className={styles.gapToggle}
+          onClick={() => setGapOpen((v) => !v)}
+          title="More settings"
+        >
+          {gapOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+        </Button>
       </div>
 
       {/* Add-widget modal */}
@@ -985,7 +1056,11 @@ export default function EditGrid() {
         <Modal
           title="Save with warnings?"
           actions={[
-            <Button key="cancel" variant="ghost_danger" onClick={() => setConfirmSaveOpen(false)}>
+            <Button
+              key="cancel"
+              variant="ghost_danger"
+              onClick={() => setConfirmSaveOpen(false)}
+            >
               Cancel
             </Button>,
             <Button key="save" variant="default" onClick={performSave}>
@@ -995,7 +1070,9 @@ export default function EditGrid() {
         >
           <ul className={styles.errorList}>
             {allErrors.map((e) => (
-              <li key={`${e.kind}-${e.widgetIds.join(",")}`}>{widgetErrorText(e).message}</li>
+              <li key={`${e.kind}-${e.widgetIds.join(",")}`}>
+                {widgetErrorText(e).message}
+              </li>
             ))}
           </ul>
         </Modal>

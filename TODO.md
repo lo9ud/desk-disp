@@ -23,6 +23,11 @@
   - initial setup/onboarding flow?
     - maybe a quick tutorial on how to add widgets, or a link to the wiki for that
     - overlay?
+- Add a plug-in system for MCP or other AI-assisted widgets
+  - "recent Claude session" widget — via MCP, surface what the last active Claude conversation was with a resume button/link
+  - "Claude context" widget — expose a snippet of Claude conversation history as a text block (e.g. a summary paragraph or a bullet list of recent topics)
+  - global to-do integration — speak to Claude ("add this to my to-do list") and have it write back to the app via MCP; widget surfaces those items on the desktop
+  - general widget command palette — a handful of preset MCP actions you can trigger from the overlay (add reminder, log a note, query Claude, etc.)
 - compilation and packaging for distribution
   - needs github actions for merge -> compile -> release pipeline
   - need to set up proper branching strategy
@@ -35,6 +40,10 @@
 
 ## Refinements - improvements to existing features or code quality
 
+- better hotkey/keybinding
+  - see Button primitive for WIP - binds button to keybind as shortcut (preferred to invisible keybinds, needs keys -> icons)
+- hijack button titles to look better than UI native hover tooltips
+  - Needs dedicated tooltip component
 - remove Spotify integration
   - `get_high_res_album_art` was never registered in the Tauri invoke handler and has no TypeScript caller
   - Remove `SpotifyClientAuth`, `SpotifyAccessToken`, `request_token`, `get_high_res_album_art` from `media/mod.rs`; remove `use serde_json::Value`
@@ -70,6 +79,7 @@
   - presets? (more complex that warranted perhaps)
   - multiple layout/sizing options? small confirmation dialog vs full-page overlay for critical errors or onboarding etc.
   - should help the temptation to constantly special-case everything, rather have a consistent API for actions across the app
+  - standardise certain actions like "Cancel"/"Close" that are used across the app, so they look and behave the same everywhere (or just a cross (X) close icon? needs explicit close handler for all windows regardless of other actions however, to prevent malformed/inconsistent data)
 
 - widgets should have an error boundary to contain issues and keep local problems from affecting the whole app
   - should explain the error and offer options to reset the widget or open settings to fix it
@@ -82,7 +92,8 @@
 - visualiser needs fixing for the new settings system, currently broken for lots of settigns combinations
 - visualiser has some overlapping/missing bars in certain mirroring/flip combinations, needs a careful review of the bar drawing logic to ensure all bars are drawn and correctly positioned in all configurations
 - onboarding should use the demo layout, to point out different configurations of the same widget etc.
-- settings def should have optional `description` field, renders (i) icon with tooltip in settings panel
+- settings def should have optional `description` field, renders (i) icon with tooltip in settings panel or subtext below name
+  - maybe warning field on setting it away from the default?
 - currently no way to create new layouts except going into settings and duplicating an existing one
   - not clear to users that this is how you do it, and it's a bit clunky; ideally there should be a "New Layout" button in the UI somewhere that creates a new blank layout and switches to it immediately for editing
 - Inputs should be further genericized to reduce boilerplate and enforce consistency; additional props for common patterns like "allow empty" (for text inputs) or "allow custom" (for selects) would be helpful to reduce the need for custom components for these cases
@@ -112,8 +123,13 @@
 
 ## Bugfixes - issues with existing features or code
 
+- fix broken settings
+  - run on startup, taskbar/dock icon etc.
+- Generated themes do some seriously weird stuff when settings colours, seems like events stack up then fire all at once
+- Opening settings, then closing the window permanently prevents settings from being opened again until app restart
 - visualizer FFTStream thrashing on subscribe/unsubscribe cycles — edit-mode → standard-view transitions unmount then remount the visualizer widget, firing unsubscribe + subscribe in quick succession; each cycle tears down and recreates the WASAPI loopback stream and real-time audio thread. Confirm old stream and callback handles are fully closed before the new stream opens (no handle leak across cycles). Consider caching the live `FFTStream` for a short grace period before tearing it down, so rapid re-subscriptions reuse the existing stream.
   - Possibly extend to other streams, e.g. media subscription, if similar thrashing is observed there
+  - possibly resolved?
 - Some inconsistencies found with when stream are opened and closed across layout edit boundary, needs investigation as to when widgets are actually broadcasting subscribe/unsubscribe events, and whether any streams are left open unnecessarily or fail to reopen when needed
 - widget settings null on layout load — covered by the widget settings type system overhaul refinement (`collectDefaults` + `coerceSettings` at layout load time)
 - properly define and enforce the widget min/max sizes in the registry and edit grid, currently they are just ignored and any widget can be resized to any size

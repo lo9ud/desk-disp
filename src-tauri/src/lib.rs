@@ -204,6 +204,8 @@ pub fn run(args: cli::Args) {
 
             // settings commands
             config::open_settings,
+            config::close_settings,
+            config::toggle_settings_visibility,
 
             // theme commands
             config::preview_theme,
@@ -263,6 +265,8 @@ pub fn run(args: cli::Args) {
                 place_window(&win, target_monitor);
                 cache
             };
+
+            config::get_or_create_settings_window(app.handle()).expect("Failed to create settings window");
 
             win.show().expect("Failed to show window");
 

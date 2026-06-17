@@ -8,57 +8,403 @@
 }
 
 :root {
-  /* Surfaces */
-  --color-base: #0b0d10;
-  --color-surface: #1a1d22;
-  --color-border: #2a2a2a;
+  --d-blue-1: #000911;
+  --d-blue-2: #061923;
+  --d-blue-3: #002a45;
+  --d-blue-4: #00365a;
+  --d-blue-5: #00446d;
+  --d-blue-6: #005381;
+  --d-blue-7: #00649a;
+  --d-blue-8: #0079b6;
+  --d-blue-9: #3bf;
+  --d-blue-10: #1fb0f3;
+  --d-blue-11: #3bc1ff;
+  --d-blue-12: #bee7ff;
 
-  /* Text hierarchy */
-  --color-text: #fafafa;
-  --color-text-dim: #e0e0e0;
-  --color-text-muted: #888888;
-  --color-text-subtle: #555555;
+  --d-blue-a1: #0009b903;
+  --d-blue-a2: #46c3f716;
+  --d-blue-a3: #009bfc3a;
+  --d-blue-a4: #0099ff50;
+  --d-blue-a5: #00a0ff64;
+  --d-blue-a6: #00a4fd7a;
+  --d-blue-a7: #00a6ff94;
+  --d-blue-a8: #00a9feb2;
+  --d-blue-a9: #33bbff;
+  --d-blue-a10: #21b9fef3;
+  --d-blue-a11: #3bc1ff;
+  --d-blue-a12: #bee7ff;
 
-  /* Status / accent  */
-  --color-accent: hsl(200, 65%, 55%);
-  --color-success: hsl(120, 65%, 50%);
-  --color-warning: hsl(45, 80%, 55%);
-  --color-danger: hsl(0, 65%, 50%);
+  --d-blue-contrast: #fff;
+  --d-blue-surface: #0c293780;
+  --d-blue-indicator: #3bf;
+  --d-blue-track: #3bf;
+
+  --d-gray-1: #060809;
+  --d-gray-2: #151719;
+  --d-gray-3: #1f2224;
+  --d-gray-4: #262a2c;
+  --d-gray-5: #2d3134;
+  --d-gray-6: #353a3e;
+  --d-gray-7: #41484d;
+  --d-gray-8: #586268;
+  --d-gray-9: #666f76;
+  --d-gray-10: #747d83;
+  --d-gray-11: #aeb5b9;
+  --d-gray-12: #eceef0;
+
+  --d-gray-a1: #ff000006;
+  --d-gray-a2: #ffb38915;
+  --d-gray-a3: #ffd7bc1f;
+  --d-gray-a4: #ffe7d226;
+  --d-gray-a5: #ffece12d;
+  --d-gray-a6: #fff5f235;
+  --d-gray-a7: #fcfdff42;
+  --d-gray-a8: #edf8fe5f;
+  --d-gray-a9: #edf6fd6e;
+  --d-gray-a10: #eff7fd7c;
+  --d-gray-a11: #f5fbffb5;
+  --d-gray-a12: #fbfcfef0;
+
+  --d-gray-contrast: #ffffff;
+  --d-gray-surface: rgba(0, 0, 0, 0.05);
+  --d-gray-indicator: #666f76;
+  --d-gray-track: #666f76;
+
+  --l-blue-1: #f4f7f9;
+  --l-blue-2: #ebf4f9;
+  --l-blue-3: #dceef9;
+  --l-blue-4: #c7e8fd;
+  --l-blue-5: #afdffe;
+  --l-blue-6: #94d3fa;
+  --l-blue-7: #6fc3f4;
+  --l-blue-8: #19adf0;
+  --l-blue-9: #3bf;
+  --l-blue-10: #1fb0f3;
+  --l-blue-11: #0075b1;
+  --l-blue-12: #00395e;
+
+  --l-blue-a1: #ffe2d928;
+  --l-blue-a2: #131c4008;
+  --l-blue-a3: #0971c018;
+  --l-blue-a4: #0492f42e;
+  --l-blue-a5: #0197fc47;
+  --l-blue-a6: #0395f364;
+  --l-blue-a7: #0295eb8b;
+  --l-blue-a8: #00a4eee5;
+  --l-blue-a9: #01abffca;
+  --l-blue-a10: #01a6f1df;
+  --l-blue-a11: #0075b1;
+  --l-blue-a12: #00395e;
+
+  --l-blue-contrast: #fff;
+  --l-blue-surface: #eaf3f8cc;
+  --l-blue-indicator: #3bf;
+  --l-blue-track: #3bf;
+
+  --l-gray-1: #f4f6f8;
+  --l-gray-2: #f0f2f4;
+  --l-gray-3: #e6e9ec;
+  --l-gray-4: #dee1e3;
+  --l-gray-5: #d6dadc;
+  --l-gray-6: #ced1d4;
+  --l-gray-7: #c2c6c9;
+  --l-gray-8: #aeb3b7;
+  --l-gray-9: #7c858c;
+  --l-gray-10: #727b81;
+  --l-gray-11: #565d62;
+  --l-gray-12: #172127;
+
+  --l-gray-a1: #ffdcd328;
+  --l-gray-a2: #c42b000b;
+  --l-gray-a3: #510a0013;
+  --l-gray-a4: #3c0f001c;
+  --l-gray-a5: #270a0023;
+  --l-gray-a6: #1d02012b;
+  --l-gray-a7: #10010036;
+  --l-gray-a8: #0803074a;
+  --l-gray-a9: #020b157d;
+  --l-gray-a10: #000a1187;
+  --l-gray-a11: #01060da5;
+  --l-gray-a12: #000a11e7;
+
+  --l-gray-contrast: #ffffff;
+  --l-gray-surface: #ffffffcc;
+  --l-gray-indicator: #7c858c;
+  --l-gray-track: #7c858c;
+  @supports (color: color(display-p3 1 1 1)) {
+    @media (color-gamut: p3) {
+      --d-blue-1: oklch(13% 0.0285 236.3);
+      --d-blue-2: oklch(20.3% 0.0326 236.3);
+      --d-blue-3: oklch(26.9% 0.0737 236.3);
+      --d-blue-4: oklch(31.4% 0.1101 236.3);
+      --d-blue-5: oklch(36.4% 0.1192 236.3);
+      --d-blue-6: oklch(41.6% 0.1238 236.3);
+      --d-blue-7: oklch(47.5% 0.1334 236.3);
+      --d-blue-8: oklch(54.1% 0.1537 236.3);
+      --d-blue-9: oklch(75.1% 0.148 236.3);
+      --d-blue-10: oklch(71.6% 0.148 236.3);
+      --d-blue-11: oklch(76.8% 0.148 236.3);
+      --d-blue-12: oklch(90.8% 0.0565 236.3);
+
+      --d-blue-a1: color(display-p3 0.0118 0.0353 0.9294 / 0.009);
+      --d-blue-a2: color(display-p3 0.4353 0.7922 1 / 0.083);
+      --d-blue-a3: color(display-p3 0.2039 0.6078 1 / 0.22);
+      --d-blue-a4: color(display-p3 0.2314 0.6078 1 / 0.303);
+      --d-blue-a5: color(display-p3 0.2549 0.6275 1 / 0.382);
+      --d-blue-a6: color(display-p3 0.2745 0.6588 0.9961 / 0.461);
+      --d-blue-a7: color(display-p3 0.2784 0.6549 1 / 0.565);
+      --d-blue-a8: color(display-p3 0.298 0.6745 0.9961 / 0.677);
+      --d-blue-a9: color(display-p3 0.3804 0.7412 1 / 0.976);
+      --d-blue-a10: color(display-p3 0.3569 0.7294 1 / 0.926);
+      --d-blue-a11: color(display-p3 0.4039 0.7647 1 / 0.976);
+      --d-blue-a12: color(display-p3 0.7843 0.9137 1 / 0.988);
+
+      --d-blue-contrast: #fff;
+      --d-blue-surface: color(display-p3 0.0784 0.149 0.2196 / 0.5);
+      --d-blue-indicator: oklch(75.1% 0.148 236.3);
+      --d-blue-track: oklch(75.1% 0.148 236.3);
+
+      --d-gray-1: oklch(13% 0.004 236.8);
+      --d-gray-2: oklch(20.5% 0.0041 236.8);
+      --d-gray-3: oklch(24.9% 0.0057 236.8);
+      --d-gray-4: oklch(28.1% 0.0073 236.8);
+      --d-gray-5: oklch(31% 0.0082 236.8);
+      --d-gray-6: oklch(34.5% 0.0099 236.8);
+      --d-gray-7: oklch(39.8% 0.012 236.8);
+      --d-gray-8: oklch(49% 0.0157 236.8);
+      --d-gray-9: oklch(53.7% 0.0152 236.8);
+      --d-gray-10: oklch(58.3% 0.0142 236.8);
+      --d-gray-11: oklch(76.8% 0.0104 236.8);
+      --d-gray-12: oklch(94.9% 0.0028 236.8);
+
+      --d-gray-a1: color(display-p3 0.9882 0 0 / 0.016);
+      --d-gray-a2: color(display-p3 0.9922 0.7608 0.6235 / 0.076);
+      --d-gray-a3: color(display-p3 1 0.8627 0.7804 / 0.119);
+      --d-gray-a4: color(display-p3 0.9961 0.9176 0.8588 / 0.147);
+      --d-gray-a5: color(display-p3 1 0.9373 0.9098 / 0.174);
+      --d-gray-a6: color(display-p3 0.9961 0.9686 0.9725 / 0.206);
+      --d-gray-a7: color(display-p3 0.9843 0.9922 1 / 0.258);
+      --d-gray-a8: color(display-p3 0.9412 0.9765 1 / 0.37);
+      --d-gray-a9: color(display-p3 0.9451 0.9725 1 / 0.428);
+      --d-gray-a10: color(display-p3 0.9529 0.9765 1 / 0.482);
+      --d-gray-a11: color(display-p3 0.9608 0.9843 1 / 0.71);
+      --d-gray-a12: color(display-p3 0.9882 0.9922 1 / 0.938);
+
+      --d-gray-contrast: #ffffff;
+      --d-gray-surface: color(display-p3 0 0 0 / 5%);
+      --d-gray-indicator: oklch(53.7% 0.0152 236.8);
+      --d-gray-track: oklch(53.7% 0.0152 236.8);
+
+      --l-blue-1: oklch(97.4% 0.004 236.3);
+      --l-blue-2: oklch(96.1% 0.0117 236.3);
+      --l-blue-3: oklch(93.8% 0.0243 236.3);
+      --l-blue-4: oklch(91.4% 0.0453 236.3);
+      --l-blue-5: oklch(88.1% 0.0654 236.3);
+      --l-blue-6: oklch(83.8% 0.0838 236.3);
+      --l-blue-7: oklch(78.2% 0.1081 236.3);
+      --l-blue-8: oklch(70.7% 0.148 236.3);
+      --l-blue-9: oklch(75.1% 0.148 236.3);
+      --l-blue-10: oklch(71.6% 0.148 236.3);
+      --l-blue-11: oklch(53% 0.148 236.3);
+      --l-blue-12: oklch(32.4% 0.118 236.3);
+
+      --l-blue-a1: color(display-p3 1 0.8157 0.7843 / 0.091);
+      --l-blue-a2: color(display-p3 0.0118 0.0392 0.1882 / 0.029);
+      --l-blue-a3: color(display-p3 0.0118 0.3569 0.7294 / 0.087);
+      --l-blue-a4: color(display-p3 0.0039 0.4941 0.9255 / 0.16);
+      --l-blue-a5: color(display-p3 0.0039 0.5176 0.9451 / 0.242);
+      --l-blue-a6: color(display-p3 0.0039 0.498 0.9059 / 0.337);
+      --l-blue-a7: color(display-p3 0.0039 0.4941 0.8706 / 0.464);
+      --l-blue-a8: color(display-p3 0 0.5098 0.8784 / 0.669);
+      --l-blue-a9: color(display-p3 0 0.5529 0.9647 / 0.611);
+      --l-blue-a10: color(display-p3 0 0.5216 0.898 / 0.656);
+      --l-blue-a11: color(display-p3 0 0.3176 0.5922 / 0.796);
+      --l-blue-a12: color(display-p3 0 0.1451 0.298 / 0.914);
+
+      --l-blue-contrast: #fff;
+      --l-blue-surface: color(display-p3 0.9216 0.9451 0.9647 / 0.8);
+      --l-blue-indicator: oklch(75.1% 0.148 236.3);
+      --l-blue-track: oklch(75.1% 0.148 236.3);
+
+      --l-gray-1: oklch(97.3% 0.0034 236.8);
+      --l-gray-2: oklch(96.1% 0.0035 236.8);
+      --l-gray-3: oklch(93.3% 0.0047 236.8);
+      --l-gray-4: oklch(90.8% 0.0047 236.8);
+      --l-gray-5: oklch(88.5% 0.0052 236.8);
+      --l-gray-6: oklch(86% 0.0054 236.8);
+      --l-gray-7: oklch(82.4% 0.0062 236.8);
+      --l-gray-8: oklch(76.5% 0.008 236.8);
+      --l-gray-9: oklch(61.2% 0.0147 236.8);
+      --l-gray-10: oklch(57.7% 0.0142 236.8);
+      --l-gray-11: oklch(47.4% 0.0125 236.8);
+      --l-gray-12: oklch(24% 0.0184 236.8);
+
+      --l-gray-a1: color(display-p3 0.9569 0.1686 0.0196 / 0.024);
+      --l-gray-a2: color(display-p3 0.5686 0.1059 0.0157 / 0.04);
+      --l-gray-a3: color(display-p3 0.251 0.0039 0.0157 / 0.072);
+      --l-gray-a4: color(display-p3 0.1882 0.0353 0.0078 / 0.107);
+      --l-gray-a5: color(display-p3 0.1098 0.0196 0.0039 / 0.134);
+      --l-gray-a6: color(display-p3 0.0941 0.0078 0.0157 / 0.168);
+      --l-gray-a7: color(display-p3 0.051 0.0039 0.0157 / 0.212);
+      --l-gray-a8: color(display-p3 0.0157 0.0039 0.0275 / 0.287);
+      --l-gray-a9: color(display-p3 0.0039 0.0275 0.0667 / 0.484);
+      --l-gray-a10: color(display-p3 0 0.0314 0.0549 / 0.525);
+      --l-gray-a11: color(display-p3 0 0.0235 0.0431 / 0.644);
+      --l-gray-a12: color(display-p3 0 0.0314 0.051 / 0.898);
+
+      --l-gray-contrast: #ffffff;
+      --l-gray-surface: color(display-p3 1 1 1 / 80%);
+      --l-gray-indicator: oklch(61.2% 0.0147 236.8);
+      --l-gray-track: oklch(61.2% 0.0147 236.8);
+    }
+  }
+
+  --blue-1: light-dark(var(var(--l-blue-1)), var(var(--d-blue-1)));
+  --blue-2: light-dark(var(var(--l-blue-2)), var(var(--d-blue-2)));
+  --blue-3: light-dark(var(--l-blue-3), var(--d-blue-3));
+  --blue-4: light-dark(var(--l-blue-4), var(--d-blue-4));
+  --blue-5: light-dark(var(--l-blue-5), var(--d-blue-5));
+  --blue-6: light-dark(var(--l-blue-6), var(--d-blue-6));
+  --blue-7: light-dark(var(--l-blue-7), var(--d-blue-7));
+  --blue-8: light-dark(var(--l-blue-8), var(--d-blue-8));
+  --blue-9: light-dark(var(--l-blue-9), var(--d-blue-9));
+  --blue-10: light-dark(var(--l-blue-10), var(--d-blue-10));
+  --blue-11: light-dark(var(--l-blue-11), var(--d-blue-11));
+  --blue-12: light-dark(var(--l-blue-12), var(--d-blue-12));
+  --blue-a1: light-dark(var(--l-blue-a1), var(--d-blue-a1));
+  --blue-a2: light-dark(var(--l-blue-a2), var(--d-blue-a2));
+  --blue-a3: light-dark(var(--l-blue-a3), var(--d-blue-a3));
+  --blue-a4: light-dark(var(--l-blue-a4), var(--d-blue-a4));
+  --blue-a5: light-dark(var(--l-blue-a5), var(--d-blue-a5));
+  --blue-a6: light-dark(var(--l-blue-a6), var(--d-blue-a6));
+  --blue-a7: light-dark(var(--l-blue-a7), var(--d-blue-a7));
+  --blue-a8: light-dark(var(--l-blue-a8), var(--d-blue-a8));
+  --blue-a9: light-dark(var(--l-blue-a9), var(--d-blue-a9));
+  --blue-a10: light-dark(var(--l-blue-a10), var(--d-blue-a10));
+  --blue-a11: light-dark(var(--l-blue-a11), var(--d-blue-a11));
+  --blue-a12: light-dark(var(--l-blue-a12), var(--d-blue-a12));
+  --blue-contrast: light-dark(var(--l-blue-contrast), var(--d-blue-contrast));
+  --blue-surface: light-dark(var(--l-blue-surface), var(--d-blue-surface));
+  --blue-indicator: light-dark(
+    var(--l-blue-indicator),
+    var(--d-blue-indicator)
+  );
+  --blue-track: light-dark(var(--l-blue-track), var(--d-blue-track));
+  --gray-1: light-dark(var(--l-gray-1), var(--d-gray-1));
+  --gray-2: light-dark(var(--l-gray-2), var(--d-gray-2));
+  --gray-3: light-dark(var(--l-gray-3), var(--d-gray-3));
+  --gray-4: light-dark(var(--l-gray-4), var(--d-gray-4));
+  --gray-5: light-dark(var(--l-gray-5), var(--d-gray-5));
+  --gray-6: light-dark(var(--l-gray-6), var(--d-gray-6));
+  --gray-7: light-dark(var(--l-gray-7), var(--d-gray-7));
+  --gray-8: light-dark(var(--l-gray-8), var(--d-gray-8));
+  --gray-9: light-dark(var(--l-gray-9), var(--d-gray-9));
+  --gray-10: light-dark(var(--l-gray-10), var(--d-gray-10));
+  --gray-11: light-dark(var(--l-gray-11), var(--d-gray-11));
+  --gray-12: light-dark(var(--l-gray-12), var(--d-gray-12));
+  --gray-a1: light-dark(var(--l-gray-a1), var(--d-gray-a1));
+  --gray-a2: light-dark(var(--l-gray-a2), var(--d-gray-a2));
+  --gray-a3: light-dark(var(--l-gray-a3), var(--d-gray-a3));
+  --gray-a4: light-dark(var(--l-gray-a4), var(--d-gray-a4));
+  --gray-a5: light-dark(var(--l-gray-a5), var(--d-gray-a5));
+  --gray-a6: light-dark(var(--l-gray-a6), var(--d-gray-a6));
+  --gray-a7: light-dark(var(--l-gray-a7), var(--d-gray-a7));
+  --gray-a8: light-dark(var(--l-gray-a8), var(--d-gray-a8));
+  --gray-a9: light-dark(var(--l-gray-a9), var(--d-gray-a9));
+  --gray-a10: light-dark(var(--l-gray-a10), var(--d-gray-a10));
+  --gray-a11: light-dark(var(--l-gray-a11), var(--d-gray-a11));
+  --gray-a12: light-dark(var(--l-gray-a12), var(--d-gray-a12));
+  --gray-contrast: light-dark(var(--l-gray-contrast), var(--d-gray-contrast));
+  --gray-surface: light-dark(var(--l-gray-surface), var(--d-gray-surface));
+  --gray-indicator: light-dark(
+    var(--l-gray-indicator),
+    var(--d-gray-indicator)
+  );
+  --gray-track: light-dark(var(--l-gray-track), var(--d-gray-track));
+
+  /* ===== Surfaces (gray, on known backdrops) ===== */
+  --ui-bg: var(--gray-1); /* app/window background */
+  --ui-bg-subtle: var(--gray-2); /* faint inset zones, striping */
+  --ui-panel: var(--gray-2); /* raised panel / widget frame */
+  --ui-panel-raised: var(--gray-3); /* a panel sitting on a panel */
+
+  /* ===== Neutral interactive (controls: tabs, icon buttons, rows) ===== */
+  --ui-control: var(--gray-3); /* rest fill */
+  --ui-control-hover: var(--gray-4); /* hover fill */
+  --ui-control-active: var(--gray-5); /* pressed/active fill */
+  --ui-control-overlay: var(
+    --gray-a3
+  ); /* hover as composite, for controls on varying steps */
+
+  /* ===== Borders / separators (gray) ===== */
+  --ui-border-subtle: var(
+    --gray-6
+  ); /* dividers, panel edges, non-interactive */
+  --ui-border: var(
+    --gray-7
+  ); /* interactive element at rest (input, button outline) */
+  --ui-border-strong: var(
+    --gray-8
+  ); /* hovered/focused border, emphasized edge */
+
+  /* ===== Text (gray) ===== */
+  --ui-text: var(--gray-12); /* primary text */
+  --ui-text-muted: var(--gray-11); /* secondary text, labels */
+  --ui-text-subtle: var(--gray-10); /* tertiary, placeholder, disabled-ish */
+  --ui-text-on-solid: var(--gray-contrast); /* text on a gray-9/10 solid fill */
+
+  /* ===== Accent (blue) ===== */
+  --ui-accent-text: var(
+    --blue-11
+  ); /* accent-colored text/icon (active tab label, links) */
+  --ui-accent-text-strong: var(--blue-12); /* higher-contrast accent text */
+  --ui-accent-solid: var(
+    --blue-9
+  ); /* THE primary-action fill (rare, one per view) */
+  --ui-accent-solid-hover: var(--blue-10); /* its hover */
+  --ui-accent-on-solid: var(
+    --blue-contrast
+  ); /* text on accent-solid — NOTE below */
+  --ui-accent-fill: var(--blue-3); /* tinted accent button rest */
+  --ui-accent-fill-hover: var(--blue-4); /* tinted accent button hover */
+  --ui-accent-fill-active: var(--blue-5); /* tinted accent button active */
+  --ui-accent-border: var(
+    --blue-7
+  ); /* border on tinted accent button / focus ring */
+  --ui-accent-indicator: var(
+    --blue-indicator
+  ); /* active-tab underline, active markers */
+
+  /* ===== Selection (edit mode) — distinct ROLE from accent ===== */
+  --ui-selection: var(--blue-a5); /* translucent wash over selected widget */
+  --ui-selection-border: var(--blue-9); /* selection handle / outline */
+
+  /* ===== Focus ===== */
+  --ui-focus-ring: var(--blue-8); /* keyboard focus outline */
+
+  /* ===== Disabled (uniform across button tiers; neutral, hue-less, faded) ===== */
+  --ui-disabled-fill: var(--gray-3);
+  --ui-disabled-text: var(
+    --gray-8
+  ); /* intentionally below contrast floor — signals inert */
+  --ui-disabled-border: var(--gray-6);
+
+  --ui-danger-tint: light-dark(#feebec, #3b1219); /* red 3 */
+  --ui-danger-border: light-dark(#f4a9aa, #8c333a); /* red 7 */
+  --ui-danger-fill: light-dark(#e5484d, #e5484d); /* red 9 */
+  --ui-danger-text: light-dark(#ce2c31, #ff9592); /* red 11 */
+
+  --ui-warning-tint: light-dark(#fff7c2, #302008); /* amber 3 */
+  --ui-warning-border: light-dark(#e9c162, #714f19); /* amber 7 */
+  --ui-warning-fill: light-dark(#ffe629, #ffc53d); /* amber 9 */
+  --ui-warning-text: light-dark(#ab6400, #ffca16); /* amber 11 */
 
   /* Typography */
-  --font-ui: Quicksand, sans-serif;
-  --font-mono: monospace;
-  --scale-font: 1;
-
-  /* Animation */
-  --duration-fast: 150ms;
-  --duration-normal: 400ms;
-
-  /* Geometry */
-  --radius-sm: 3px;
-  --radius-md: 16px;
-  --radius-full: 9999px;
-  --grid-gap: 6px;
-
-  /* UI chrome (dev-only, adapts to theme color-scheme)*/
-  --ui-base: light-dark(#f0f0f2, #0d0f12);
-  --ui-control: light-dark(#d5d5d5, #22252c);
-  --ui-control-hover: light-dark(#c8c8c8, #2c3040);
-  --ui-control-active: light-dark(#b8b8b8, #181a20);
-  --ui-surface: light-dark(#e4e4e4, #1a1d22);
-  --ui-border: light-dark(#c0c0c0, #2e2e2e);
-  --ui-text: light-dark(#141414, #fafafa);
-  --ui-text-muted: light-dark(#666666, #888888);
-  --ui-text-subtle: light-dark(#999999, #555555);
-  --ui-accent: light-dark(hsl(200, 65%, 40%), hsl(200, 65%, 55%));
-  --ui-success: light-dark(hsl(120, 55%, 35%), hsl(120, 55%, 45%));
-  --ui-warning: light-dark(hsl(45, 75%, 38%), hsl(45, 75%, 50%));
-  --ui-danger: light-dark(hsl(0, 65%, 42%), hsl(0, 65%, 50%));
-  --ui-radius-control: 4px;
-  --ui-radius-panel: 8px;
+  --ui-font: Quicksand, sans-serif;
+  --ui-font-mono: monospace;
 
   /* Applied */
-  font-family: var(--font-ui);
+  font-family: var(--ui-font);
   font-weight: 400;
 
   font-synthesis: none;
@@ -73,7 +419,7 @@ html,
 #root {
   height: 100%;
   width: 100%;
-  color: var(--color-text);
+  color: var(--ui-text);
 }
 
 /* debug: show all elements */

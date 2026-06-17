@@ -27,19 +27,35 @@ const VISUALIZER_SETTINGS_DEF = {
             },
             default: "vertical",
           },
-          flip: {
-            label: "Flip bars",
+          freqOrder: {
+            label: "Frequency order",
             type: "select",
             options: {
-              none: "None",
-              vert: "Vertically",
-              horiz: "Horizontally",
-              both: "Both",
+              asc: "Ascending",
+              desc: "Descending",
             },
-            default: "none",
+            default: "asc",
+          },
+          extentSource: {
+            label: "Bar origin",
+            type: "select",
+            options: {
+              start: "Start",
+              end: "End",
+              center: "Center",
+              split: "Both edges",
+            },
+            default: "start",
+            showWhen: { key: "direction", is: ["vertical", "horizontal"] },
+          },
+          mirrorFreq: {
+            label: "Mirror frequency",
+            type: "boolean",
+            default: false,
+            showWhen: { key: "direction", is: ["vertical", "horizontal"] },
           },
           mirror: {
-            label: "Mirror bars",
+            label: "Mirror",
             type: "select",
             options: {
               none: "None",
@@ -48,6 +64,7 @@ const VISUALIZER_SETTINGS_DEF = {
               both: "Both",
             },
             default: "none",
+            showWhen: { key: "direction", is: "circular" },
           },
           barStyle: {
             label: "Style",
@@ -56,7 +73,7 @@ const VISUALIZER_SETTINGS_DEF = {
               bar: "Bar",
               stack: "Stack",
             },
-            default: "radial",
+            default: "bar",
           },
           barCount: {
             label: "Bar count",
@@ -71,25 +88,15 @@ const VISUALIZER_SETTINGS_DEF = {
             max: 0.9,
             step: 0.05,
             default: 0.5,
-            showWhen: {
-              key: "direction",
-              is: "circular",
-            },
+            showWhen: { key: "direction", is: "circular" },
           },
           origin: {
             label: "Origin",
-            type: "select",
-            options: {
-              top: "Top",
-              left: "Left",
-              right: "Right",
-              bottom: "Bottom",
-            },
-            default: "top",
-            showWhen: {
-              key: "direction",
-              is: "circular",
-            },
+            type: "number",
+            steps: [0, 45, 90, 135, 180, 225, 270, 315, 360],
+            default: 1.5,
+            unit: "°",
+            showWhen: { key: "direction", is: "circular" },
           },
         },
       },
@@ -123,7 +130,9 @@ export function Visualizer({
   barCount,
   showWhenIdle,
   mirror,
-  flip,
+  freqOrder,
+  extentSource,
+  mirrorFreq,
   barStyle,
   innerRadius,
   origin,
@@ -147,19 +156,20 @@ export function Visualizer({
     case "bars":
       switch (direction) {
         case "vertical":
+        case "horizontal":
           return (
-            <VertBars
+            <BarsVisualizer
               frequencies={data}
               barCount={barCount}
               showWhenIdle={showWhenIdle}
               color={color}
-              mirror={mirror}
-              flip={flip}
+              direction={direction}
+              freqOrder={freqOrder}
+              extentSource={extentSource}
+              mirrorFreq={mirrorFreq}
               barStyle={barStyle}
             />
           );
-        case "horizontal":
-          return <div>Horizontal bars not implemented yet</div>;
         case "circular":
           return (
             <RadialBars
@@ -169,7 +179,7 @@ export function Visualizer({
               showWhenIdle={showWhenIdle}
               color={color}
               mirror={mirror}
-              flip={flip}
+              freqOrder={freqOrder}
               barStyle={barStyle}
               origin={origin}
             />
@@ -202,50 +212,116 @@ const VisualizerWidget = registerWidget(Visualizer, {
 
 export default VisualizerWidget;
 
-function VertBars({
+type Rect = { x: number; y: number; w: number; h: number };
+
+function scaleValue(value: number, cutoff: number, scale: number) {
+  // Roughly:
+  // Values less than cutoff are aggressively reduced to near zero
+  // Values greater than cutoff are exponentially scaled so that 1 maps to 1, and cutoff maps to a small value close to zero (e.g. 0.001)
+  return Math.max((Math.pow(scale, (value - cutoff) / (1 - cutoff)) - 1) / (scale-1), 0.001);
+}
+
+function normalizeData(frequencies: FrequencyReading[] | null) {
+  const cutoff = 0.4;
+  const scale = Math.pow(2, 7.65); // = approx 200
+  return (
+    frequencies?.map((d) => ({
+      freq: Math.log(d.freq_hi + d.freq_lo),
+      magnitude: scaleValue(d.magnitude, cutoff, scale),
+    })) ?? null
+  );
+}
+
+function verticalBaseRects(
+  i: number,
+  amp: number,
+  canvas: HTMLCanvasElement,
+  barCount: number,
+  freqOrder: string,
+  extentSource: string,
+): Rect[] {
+  const freqI = freqOrder === "desc" ? barCount - 1 - i : i;
+  const x = (freqI / barCount) * canvas.width;
+  const w = Math.max(canvas.width / barCount - 2, 1);
+  const fullH = Math.max(amp * canvas.height, 1);
+  const halfH = Math.max(amp * canvas.height / 2, 1);
+  switch (extentSource) {
+    case "end":    return [{ x, y: 0, w, h: fullH }];
+    case "center": return [{ x, y: canvas.height / 2 - fullH / 2, w, h: halfH }];
+    case "split":  return [
+      { x, y: canvas.height - halfH, w, h: halfH },
+      { x, y: 0, w, h: halfH },
+    ];
+    default:       return [{ x, y: canvas.height - halfH, w, h: halfH }];
+  }
+}
+
+function horizontalBaseRects(
+  i: number,
+  amp: number,
+  canvas: HTMLCanvasElement,
+  barCount: number,
+  freqOrder: string,
+  extentSource: string,
+): Rect[] {
+  const freqI = freqOrder === "desc" ? barCount - 1 - i : i;
+  const y = (freqI / barCount) * canvas.height;
+  const h = Math.max(canvas.height / barCount - 2, 1);
+  const fullW = Math.max(amp * canvas.width, 1);
+  const halfW = Math.max(amp * canvas.width / 2, 1);
+  switch (extentSource) {
+    case "end":    return [{ x: canvas.width - fullW, y, w: fullW, h }];
+    case "center": return [{ x: canvas.width / 2 - fullW / 2, y, w: fullW, h }];
+    case "split":  return [
+      { x: 0, y, w: halfW, h },
+      { x: canvas.width - halfW, y, w: halfW, h },
+    ];
+    default:       return [{ x: 0, y, w: fullW, h }];
+  }
+}
+
+function applyMirrorFreq(rects: Rect[], cw: number, ch: number, direction: string): Rect[] {
+  if (direction === "vertical") {
+    return rects.flatMap((r) => [
+      { ...r, x: r.x / 2, w: r.w / 2 },
+      { ...r, x: cw - r.x / 2 - r.w, w: r.w / 2 },
+    ]);
+  }
+  return rects.flatMap((r) => [
+    { ...r, y: r.y / 2, h: r.h / 2 },
+    { ...r, y: ch - r.y / 2 - r.h, h: r.h / 2 },
+  ]);
+}
+
+function BarsVisualizer({
   frequencies,
   barCount,
   showWhenIdle,
   color,
-  mirror,
-  flip,
+  direction,
+  freqOrder,
+  extentSource,
+  mirrorFreq,
   barStyle,
 }: {
   frequencies: FrequencyReading[] | null;
   barCount: number;
   showWhenIdle: boolean;
   color: string;
-  mirror: string;
-  flip: string;
+  direction: string;
+  freqOrder: string;
+  extentSource: string;
+  mirrorFreq: boolean;
   barStyle: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const q = 0.4;
-  const b = 200;
-  let data =
-    frequencies?.map((d) => ({
-      freq: Math.log(d.freq_hi + d.freq_lo),
-      magnitude: Math.max(
-        (Math.pow(b, (d.magnitude - q) / (1 - q)) - 1) / b,
-        0.001,
-      ),
-    })) ?? null;
+  const data = normalizeData(frequencies);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
-    const freqToX = (index: number) => {
-      return (index / barCount) * canvas.width;
-    };
-
-    const ampToY = (amp: number) => {
-      return canvas.height - amp * canvas.height;
-    };
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -260,259 +336,22 @@ function VertBars({
       return;
     }
 
-    ctx.fillStyle = color;
+    const getBaseRects =
+      direction === "vertical" ? verticalBaseRects : horizontalBaseRects;
+    const effectiveCount = mirrorFreq ? Math.ceil(barCount / 2) : barCount;
 
-    for (let i = 0; i < barCount; i++) {
-      const freqIndex = Math.floor((i / barCount) * data.length);
+    for (let i = 0; i < effectiveCount; i++) {
+      const freqIndex = Math.floor((i / effectiveCount) * data.length);
       const amp = data[freqIndex]?.magnitude ?? 0;
-      let x = freqToX(i);
-      let y = ampToY(amp);
-      const barWidth = freqToX(i + 1) - x - 2;
-      const barHeight = Math.max(canvas.height - y, 1);
-
-      switch (mirror ?? "both") {
-        case "none":
-          drawBar(ctx, x, y, barWidth, barHeight, barStyle, color); // Just bar
-          break;
-        case "vert": // mirror vert
-          switch (flip) {
-            case "none": // mirror vert | no flip
-              drawBar(ctx, x, 0, barWidth, barHeight / 2, barStyle, color); // Top half
-              drawBar(
-                ctx,
-                x,
-                canvas.height / 2 + y / 2,
-                barWidth,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Bottom half
-              break;
-            case "vert": // mirror vert | flip vert
-              drawBar(ctx, x, y / 2, barWidth, barHeight, barStyle, color); // Center
-              break;
-            case "horiz": // mirror vert | flip horiz
-              drawBar(
-                ctx,
-                canvas.width - x - barWidth,
-                0,
-                barWidth,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Top half flipped
-              drawBar(
-                ctx,
-                canvas.width - x - barWidth,
-                canvas.height / 2 + y / 2,
-                barWidth,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Bottom half flipped
-              break;
-            case "both": // mirror vert | flip both
-              drawBar(
-                ctx,
-                canvas.width - x - barWidth,
-                y / 2,
-                barWidth,
-                barHeight,
-                barStyle,
-                color,
-              ); // Center flipped
-              break;
-          }
-          break;
-        case "horiz": // mirror horiz
-          switch (flip) {
-            case "none": // mirror horiz | no flip
-              drawBar(ctx, x / 2, y, barWidth / 2, barHeight, barStyle, color); // Left half
-              drawBar(
-                ctx,
-                canvas.width - x / 2 - barWidth,
-                y,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Right half
-              break;
-            case "vert": // mirror horiz | flip vert
-              drawBar(ctx, x / 2, 0, barWidth / 2, barHeight, barStyle, color); // Left half
-              drawBar(
-                ctx,
-                canvas.width - x / 2 - barWidth,
-                0,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Right half
-              break;
-            case "horiz": // mirror horiz | flip horiz
-              drawBar(
-                ctx,
-                canvas.width / 2 - x / 2,
-                y,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Left half flipped
-              drawBar(
-                ctx,
-                canvas.width / 2 + x / 2,
-                y,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Right half flipped
-              break;
-            case "both": // mirror horiz | flip both
-              drawBar(
-                ctx,
-                canvas.width / 2 - x / 2,
-                0,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Left half flipped
-              drawBar(
-                ctx,
-                canvas.width / 2 + x / 2,
-                0,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Right half flipped
-          }
-          break;
-        case "both":
-          switch (flip) {
-            case "none": // mirror both | no flip
-              drawBar(
-                ctx,
-                x / 2,
-                0,
-                barWidth / 2,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Top-left
-              drawBar(
-                ctx,
-                canvas.width - x / 2 - barWidth,
-                0,
-                barWidth / 2,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Top-right
-              drawBar(
-                ctx,
-                x / 2,
-                canvas.height - barHeight / 2,
-                barWidth / 2,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Bottom-left
-              drawBar(
-                ctx,
-                canvas.width - x / 2 - barWidth,
-                canvas.height - barHeight / 2,
-                barWidth / 2,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Bottom-right
-              break;
-            case "vert": // mirror both | flip vert
-              drawBar(
-                ctx,
-                x / 2,
-                y / 2,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Left half
-              drawBar(
-                ctx,
-                canvas.width - x / 2 - barWidth,
-                y / 2,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Right half
-              break;
-            case "horiz": // mirror both | flip horiz
-              drawBar(
-                ctx,
-                canvas.width / 2 - x / 2,
-                0,
-                barWidth / 2,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Top-left flipped
-              drawBar(
-                ctx,
-                canvas.width / 2 + x / 2,
-                0,
-                barWidth / 2,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Top-right flipped
-              drawBar(
-                ctx,
-                canvas.width / 2 - x / 2,
-                canvas.height - barHeight / 2,
-                barWidth / 2,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Bottom-left flipped
-              drawBar(
-                ctx,
-                canvas.width / 2 + x / 2,
-                canvas.height - barHeight / 2,
-                barWidth / 2,
-                barHeight / 2,
-                barStyle,
-                color,
-              ); // Bottom-right flipped
-              break;
-            case "both": // mirror both | flip both
-              drawBar(
-                ctx,
-                canvas.width / 2 - x / 2,
-                y / 2,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Left half flipped
-              drawBar(
-                ctx,
-                canvas.width / 2 + x / 2,
-                y / 2,
-                barWidth / 2,
-                barHeight,
-                barStyle,
-                color,
-              ); // Right half flipped
-          }
-          break;
+      let rects = getBaseRects(i, amp, canvas, effectiveCount, freqOrder, extentSource);
+      if (mirrorFreq) {
+        rects = applyMirrorFreq(rects, canvas.width, canvas.height, direction);
+      }
+      for (const r of rects) {
+        drawBar(ctx, r.x, r.y, r.w, r.h, barStyle, color);
       }
     }
-  }, [data, barCount, showWhenIdle, flip]);
+  }, [data, barCount, showWhenIdle, direction, freqOrder, extentSource, mirrorFreq, barStyle, color]);
 
   return (
     <canvas
@@ -561,7 +400,7 @@ function RadialBars({
   color,
   innerRadius,
   mirror,
-  flip,
+  freqOrder,
   barStyle,
   origin,
 }: {
@@ -571,22 +410,12 @@ function RadialBars({
   color: string;
   innerRadius: number;
   mirror: string;
-  flip: string;
+  freqOrder: string;
   barStyle: string;
-  origin: string;
+  origin: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const q = 0.4;
-  const b = 200;
-  let data =
-    frequencies?.map((d) => ({
-      freq: Math.log(d.freq_hi + d.freq_lo),
-      magnitude: Math.max(
-        (Math.pow(b, (d.magnitude - q) / (1 - q)) - 1) / b,
-        0.001,
-      ),
-    })) ?? null;
+  const data = normalizeData(frequencies);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -595,9 +424,9 @@ function RadialBars({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const freqToTheta = (index: number) => {
-      return ((index + 0.5) / barCount) * 2 * Math.PI;
-    };
+    const mirrorFactor = mirror === "both" ? 4 : mirror === "vert" || mirror === "horiz" ? 2 : 1;
+    const effectiveCount = Math.ceil(barCount / mirrorFactor);
+    const freqToTheta = (index: number) => ((index + 0.5) / effectiveCount) * 2 * Math.PI;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -615,7 +444,7 @@ function RadialBars({
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const density = 0.75;
-    let angularWidth = 0;
+    const angularWidth = ((2 * Math.PI) / barCount) * density;
     const dim = Math.min(canvas.width, canvas.height);
     const minRadius = (dim * innerRadius) / 2;
     const maxRadius = dim / 2;
@@ -662,10 +491,6 @@ function RadialBars({
           angle + angularWidth / 2,
           false,
         );
-        // ctx!.lineTo(
-        //   centerX + innerRadius * Math.cos(angle + angularWidth / 2),
-        //   centerY + innerRadius * Math.sin(angle + angularWidth / 2),
-        // );
         ctx!.lineTo(
           centerX + outerRadius * Math.cos(angle + angularWidth / 2),
           centerY + outerRadius * Math.sin(angle + angularWidth / 2),
@@ -678,10 +503,6 @@ function RadialBars({
           angle - angularWidth / 2,
           true,
         );
-        // ctx!.lineTo(
-        //   centerX + outerRadius * Math.cos(angle - angularWidth / 2),
-        //   centerY + outerRadius * Math.sin(angle - angularWidth / 2),
-        // );
         ctx!.closePath();
         ctx!.fill();
       }
@@ -689,115 +510,36 @@ function RadialBars({
 
     ctx.fillStyle = color;
 
-    let angleOffset = 0;
-    switch (origin) {
-      case "top":
-        angleOffset = -Math.PI / 2;
-        break;
-      case "left":
-        angleOffset = Math.PI;
-        break;
-      case "right":
-        angleOffset = 0;
-        break;
-      case "bottom":
-        angleOffset = Math.PI / 2;
-        break;
-    }
+    const angleOffset = origin/180 * Math.PI;
 
-    for (let i = 0; i < barCount; i++) {
-      const freqIndex = Math.floor((i / barCount) * data.length);
+    for (let i = 0; i < effectiveCount; i++) {
+      const freqI = freqOrder === "desc" ? effectiveCount - 1 - i : i;
+      const freqIndex = Math.floor((freqI / effectiveCount) * data.length);
       const amp = data[freqIndex]?.magnitude ?? 0;
-      let theta = freqToTheta(i);
-      let inner = minRadius;
-      let outer = inner + Math.max(amp * (maxRadius - minRadius), 1);
+      const theta = freqToTheta(i);
+      const inner = minRadius;
+      const outer = inner + Math.max(amp * (maxRadius - minRadius), 1);
       switch (mirror ?? "both") {
         case "none":
-          drawRadialBar(
-            inner,
-            outer,
-            theta + angleOffset,
-            angularWidth,
-            color,
-            barStyle,
-          );
+          drawRadialBar(inner, outer, theta + angleOffset, angularWidth, color, barStyle);
           break;
         case "vert":
-          angularWidth = ((2 * Math.PI) / barCount / 2) * density;
-          drawRadialBar(
-            inner,
-            outer,
-            theta / 2 + angleOffset,
-            angularWidth,
-            color,
-            barStyle,
-          );
-          drawRadialBar(
-            inner,
-            outer,
-            -theta / 2 + angleOffset,
-            angularWidth,
-            color,
-            barStyle,
-          );
+          drawRadialBar(inner, outer, theta / 2 + angleOffset, angularWidth, color, barStyle);
+          drawRadialBar(inner, outer, -theta / 2 + angleOffset, angularWidth, color, barStyle);
           break;
         case "horiz":
-          angularWidth = ((2 * Math.PI) / barCount / 2) * density;
-          drawRadialBar(
-            inner,
-            outer,
-            theta / 2 + Math.PI / 2 + angleOffset,
-            angularWidth,
-            color,
-            barStyle,
-          );
-          drawRadialBar(
-            inner,
-            outer,
-            -theta / 2 + Math.PI / 2 + angleOffset,
-            angularWidth,
-            color,
-            barStyle,
-          );
+          drawRadialBar(inner, outer, theta / 2 + Math.PI / 2 + angleOffset, angularWidth, color, barStyle);
+          drawRadialBar(inner, outer, -theta / 2 + Math.PI / 2 + angleOffset, angularWidth, color, barStyle);
           break;
         case "both":
-          angularWidth = ((2 * Math.PI) / barCount / 4) * density;
-          drawRadialBar(
-            inner,
-            outer,
-            theta / 4 + angleOffset,
-            angularWidth,
-            color,
-            barStyle,
-          );
-          drawRadialBar(
-            inner,
-            outer,
-            -theta / 4 + angleOffset,
-            angularWidth,
-            color,
-            barStyle,
-          );
-          drawRadialBar(
-            inner,
-            outer,
-            theta / 4 + Math.PI + angleOffset,
-            angularWidth,
-            color,
-            barStyle,
-          );
-          drawRadialBar(
-            inner,
-            outer,
-            -theta / 4 + Math.PI + angleOffset,
-            angularWidth,
-            color,
-            barStyle,
-          );
+          drawRadialBar(inner, outer, theta / 4 + angleOffset, angularWidth, color, barStyle);
+          drawRadialBar(inner, outer, -theta / 4 + angleOffset, angularWidth, color, barStyle);
+          drawRadialBar(inner, outer, theta / 4 + Math.PI + angleOffset, angularWidth, color, barStyle);
+          drawRadialBar(inner, outer, -theta / 4 + Math.PI + angleOffset, angularWidth, color, barStyle);
           break;
       }
     }
-  }, [data, barCount, showWhenIdle]);
+  }, [data, barCount, showWhenIdle, freqOrder, mirror, innerRadius, origin, barStyle, color]);
 
   return (
     <canvas
