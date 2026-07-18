@@ -15,6 +15,15 @@
     - disks/storage info
     - extend network widget to show current network etc
     - SMART data for disks?
+  - quotes (unifinished, needs API options nailed down)
+  - todo list widget
+  - calendar widget
+  - RSS feed widget
+  - news widget (maybe via specialised RSS feed, or via newsapi.org)
+  - picture widget (APOD, or user-specified image feed)
+    - needs provider
+    - options include stock photo feeds, user-paid api's, APOD (NASA) (Also satelite imagery, weather maps, etc.)
+  - 
 - additional options
   - lock dashboard via tray menu or something, prevents window controls from showing or edits being made (tauri set_ignore_pointer_events or similar)
     - keyboard shortcut? window only or global?
@@ -120,6 +129,8 @@
 - themes need additional colors:
   - secondary accents?
   - graphics (i.e. for the visualizer, accent is too aggressive for the bars, maybe a more muted secondary accent for graphics?)
+  - potentially, remove colours, move to one or two accent colours and a graphics colour, and let the visualiser and other graphics use that instead of the accent colour, which is more for text and UI elements, makes themes less powerful, but possibly better aesthetics since no longer fighting so hard against "bad" themes/managing 12 colours per theme for 10 themes, and less work for the user to create a theme that looks good. also reopens custom themes to be more tractable for non-technical users, since they only have to pick a few colours instead of 12.
+- edit mode placement ghosts are very saturated, need higher transparency (maybe stronger border to make them more visible on light backgrounds)
 - Edit mode should have its own management window
   - add widget can go here
   - allows better placement of save/cancel buttons
@@ -127,6 +138,13 @@
   - possibly require clicking a widget to select it to resize it, so resize draggers dont overlap
   - drag should remain immediate however, though maybe a dedicated drag handle?
   - idea for padding: render ractangle with same aspect ratio as screen, place draggable/resizeable rect within with snap to ~10px grid, and render the widget grid within that rectangle, so the user can see how the layout will look on their screen and how much padding is around it, and those controls no longer interfere with the edit grid itself
+- editing layouts should have a name field, so the user can rename the layout without having to go into settings
+- visualiser "No audio data" message is extremely ugly and not very legible, needs a better design
+- per-widget error handling
+  - a callout in the corner rendered by the widget wrapper?
+  - a handful of common error states (needs config, needs network, needs media, etc.) that widgets can declare and the wrapper handles rendering for them, so the widget doesn't have to implement its own error handling and can just declare what it needs
+    - needs nailed down list of common error states and how they should be rendered, so the wrapper can handle them consistently across all widgets
+    - porbably need some way for unique widget errors to be handled by the wrapper as well, so the widget can declare a custom error state and the wrapper can render it appropriately
 
 ## Bugfixes - issues with existing features or code
 
