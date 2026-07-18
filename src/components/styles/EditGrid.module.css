@@ -8,7 +8,7 @@
   gap: var(--grid-gap);
   padding: var(--grid-padding-top) var(--grid-padding-right)
     var(--grid-padding-bottom) var(--grid-padding-left);
-  background: var(--ui-base);
+  background: var(--ui-bg);
   box-sizing: border-box;
 }
 
@@ -17,7 +17,7 @@
   position: relative;
   cursor: grab;
   border-radius: var(--radius-widget, 0px);
-  outline: 1.5px dashed color-mix(in srgb, var(--ui-accent) 60%, transparent);
+  outline: 1.5px dashed color-mix(in srgb, var(--ui-selection-border) 60%, transparent);
 }
 .widgetOverlay:active {
   cursor: grabbing;
@@ -26,12 +26,12 @@
 @keyframes flashDanger {
   0%,
   100% {
-    outline-color: color-mix(in srgb, var(--ui-accent) 60%, transparent);
+    outline-color: color-mix(in srgb, var(--ui-selection-border) 60%, transparent);
     background: transparent;
   }
   50% {
-    outline-color: var(--ui-danger);
-    background: color-mix(in srgb, var(--ui-danger) 20%, transparent);
+    outline-color: var(--ui-danger-border);
+    background: color-mix(in srgb, var(--ui-danger-fill) 20%, transparent);
   }
 }
 
@@ -79,7 +79,7 @@
   height: 22px;
   border: none;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--ui-surface) 90%, transparent);
+  background: color-mix(in srgb, var(--ui-panel) 90%, transparent);
   color: var(--ui-text);
   cursor: pointer;
   transition: background 0.2s ease;
@@ -90,10 +90,10 @@
 }
 
 .iconButton:hover {
-  background: var(--ui-accent);
+  background: var(--ui-selection);
 }
 .iconButton.danger:hover {
-  background: var(--ui-danger);
+  background: var(--ui-danger-fill);
 }
 
 /* Resize handles */
@@ -101,13 +101,13 @@
   position: absolute;
   width: 10px;
   height: 10px;
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-accent);
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-selection-border);
   border-radius: 2px;
   z-index: 10;
   transition: background 0.1s ease-out;
   &:hover {
-    background: var(--ui-accent);
+    background: var(--ui-selection);
     z-index: 11;
   }
 }
@@ -166,7 +166,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-widget, 0px);
-  outline: 1.5px dashed color-mix(in srgb, var(--ui-border) 50%, transparent);
+  outline: 1.5px dashed color-mix(in srgb, var(--ui-border-subtle) 50%, transparent);
   cursor: pointer;
   color: color-mix(in srgb, var(--ui-text-subtle) 70%, transparent);
   font-size: 20px;
@@ -180,7 +180,7 @@
   }
 }
 .emptyCell:hover {
-  background: color-mix(in srgb, var(--ui-surface) 40%, transparent);
+  background: color-mix(in srgb, var(--ui-panel) 40%, transparent);
   color: var(--ui-text-muted);
 }
 
@@ -191,12 +191,12 @@
   transition: opacity 0.05s;
 }
 .ghost.valid {
-  background: color-mix(in srgb, var(--ui-success) 20%, transparent);
-  outline: 2px solid var(--ui-success);
+  background: var(--ui-selection);
+  outline: 2px solid var(--ui-selection-border);
 }
 .ghost.invalid {
-  background: color-mix(in srgb, var(--ui-danger) 20%, transparent);
-  outline: 2px solid var(--ui-danger);
+  background: color-mix(in srgb, var(--ui-danger-fill) 20%, transparent);
+  outline: 2px solid var(--ui-danger-border);
 }
 
 /* Grid edge controls */
@@ -237,8 +237,8 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  background: color-mix(in srgb, var(--ui-surface) 80%, transparent);
-  border: var(--ui-accent) 1px solid;
+  background: color-mix(in srgb, var(--ui-panel) 80%, transparent);
+  border: var(--ui-selection-border) 1px solid;
   border-radius: 4px;
   color: var(--ui-text-muted);
   cursor: pointer;
@@ -249,7 +249,7 @@
 }
 .edgeButton:hover {
   opacity: 1;
-  background: var(--ui-surface);
+  background: var(--ui-panel);
 }
 
 /* Save/cancel bar */
@@ -260,8 +260,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-border-subtle);
   border-radius: 8px;
   padding: 8px 12px;
   z-index: 200;
@@ -279,8 +279,8 @@
   font-family: inherit;
 }
 .barButton.primary {
-  background: var(--ui-accent);
-  color: var(--ui-base);
+  background: var(--ui-accent-solid);
+  color: var(--ui-accent-on-solid);
 }
 .barButton.primary:disabled {
   opacity: 0.5;
@@ -296,21 +296,21 @@
 }
 
 .errorBadge {
-  color: var(--ui-danger);
+  color: var(--ui-danger-text);
   font-size: 0.85em;
 }
 
 .warningBadge {
-  color: var(--ui-warning, oklch(75% 0.15 85));
+  color: var(--ui-warning-text);
   font-size: 0.85em;
 }
 
 .widgetError {
-  outline-color: var(--ui-danger);
+  outline-color: var(--ui-danger-border);
 }
 
 .widgetWarning {
-  outline-color: var(--ui-warning, oklch(75% 0.15 85));
+  outline-color: var(--ui-warning-border);
 }
 
 .errorList {
@@ -345,7 +345,7 @@
     / max-content max-content 1fr min-content;
   gap: 4px;
   padding: 8px;
-  border: 1px solid var(--ui-border);
+  border: 1px solid var(--ui-border-subtle);
   border-radius: 5px;
   place-items: center stretch;
 }
@@ -377,7 +377,7 @@
 }
 
 .widgetTag {
-  background: color-mix(in srgb, var(--tag-color), var(--ui-surface) 80%);
+  background: color-mix(in srgb, var(--tag-color), var(--ui-panel) 80%);
   color: var(--tag-color);
   padding: 2px 6px;
   border-radius: 4px;
@@ -452,8 +452,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-border-subtle);
   border-radius: 8px;
   padding: 6px 12px;
   z-index: 200;
@@ -473,8 +473,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: color-mix(in srgb, var(--ui-danger) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ui-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--ui-danger-fill) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-danger-fill) 30%, transparent);
   border-radius: 5px;
   padding: 2px 6px 2px 8px;
   font-size: 0.9em;
@@ -503,8 +503,8 @@
   cursor: ns-resize;
   background: linear-gradient(
     transparent 3px,
-    color-mix(in srgb, var(--ui-accent) 35%, transparent) 3px,
-    color-mix(in srgb, var(--ui-accent) 35%, transparent) 5px,
+    color-mix(in srgb, var(--ui-selection-border) 35%, transparent) 3px,
+    color-mix(in srgb, var(--ui-selection-border) 35%, transparent) 5px,
     transparent 5px
   );
 }
@@ -526,8 +526,8 @@
   background: linear-gradient(
     to right,
     transparent 3px,
-    color-mix(in srgb, var(--ui-accent) 35%, transparent) 3px,
-    color-mix(in srgb, var(--ui-accent) 35%, transparent) 5px,
+    color-mix(in srgb, var(--ui-selection-border) 35%, transparent) 3px,
+    color-mix(in srgb, var(--ui-selection-border) 35%, transparent) 5px,
     transparent 5px
   );
 }
@@ -543,15 +543,15 @@
 .paddingHandleGrip {
   width: 12px;
   height: 12px;
-  color: var(--ui-accent);
+  color: var(--ui-selection-border);
   flex-shrink: 0;
 }
 
 .paddingHandleLabel {
   position: absolute;
   font-size: 10px;
-  color: var(--ui-accent);
-  background: color-mix(in srgb, var(--ui-surface) 85%, transparent);
+  color: var(--ui-selection-border);
+  background: color-mix(in srgb, var(--ui-panel) 85%, transparent);
   padding: 1px 4px;
   border-radius: 3px;
   pointer-events: none;
@@ -588,7 +588,7 @@
   height: 24px;
   border: 1px solid var(--ui-border);
   border-radius: 4px;
-  background: color-mix(in srgb, var(--ui-surface) 80%, transparent);
+  background: color-mix(in srgb, var(--ui-panel) 80%, transparent);
   color: var(--ui-text-muted);
   cursor: pointer;
   padding: 0;
@@ -611,7 +611,7 @@
   height: 24px;
   font-size: 0.85em;
   color: var(--ui-text-muted);
-  background: color-mix(in srgb, var(--ui-surface) 80%, transparent);
+  background: color-mix(in srgb, var(--ui-panel) 80%, transparent);
   border: 1px solid var(--ui-border);
   border-radius: 4px;
   cursor: ew-resize;

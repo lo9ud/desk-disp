@@ -12,8 +12,8 @@
 }
 
 .track:has(input:checked) {
-  background-color: var(--ui-accent);
-  border-color: var(--ui-accent);
+  background-color: var(--ui-accent-solid);
+  border-color: var(--ui-accent-solid);
 }
 
 .thumb {

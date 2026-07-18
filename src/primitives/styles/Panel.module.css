@@ -1,7 +1,7 @@
 .panel {
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-panel);
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 8px;
 }
 
 .sm {

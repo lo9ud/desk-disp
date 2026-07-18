@@ -5,14 +5,14 @@
   padding: 4px;
   background: var(--ui-control);
   border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-control);
+  border-radius: 4px;
   align-items: center;
   min-width: 0;
   cursor: text;
-  transition: border-color var(--duration-fast) ease;
+  transition: border-color 0.15s ease;
 
   &:focus-within {
-    border-color: var(--ui-accent);
+    border-color: var(--ui-focus-ring);
   }
 }
 
@@ -21,9 +21,9 @@
   align-items: center;
   gap: 3px;
   padding: 1px 6px 1px 8px;
-  background: var(--ui-surface);
+  background: var(--ui-panel);
   border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-control);
+  border-radius: 4px;
   font-size: 0.75rem;
   color: var(--ui-text);
   white-space: nowrap;
@@ -34,9 +34,9 @@
   display: inline-flex;
   align-items: center;
   padding: 1px 8px;
-  background: var(--ui-surface);
+  background: var(--ui-panel);
   border: 1px dashed var(--ui-border);
-  border-radius: var(--ui-radius-control);
+  border-radius: 4px;
   font-size: 0.75rem;
   color: var(--ui-text-muted);
   white-space: nowrap;
@@ -56,10 +56,10 @@
   font-size: 0.85rem;
   line-height: 1;
   margin-left: 1px;
-  transition: color var(--duration-fast) ease;
+  transition: color 0.15s ease;
 
   &:hover {
-    color: var(--ui-danger);
+    color: var(--ui-danger-text);
   }
 }
 
@@ -68,7 +68,7 @@
   border: none;
   outline: none;
   color: var(--ui-text);
-  font-family: var(--font-ui);
+  font-family: var(--ui-font);
   font-size: 0.75rem;
   min-width: 100px;
   flex: 1;

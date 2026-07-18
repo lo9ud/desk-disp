@@ -120,13 +120,21 @@
 - themes need additional colors:
   - secondary accents?
   - graphics (i.e. for the visualizer, accent is too aggressive for the bars, maybe a more muted secondary accent for graphics?)
+- Edit mode should have its own management window
+  - add widget can go here
+  - allows better placement of save/cancel buttons
+  - allows for external management of border padding/size so those buttons don't interfere with the edit grid
+  - possibly require clicking a widget to select it to resize it, so resize draggers dont overlap
+  - drag should remain immediate however, though maybe a dedicated drag handle?
+  - idea for padding: render ractangle with same aspect ratio as screen, place draggable/resizeable rect within with snap to ~10px grid, and render the widget grid within that rectangle, so the user can see how the layout will look on their screen and how much padding is around it, and those controls no longer interfere with the edit grid itself
 
 ## Bugfixes - issues with existing features or code
 
+- rename album art blur to glow
+- visualiser stack style dows not work (confirmed horizontal bars, check other variants)
 - fix broken settings
   - run on startup, taskbar/dock icon etc.
 - Generated themes do some seriously weird stuff when settings colours, seems like events stack up then fire all at once
-- Opening settings, then closing the window permanently prevents settings from being opened again until app restart
 - visualizer FFTStream thrashing on subscribe/unsubscribe cycles — edit-mode → standard-view transitions unmount then remount the visualizer widget, firing unsubscribe + subscribe in quick succession; each cycle tears down and recreates the WASAPI loopback stream and real-time audio thread. Confirm old stream and callback handles are fully closed before the new stream opens (no handle leak across cycles). Consider caching the live `FFTStream` for a short grace period before tearing it down, so rapid re-subscriptions reuse the existing stream.
   - Possibly extend to other streams, e.g. media subscription, if similar thrashing is observed there
   - possibly resolved?

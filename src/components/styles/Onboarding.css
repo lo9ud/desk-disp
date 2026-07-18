@@ -1,7 +1,7 @@
 
 /* Global: pulsing highlight ring on the active tour target */
 [data-tour-highlight] {
-  outline: 3px solid var(--ui-accent) !important;
+  outline: 3px solid var(--ui-focus-ring) !important;
   box-shadow: 0 0 12px 12px rgba(0, 0, 0, 0.8);
   outline-offset: 2px;
   z-index: 2001 !important;
@@ -11,7 +11,7 @@
 @keyframes tour-pulse {
   0%,
   100% {
-    outline-color: var(--ui-accent);
+    outline-color: var(--ui-focus-ring);
   }
   50% {
     outline-color: transparent;

@@ -9,9 +9,9 @@
 }
 
 .panel {
-  background: var(--ui-surface);
-  border: 2px solid var(--ui-border);
-  border-radius: var(--ui-radius-panel);
+  background: var(--ui-panel);
+  border: 2px solid var(--ui-border-subtle);
+  border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   max-width: 90vw;
   height: 80vh;
@@ -23,7 +23,7 @@
 
 .header {
   padding: 1rem 1.25rem 0.75rem;
-  border-bottom: 1px solid var(--ui-border);
+  border-bottom: 1px solid var(--ui-border-subtle);
   flex-shrink: 0;
 }
 
@@ -36,7 +36,7 @@
 
 .actions {
   padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--ui-border);
+  border-top: 1px solid var(--ui-border-subtle);
   display: flex;
   gap: 0.5rem;
   justify-content: flex-end;

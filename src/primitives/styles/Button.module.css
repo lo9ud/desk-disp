@@ -4,18 +4,18 @@
   justify-content: center;
   gap: 0.4rem;
   padding: 0.3rem 0.75rem;
-  font-family: var(--font-ui);
+  font-family: var(--ui-font);
   font-size: 0.8rem;
   font-weight: 500;
-  border-radius: var(--ui-radius-control);
+  border-radius: 4px;
   border: 1px solid var(--ui-border);
   background: var(--ui-control);
   color: var(--ui-text);
   cursor: pointer;
   transition:
-    background var(--duration-fast) ease,
-    border-color var(--duration-fast) ease,
-    color var(--duration-fast) ease;
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 
   &:hover:not(:disabled) {
     background: var(--ui-control-hover);
@@ -62,44 +62,44 @@
 }
 
 .accent {
-  background: color-mix(in srgb, var(--ui-accent) 20%, var(--ui-control));
-  border-color: color-mix(in srgb, var(--ui-accent) 40%, var(--ui-border));
-  color: var(--ui-accent);
+  background: var(--ui-accent-fill);
+  border-color: var(--ui-accent-border);
+  color: var(--ui-accent-text);
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-accent) 30%, var(--ui-control));
+    background: var(--ui-accent-fill-hover);
   }
 
   &:active:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-control));
+    background: var(--ui-accent-fill-active);
   }
 }
 
 .danger {
-  background: color-mix(in srgb, var(--ui-danger) 20%, var(--ui-control));
-  border-color: color-mix(in srgb, var(--ui-danger) 40%, var(--ui-border));
-  color: var(--ui-danger);
+  background: var(--ui-danger-tint);
+  border-color: var(--ui-danger-border);
+  color: var(--ui-danger-text);
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-danger) 30%, var(--ui-control));
+    background: color-mix(in srgb, var(--ui-danger-fill) 15%, var(--ui-danger-tint));
   }
 
   &:active:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-danger) 45%, var(--ui-control));
+    background: color-mix(in srgb, var(--ui-danger-fill) 30%, var(--ui-danger-tint));
   }
 }
 
 .warning {
-  background: color-mix(in srgb, var(--ui-warning) 20%, var(--ui-control));
-  border-color: color-mix(in srgb, var(--ui-warning) 40%, var(--ui-border));
-  color: var(--ui-warning);
+  background: var(--ui-warning-tint);
+  border-color: var(--ui-warning-border);
+  color: var(--ui-warning-text);
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-warning) 30%, var(--ui-control));
+    background: color-mix(in srgb, var(--ui-warning-fill) 15%, var(--ui-warning-tint));
   }
 
   &:active:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-warning) 45%, var(--ui-control));
+    background: color-mix(in srgb, var(--ui-warning-fill) 30%, var(--ui-warning-tint));
   }
 }
 
@@ -110,12 +110,12 @@
   color: var(--ui-text-muted);
 
   &:hover:not(:disabled) {
-    color: var(--ui-danger);
-    background: color-mix(in srgb, var(--ui-danger) 5%, var(--ui-control));
-    border-color: color-mix(in srgb, var(--ui-danger) 10%, var(--ui-border));
+    color: var(--ui-danger-text);
+    background: color-mix(in srgb, var(--ui-danger-fill) 5%, var(--ui-control));
+    border-color: color-mix(in srgb, var(--ui-danger-fill) 10%, var(--ui-border));
   }
 
   &:active:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-danger) 45%, var(--ui-control));
+    background: color-mix(in srgb, var(--ui-danger-fill) 30%, var(--ui-danger-tint));
   }
 }

@@ -1,5 +1,5 @@
 .text {
-  font-family: var(--font-ui);
+  font-family: var(--ui-font);
   font-size: 0.9rem;
   color: var(--ui-text);
   line-height: 1.5;
@@ -14,7 +14,7 @@
 }
 
 .code {
-  font-family: var(--font-mono);
+  font-family: var(--ui-font-mono);
   font-size: 0.75rem;
   color: var(--ui-text-muted);
 }

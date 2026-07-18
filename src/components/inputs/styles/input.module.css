@@ -1,6 +1,6 @@
 .inputLabel {
   font-size: 0.8rem;
-  color: var(--ui-text-dim);
+  color: var(--ui-text-muted);
   flex-shrink: 0;
   min-width: 8rem;
   font-weight: 500;

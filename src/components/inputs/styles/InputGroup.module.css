@@ -34,7 +34,7 @@
 
 .divider {
   border: none;
-  border-top: 1px solid var(--ui-border);
+  border-top: 1px solid var(--ui-border-subtle);
   margin: 0;
   width: 100%;
 }

@@ -2,8 +2,8 @@
     cursor: default;
     /* position: absolute;
     inset: 10px; */
-    background: var(--ui-surface);
-    border: 1px solid var(--ui-border);
+    background: var(--ui-panel);
+    border: 1px solid var(--ui-border-subtle);
     border-radius: 6px;
     padding: 12px;
     z-index: 10000;

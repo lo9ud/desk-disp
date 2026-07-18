@@ -28,7 +28,7 @@
   background: var(--color-base);
 
   &.active {
-    border-color: var(--ui-accent);
+    border-color: var(--ui-accent-border);
   }
 }
 
@@ -93,7 +93,7 @@
   color: color-mix(var(--text-contrast), var(--color-surface) 40%);
   padding: 2px;
   &.active {
-    color: color-mix(var(--text-contrast), var(--ui-accent) 60%);
+    color: color-mix(var(--text-contrast), var(--ui-accent-text) 60%);
   }
 }
 

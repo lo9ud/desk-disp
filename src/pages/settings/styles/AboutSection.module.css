@@ -12,7 +12,7 @@
     & > h2 {
         width: 100%;
         color: var(--ui-text-muted);
-        border-bottom: 1px solid var(--ui-border);
+        border-bottom: 1px solid var(--ui-border-subtle);
     }
 
     &:last-child {
@@ -44,7 +44,7 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: var(--ui-surface);
+    background: var(--ui-panel);
     text-align: left;
 }
 
@@ -56,10 +56,13 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    transition: background 0.2s ease-out;
+    transition:
+      background 0.2s ease-out,
+      color 0.2s ease-out;
 
     &:hover {
-        background: var(--ui-accent);
+        background: var(--ui-accent-solid);
+        color: var(--ui-accent-on-solid);
     }
 }
 

@@ -40,8 +40,8 @@
   }
 
   &.active {
-    border-color: var(--ui-accent);
-    background: color-mix(in srgb, var(--ui-accent) 10%, transparent);
+    border-color: var(--ui-accent-border);
+    background: var(--ui-accent-fill);
   }
 }
 
@@ -50,12 +50,12 @@
   height: 0.5rem;
   border-radius: 50%;
   background: transparent;
-  border: 1px solid var(--ui-border);
+  border: 1px solid var(--ui-border-subtle);
   flex-shrink: 0;
 
   .active & {
-    background: var(--ui-accent);
-    border-color: var(--ui-accent);
+    background: var(--ui-accent-indicator);
+    border-color: var(--ui-accent-indicator);
   }
 }
 
@@ -71,7 +71,7 @@
   font-family: inherit;
   background: var(--ui-control);
   color: var(--ui-text);
-  border: 1px solid var(--ui-accent);
+  border: 1px solid var(--ui-focus-ring);
   border-radius: 3px;
   padding: 0 0.25rem;
   outline: none;
@@ -144,7 +144,7 @@
   font-size: 0.8rem;
   color: var(--ui-text-muted);
   padding-right: 0.5rem;
-  border-right: 1px solid var(--ui-border);
+  border-right: 1px solid var(--ui-border-subtle);
 }
 /* end of copy */
 
@@ -163,7 +163,7 @@
   margin: 0 0.5rem;
   padding: 0.5rem;
   align-items: center;
-  border: 1px solid var(--ui-border);
+  border: 1px solid var(--ui-border-subtle);
   border-radius: 4px;
 }
 
@@ -185,7 +185,7 @@
     );
   place-items: stretch;
   gap: calc(var(--grid-preview-spacing)/4);
-  border: 2px solid color-mix(in srgb, var(--ui-border) 80%, #ffffff);
+  border: 2px solid color-mix(in srgb, var(--ui-border-subtle) 80%, #ffffff);
   border-radius: 2px;
   & > div {
     container: size 100% 100%;
