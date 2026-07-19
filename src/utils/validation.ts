@@ -20,7 +20,7 @@ export interface GridDims {
   padding: GridPadding;
 }
 
-function boxesOverlap(a: WidgetPlacement, b: WidgetPlacement): boolean {
+export function boxesOverlap(a: WidgetPlacement, b: WidgetPlacement): boolean {
   return !(
     a.col + a.col_span <= b.col ||
     b.col + b.col_span <= a.col ||
