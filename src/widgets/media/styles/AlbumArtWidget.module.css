@@ -14,7 +14,7 @@
 }
 
 .art,
-.blur {
+.glow {
   width: var(--size);
   height: var(--size);
   object-fit: cover;
@@ -29,7 +29,7 @@
   box-shadow: 0 0 4px 4px var(--color-base) inset;
 }
 
-.blurActive {
+.glowActive {
   --f-blur: 1.5rem;
 }
 
@@ -57,7 +57,7 @@
   --f-saturation: 0%;
 }
 
-.blur {
+.glow {
   --size: min(100cqw, 100cqh);
   filter: blur(var(--f-blur)) brightness(var(--f-lighten))
     saturate(var(--f-saturation));
@@ -104,7 +104,7 @@
 
 .paused {
   animation-play-state: paused;
-  &.blur {
+  &.glow {
     filter: blur(1rem) grayscale(40%) brightness(70%);
   }
   &.art {

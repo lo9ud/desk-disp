@@ -450,7 +450,11 @@ function WidgetEntry({
         ))}
       </div>
       <div className={styles.widgetAddButtonContainer}>
-        <Button variant="default" onClick={() => onAdd(def.id)} title="Add widget">
+        <Button
+          variant="default"
+          onClick={() => onAdd(def.id)}
+          title="Add widget"
+        >
           <PlusCircleIcon />
         </Button>
       </div>
@@ -600,18 +604,6 @@ export default function EditGrid() {
     [ghost, moveWidget],
   );
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    console.log("Key pressed: ", e.key);
-    switch (e.key) {
-      case "Escape":
-        cancel();
-        break;
-      case "Enter":
-        save();
-        break;
-    }
-  }, []);
-
   function startPaddingDrag(e: React.PointerEvent, edge: PaddingEdge) {
     e.stopPropagation();
     containerRef.current?.setPointerCapture(e.pointerId);
@@ -648,13 +640,11 @@ export default function EditGrid() {
     if (!el) return;
     el.addEventListener("pointermove", handlePointerMove);
     el.addEventListener("pointerup", handlePointerUp);
-    globalThis.addEventListener("keydown", handleKeyDown);
     return () => {
       el.removeEventListener("pointermove", handlePointerMove);
       el.removeEventListener("pointerup", handlePointerUp);
-      globalThis.removeEventListener("keydown", handleKeyDown);
     };
-  }, [handlePointerMove, handlePointerUp, handleKeyDown]);
+  }, [handlePointerMove, handlePointerUp]);
 
   function startDrag(e: React.PointerEvent, instanceId: string) {
     if (!containerRef.current || !editRegistry) return;
@@ -1008,13 +998,14 @@ export default function EditGrid() {
             {allErrors.length > 1 ? "s" : ""}
           </span>
         )}
-        <Button variant="ghost" onClick={cancel}>
+        <Button variant="ghost" onClick={cancel} keybind={[["escape"], cancel]}>
           Cancel
         </Button>
         <Button
           variant="accent"
           disabled={hasBlockingErrors || saving}
           onClick={handleSaveClick}
+          keybind={[["enter"], handleSaveClick]}
         >
           {saving ? "Saving…" : "Save"}
         </Button>

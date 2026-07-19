@@ -10,4 +10,6 @@ export default function useInterval<T>(callback: () => T, delay: number) {
       clearInterval(id);
     };
   }, [delay]);
+
+  return value;
 }

@@ -21,15 +21,17 @@ const ALBUM_ART_WIDGET_SETTINGS_DEF = {
           rotate: {
             type: "boolean",
             label: "Rotate when playing",
+            default: false,
           },
         },
       },
     },
     default: "rounded",
   },
-  filterBlur: {
+  filterGlow: {
     type: "boolean",
-    label: "Border blur",
+    label: "Border glow",
+    default: false,
   },
   filterLightness: {
     type: "select",
@@ -40,7 +42,7 @@ const ALBUM_ART_WIDGET_SETTINGS_DEF = {
       darken: "Darken",
     },
     default: "none",
-    enableWhen: { key: "filterBlur", is: true },
+    enableWhen: { key: "filterGlow", is: true },
   },
   filterSaturation: {
     type: "select",
@@ -53,14 +55,14 @@ const ALBUM_ART_WIDGET_SETTINGS_DEF = {
       none: "None",
     },
     default: "none",
-    enableWhen: { key: "filterBlur", is: true },
+    enableWhen: { key: "filterGlow", is: true },
   },
 } satisfies WidgetSettingsDefinition;
 
 export function AlbumArt({
   style,
   rotate,
-  filterBlur,
+  filterGlow,
   filterLightness,
   filterSaturation,
 }: WidgetSettingsProps<typeof ALBUM_ART_WIDGET_SETTINGS_DEF>) {
@@ -75,7 +77,7 @@ export function AlbumArt({
     rounded: styles.rounded,
     circle: styles.circle,
   }[style];
-  const blurStyle = filterBlur ? styles.blurActive : null;
+  const glowStyle = filterGlow ? styles.glowActive : null;
   const lightnessStyle = {
     none: undefined,
     lighten: styles.lighten,
@@ -92,18 +94,18 @@ export function AlbumArt({
     <div className={styles.container}>
       {albumArtSrc && (
         <>
-          {filterBlur && (
+          {filterGlow && (
             <img
               className={combineClassNames(
-                styles.blur,
+                styles.glow,
                 pausedStyle,
                 rotateStyle,
                 shapeStyle,
-                blurStyle,
+                glowStyle,
                 lightnessStyle,
                 saturationStyle,
               )}
-              alt="Currently playing album art (blurred)"
+              alt="Currently playing album art (glowred)"
               src={albumArtSrc}
             />
           )}

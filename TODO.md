@@ -6,7 +6,7 @@
 - add more widgets
   - vendor-specific adapters for advanced CPU/GPU/RAM/thermal data
     - needs bindings to AMD & intel driver, testing on nvidia and intel hardware
-    - consider open/libre hardwaremonitor integration for this, sidecar? kernel tho :(
+    - consider open/libre hardwaremonitor integration for this, sidecar? kernel access needed though
   - More variety of datetime widgets
   - weather widget with forecast
     - openmeteo
@@ -23,12 +23,9 @@
   - picture widget (APOD, or user-specified image feed)
     - needs provider
     - options include stock photo feeds, user-paid api's, APOD (NASA) (Also satelite imagery, weather maps, etc.)
-  - 
-- additional options
+    - additional options
   - lock dashboard via tray menu or something, prevents window controls from showing or edits being made (tauri set_ignore_pointer_events or similar)
     - keyboard shortcut? window only or global?
-  - complete run on startup and similar options
-    - tauri has a plugin for this
   - initial setup/onboarding flow?
     - maybe a quick tutorial on how to add widgets, or a link to the wiki for that
     - overlay?
@@ -49,8 +46,6 @@
 
 ## Refinements - improvements to existing features or code quality
 
-- better hotkey/keybinding
-  - see Button primitive for WIP - binds button to keybind as shortcut (preferred to invisible keybinds, needs keys -> icons)
 - hijack button titles to look better than UI native hover tooltips
   - Needs dedicated tooltip component
 - remove Spotify integration
@@ -58,15 +53,8 @@
   - Remove `SpotifyClientAuth`, `SpotifyAccessToken`, `request_token`, `get_high_res_album_art` from `media/mod.rs`; remove `use serde_json::Value`
   - Remove `spotify_auth`, `spotify_api_token` fields from `AppStateInner` in `lib.rs`; remove hardcoded credentials (lines 279–282) and the `use crate::media::{SpotifyAccessToken, SpotifyClientAuth}` import
   - Remove `reqwest` from `Cargo.toml` (only user of it)
-- dual-mode theme generation
-  - `generate_theme` currently always generates a dark palette regardless of seed colour; the `color_scheme` ternary (`if 0.12_f64 < 0.5`) is a literal always-true comparison
-  - Replace with dual generation: one dark variant (base L=0.12, text L=0.92) and one light variant (base L=0.97, text L=0.15), both using the seed's hue and clamped chroma; accent L clamped per-mode for legibility
-  - IDs: `_generated_dark` / `_generated_light`; names: `"{HueName} (Generated — Dark)"` / `"{HueName} (Generated — Light)"`
-  - Write both to disk; set neither as active — user picks from the themes list
 - Extend the gen-licenses script to try pull license text from the package's repository (if malformed?), and NOTICE files (for Apache-2.0 licenses specifically, but maybe all licenses if such a file exists?)
 - explicit error path on malformed config/layout/theme/etc., with user-friendly error messages and fallback to defaults
-- ranges should accept steps
-  - esp for things like font size, and use in widget settings where it makes sense (e.g. quote widget frequency)
 - better client-specific handling for media - replace is_apple_music with client enum, and add methods to pre- or post-process media data based on client
   - e.g. for youtube _videos_ we can display the youtube logo on/instead of album art, and maybe use the channel art instead of album art for better results?
   - maybe add a client logo/icon alot to relevant widgets and/or the media subscription? e.g. Playing &lt;song title&gt; via &lt;client logo&gt; etc.
@@ -89,17 +77,18 @@
   - multiple layout/sizing options? small confirmation dialog vs full-page overlay for critical errors or onboarding etc.
   - should help the temptation to constantly special-case everything, rather have a consistent API for actions across the app
   - standardise certain actions like "Cancel"/"Close" that are used across the app, so they look and behave the same everywhere (or just a cross (X) close icon? needs explicit close handler for all windows regardless of other actions however, to prevent malformed/inconsistent data)
+  - the "raised surface" recipe (bg/border/radius/shadow) is currently hand-copied independently across Panel, Modal, EditGrid's edit bar, and Onboarding's card - should consolidate into one shared base once this gets tackled
+- EditGrid's icon/edge buttons still hand-roll their own CSS instead of using the Button primitive's ghost/ghost_danger variants - left alone for now since EditGrid needs a proper overhaul anyway
+- LayoutSection/ThemeSection settings pages have a lot of duplicated CSS that should probably be shared primitives/components instead of unique theming per section
+  - LayoutSection.module.css has a block explicitly marked "Copied verbatim from ThemeSection.module.css" plus a couple other classes that are fully dead now, and a gridPreview/gridSettings block that doesn't seem to be wired up to anything - not sure if that's abandoned or half-built, check before ripping out
 
-- widgets should have an error boundary to contain issues and keep local problems from affecting the whole app
-  - should explain the error and offer options to reset the widget or open settings to fix it
 - widget backgrounds should properly border the actual widget content, to maximise legibility over transparent backgrounds + complex wallpapers
-  - flat backgroudn on widget class results in unintuitive background shapes and sizes, especially with padding and gaps
+  - flat background on widget class results in unintuitive background shapes and sizes, especially with padding and gaps
   - separate background layer? (allwos for backdrop effects and such in the future maybe) that is sized to the widget content (+ padding?), and respects border radius settings if/when those are added
 - Widget settings panel needs better placement, currently covering the entire widget and making it impossible to see the changes as you make them; ideally it should be anchored to the widget but not obscure it, maybe a sidebar or a floating panel that tries to position itself intelligently around the widget
-- cursor is not `cursor: grabbing` during drag/resize while in edit mode, should be for better UX feedback
-- add showWhen to select options e.g. certain options may only be relevant when some other non-trivial setting is set (e.g. media visualiser when circular can mirror over one axis but both has little meaning for a circular visualiser)
+- cursor doesn't show `cursor: grabbing` during drag/resize in edit mode despite `.widgetOverlay:active` having the rule - something about the z-index stacking during drag means it doesn't actually take effect, needs a proper look. applys currently while hovering over a widget, but not while dragging it
 - visualiser needs fixing for the new settings system, currently broken for lots of settigns combinations
-- visualiser has some overlapping/missing bars in certain mirroring/flip combinations, needs a careful review of the bar drawing logic to ensure all bars are drawn and correctly positioned in all configurations
+  - overlapping/missing bars in certain mirroring/flip combinations specifically - needs a careful review of the bar drawing logic to ensure all bars are drawn and correctly positioned in all configurations
 - onboarding should use the demo layout, to point out different configurations of the same widget etc.
 - settings def should have optional `description` field, renders (i) icon with tooltip in settings panel or subtext below name
   - maybe warning field on setting it away from the default?
@@ -130,14 +119,11 @@
   - secondary accents?
   - graphics (i.e. for the visualizer, accent is too aggressive for the bars, maybe a more muted secondary accent for graphics?)
   - potentially, remove colours, move to one or two accent colours and a graphics colour, and let the visualiser and other graphics use that instead of the accent colour, which is more for text and UI elements, makes themes less powerful, but possibly better aesthetics since no longer fighting so hard against "bad" themes/managing 12 colours per theme for 10 themes, and less work for the user to create a theme that looks good. also reopens custom themes to be more tractable for non-technical users, since they only have to pick a few colours instead of 12.
+- theming system needs a broader overhaul (in progress) — at least two known issues are symptoms of this rather than worth fixing standalone:
+  - `generate_theme`'s `color_scheme` is still computed with the old literal comparison (`if 0.12_f64 < 0.5`) instead of the `dark` param, so both variants save `color_scheme: "dark"`
+  - generated themes do something seriously weird when setting colours, seems like events stack up then fire all at once
 - edit mode placement ghosts are very saturated, need higher transparency (maybe stronger border to make them more visible on light backgrounds)
-- Edit mode should have its own management window
-  - add widget can go here
-  - allows better placement of save/cancel buttons
-  - allows for external management of border padding/size so those buttons don't interfere with the edit grid
-  - possibly require clicking a widget to select it to resize it, so resize draggers dont overlap
-  - drag should remain immediate however, though maybe a dedicated drag handle?
-  - idea for padding: render ractangle with same aspect ratio as screen, place draggable/resizeable rect within with snap to ~10px grid, and render the widget grid within that rectangle, so the user can see how the layout will look on their screen and how much padding is around it, and those controls no longer interfere with the edit grid itself
+- Edit mode needs significant updates, see [discussion file](gitignore/edit_layout_overhaul.md)
 - editing layouts should have a name field, so the user can rename the layout without having to go into settings
 - visualiser "No audio data" message is extremely ugly and not very legible, needs a better design
 - per-widget error handling
@@ -145,20 +131,34 @@
   - a handful of common error states (needs config, needs network, needs media, etc.) that widgets can declare and the wrapper handles rendering for them, so the widget doesn't have to implement its own error handling and can just declare what it needs
     - needs nailed down list of common error states and how they should be rendered, so the wrapper can handle them consistently across all widgets
     - porbably need some way for unique widget errors to be handled by the wrapper as well, so the widget can declare a custom error state and the wrapper can render it appropriately
+- components/primitives need better sorting.
+  - currently, ui chrome vs widget elements are mixed together
+  - needs better split on true primitives vs composite elements (modal, panel etc.) and further split on ui chrome vs widget elements
+  - should split as much styling into one place as possible to keep ui chrome in one place
+- inputs & input groups need better layouting
+  - three/four cols, label, input, detail text (unit etc.), error icon (with hover?)
+  - set better alignment and spacing for these
+    - left align input? better to associate label with input
+    - maybe right align label for same reason, and maybe error to put it at edge of modal/panel instead of next to input? (needs hover for error details)
+- visualiser idle animation does not exist despite setting existing for it, needs to be implemented
+  - maybe a simple "pulse" animation on the bars when no audio data is present, to indicate that the visualiser is still active and waiting for audio data
+  - configurable in the settings?
+    - user can choose between different idle animations
+    - pulse/breathe
+    - wave (special-case for radial, so smoothly & continuously moves around the circle)
+    - other?
 
 ## Bugfixes - issues with existing features or code
 
-- rename album art blur to glow
 - visualiser stack style dows not work (confirmed horizontal bars, check other variants)
 - fix broken settings
-  - run on startup, taskbar/dock icon etc.
-- Generated themes do some seriously weird stuff when settings colours, seems like events stack up then fire all at once
+  - run on startup, taskbar/dock icon, tray icon toggles all exist in GeneralSection already but are non-functional stubs with no backend wiring - tauri has a plugin for run on startup specifically
 - visualizer FFTStream thrashing on subscribe/unsubscribe cycles — edit-mode → standard-view transitions unmount then remount the visualizer widget, firing unsubscribe + subscribe in quick succession; each cycle tears down and recreates the WASAPI loopback stream and real-time audio thread. Confirm old stream and callback handles are fully closed before the new stream opens (no handle leak across cycles). Consider caching the live `FFTStream` for a short grace period before tearing it down, so rapid re-subscriptions reuse the existing stream.
   - Possibly extend to other streams, e.g. media subscription, if similar thrashing is observed there
   - possibly resolved?
 - Some inconsistencies found with when stream are opened and closed across layout edit boundary, needs investigation as to when widgets are actually broadcasting subscribe/unsubscribe events, and whether any streams are left open unnecessarily or fail to reopen when needed
 - widget settings null on layout load — covered by the widget settings type system overhaul refinement (`collectDefaults` + `coerceSettings` at layout load time)
-- properly define and enforce the widget min/max sizes in the registry and edit grid, currently they are just ignored and any widget can be resized to any size
+- widget min/max sizes are defined per-widget in the registry now, and minSize triggers a non-blocking warning in edit grid, but nothing actually clamps/prevents a resize past it, and maxSize is defined on the type but unused everywhere - no widget sets one and no code checks it
   - pixels or grid units?
   - better api for responsive widgets maybe? i.e.small/wide/tall/big variants? hook into registerWidget (provide all variants and let the widget pick which one to use based on its size? - override manually?)
 - really need proper handling of corrupted/out-of-date config/layout/theme files, very mixed behaviour depending on field and widget type; some fields are silently ignored, some cause errors, some cause silent fallback to defaults, etc. Should be a consistent approach across all fields and widgets, with user-friendly error messages and fallback to defaults where possible (e.g. unknown fields dropped with a warn log, wrong-typed values replaced with the setting's default if any and a warn log, otherwise dropped with a warn log)

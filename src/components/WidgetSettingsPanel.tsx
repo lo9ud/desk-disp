@@ -6,7 +6,6 @@ import {
 } from "../registry/defRegistry";
 import { canonicalRegistry, useWidgetInstance } from "../registry/instanceRegistry";
 import { useEditMode } from "../context/EditModeContext";
-import styles from "./styles/WidgetSettingsPanel.module.css";
 import ToggleInput from "./inputs/ToggleInput";
 import { RangeInput, SelectInput, TextInput } from "./inputs";
 import InputGroup from "./inputs/InputGroup";
@@ -22,7 +21,9 @@ function evalCondition(cond: SettingCondition, allValues: Record<string, unknown
 function collectDefaults(def: WidgetSettingsDefinition): Record<string, unknown> {
   const defaults: Record<string, unknown> = {};
   for (const [key, setting] of Object.entries(def)) {
+    // @ts-expect-error required and default are mutually exclusive
     if (!setting.required && setting.default !== undefined) {
+      // @ts-expect-error default is guaranteed to be present here
       defaults[key] = setting.default;
     }
     if (setting.type === "select") {

@@ -42,17 +42,12 @@ export type SettingType = {
   boolean: boolean;
   select: string;
 };
-export const SettingType: SettingType = {
-  string: "",
-  number: 0,
-  boolean: false,
-  select: "",
-};
+
 
 export type SettingCondition =
   | {
       key: string;
-      is: boolean | string | number | (boolean | string | number)[];
+      is: SettingType[keyof SettingType] | SettingType[keyof SettingType][];
     }
   | { when: (settings: Record<string, unknown>) => boolean };
 
@@ -65,28 +60,35 @@ export type WidgetSetting<T extends keyof SettingType> = {
   label: string;
   showWhen?: SettingCondition;
   enableWhen?: SettingCondition;
-  default?: SettingType[T];
 } & (
-  | { type: T extends "string" ? "string" : never }
-  | ({
-      type: T extends "number" ? "number" : never;
-      unit?: string;
-    } & (
-      | {
-          min: number;
-          max: number;
-          step: number;
-        }
-      | {
-          steps: number[];
-        }
-    ))
-  | { type: T extends "boolean" ? "boolean" : never }
   | {
-      type: T extends "select" ? "select" : never;
-      options: Record<string, string | SelectOptionDef>;
+      default: SettingType[T]; // default value, setting optional
     }
-);
+  | {
+      required: true; // no default value, setting required manually
+    }
+) &
+  (
+    | { type: T extends "string" ? "string" : never }
+    | ({
+        type: T extends "number" ? "number" : never;
+        unit?: string;
+      } & (
+        | {
+            min: number;
+            max: number;
+            step: number;
+          }
+        | {
+            steps: number[];
+          }
+      ))
+    | { type: T extends "boolean" ? "boolean" : never }
+    | {
+        type: T extends "select" ? "select" : never;
+        options: Record<string, string | SelectOptionDef>;
+      }
+  );
 
 type ExtractSettingValue<S> = S extends { type: "select"; options: infer O }
   ? keyof O
@@ -105,9 +107,13 @@ type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
   : never;
 
 type SubordinateSettingProps<S extends WidgetSettingsDefinition> = {
-  [K in keyof S as S[K] extends { default: any } ? K : never]: ExtractSettingValue<S[K]>;
+  [K in keyof S as S[K] extends { default: any }
+    ? K
+    : never]: ExtractSettingValue<S[K]>;
 } & {
-  [K in keyof S as S[K] extends { default: any } ? never : K]: ExtractSettingValue<S[K]> | undefined;
+  [K in keyof S as S[K] extends { default: any } ? never : K]:
+    | ExtractSettingValue<S[K]>
+    | undefined;
 };
 
 type OptionSubordinateProps<
@@ -123,19 +129,23 @@ type OptionSubordinateProps<
 >;
 
 type FlattenDef<TDef extends WidgetSettingsDefinition> = {
-  [K in keyof TDef as TDef[K] extends { default: any } ? K : never]: ExtractSettingValue<TDef[K]>;
+  [K in keyof TDef as TDef[K] extends { default: any }
+    ? K
+    : never]: ExtractSettingValue<TDef[K]>;
 } & {
-  [K in keyof TDef as TDef[K] extends { default: any } ? never : K]: ExtractSettingValue<TDef[K]> | undefined;
+  [K in keyof TDef as TDef[K] extends { default: any } ? never : K]:
+    | ExtractSettingValue<TDef[K]>
+    | undefined;
 } & UnionToIntersection<
-  {
-    [K in keyof TDef]: TDef[K] extends {
-      type: "select";
-      options: infer O extends Record<string, string | SelectOptionDef>;
-    }
-      ? OptionSubordinateProps<O>
-      : {};
-  }[keyof TDef]
->;
+    {
+      [K in keyof TDef]: TDef[K] extends {
+        type: "select";
+        options: infer O extends Record<string, string | SelectOptionDef>;
+      }
+        ? OptionSubordinateProps<O>
+        : {};
+    }[keyof TDef]
+  >;
 
 export type WidgetSettingsProps<T extends WidgetSettingsDefinition> =
   FlattenDef<T>;

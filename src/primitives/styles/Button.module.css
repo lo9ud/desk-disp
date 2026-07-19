@@ -34,7 +34,7 @@
     width: 1.2em;
     height: 1.2em;
   }
-  
+
   &:has(svg:only-child) {
     padding: 0.3rem;
   }
@@ -81,11 +81,19 @@
   color: var(--ui-danger-text);
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-danger-fill) 15%, var(--ui-danger-tint));
+    background: color-mix(
+      in srgb,
+      var(--ui-danger-fill) 15%,
+      var(--ui-danger-tint)
+    );
   }
 
   &:active:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-danger-fill) 30%, var(--ui-danger-tint));
+    background: color-mix(
+      in srgb,
+      var(--ui-danger-fill) 30%,
+      var(--ui-danger-tint)
+    );
   }
 }
 
@@ -95,16 +103,23 @@
   color: var(--ui-warning-text);
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-warning-fill) 15%, var(--ui-warning-tint));
+    background: color-mix(
+      in srgb,
+      var(--ui-warning-fill) 15%,
+      var(--ui-warning-tint)
+    );
   }
 
   &:active:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-warning-fill) 30%, var(--ui-warning-tint));
+    background: color-mix(
+      in srgb,
+      var(--ui-warning-fill) 30%,
+      var(--ui-warning-tint)
+    );
   }
 }
 
-
-.ghost_danger {
+.ghostDanger {
   background: transparent;
   border-color: transparent;
   color: var(--ui-text-muted);
@@ -112,10 +127,32 @@
   &:hover:not(:disabled) {
     color: var(--ui-danger-text);
     background: color-mix(in srgb, var(--ui-danger-fill) 5%, var(--ui-control));
-    border-color: color-mix(in srgb, var(--ui-danger-fill) 10%, var(--ui-border));
+    border-color: color-mix(
+      in srgb,
+      var(--ui-danger-fill) 10%,
+      var(--ui-border)
+    );
   }
 
   &:active:not(:disabled) {
-    background: color-mix(in srgb, var(--ui-danger-fill) 30%, var(--ui-danger-tint));
+    background: color-mix(
+      in srgb,
+      var(--ui-danger-fill) 30%,
+      var(--ui-danger-tint)
+    );
   }
+}
+
+.keybind {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ui-text-subtle);
+  gap: 0.2rem;
+  padding: 0.1rem 0.3rem;
+  font-family: var(--ui-font-mono);
+  font-size: 0.7rem;
+  font-weight: 300;
+  border-radius: 4px;
+  border: 1px solid var(--ui-border-subtle);
+  background: color-mix(in srgb, var(--ui-control) 70%, transparent);
 }

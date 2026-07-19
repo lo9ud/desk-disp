@@ -67,13 +67,23 @@ const VISUALIZER_SETTINGS_DEF = {
             showWhen: { key: "direction", is: "circular" },
           },
           barStyle: {
-            label: "Style",
+            label: "Bar Style",
             type: "select",
             options: {
               bar: "Bar",
               stack: "Stack",
             },
             default: "bar",
+          },
+          stackBlockSize: {
+            label: "Block size",
+            type: "number",
+            min: 4,
+            max: 30,
+            step: 2,
+            default: 10,
+            unit: "px",
+            showWhen: { key: "barStyle", is: "stack" },
           },
           barCount: {
             label: "Bar count",
@@ -134,6 +144,7 @@ export function Visualizer({
   extentSource,
   mirrorFreq,
   barStyle,
+  stackBlockSize,
   innerRadius,
   origin,
   freqTrimBottom,
@@ -168,6 +179,7 @@ export function Visualizer({
               extentSource={extentSource}
               mirrorFreq={mirrorFreq}
               barStyle={barStyle}
+              stackBlockSize={stackBlockSize}
             />
           );
         case "circular":
@@ -181,6 +193,7 @@ export function Visualizer({
               mirror={mirror}
               freqOrder={freqOrder}
               barStyle={barStyle}
+              stackBlockSize={stackBlockSize}
               origin={origin}
             />
           );
@@ -212,7 +225,15 @@ const VisualizerWidget = registerWidget(Visualizer, {
 
 export default VisualizerWidget;
 
-type Rect = { x: number; y: number; w: number; h: number };
+// anchor: "near"   -> anchored at the near edge along the length axis (y / x); grows toward the far edge.
+// anchor: "far"    -> anchored at the far edge (y+h / x+w); grows toward the near edge.
+// anchor: "middle" -> anchored at the rect's midpoint; grows outward toward both edges symmetrically.
+// The length axis is h for vertical bars, w for horizontal bars (the other is thickness).
+type Rect = { x: number; y: number; w: number; h: number; anchor: "near" | "far" | "middle" };
+
+// Gap between adjacent bars along the thickness axis. Stack mode caps its own
+// segment-to-segment gap at this value so both axes of the LED grid line up.
+const BAR_GAP = 2;
 
 function scaleValue(value: number, cutoff: number, scale: number) {
   // Roughly:
@@ -242,17 +263,17 @@ function verticalBaseRects(
 ): Rect[] {
   const freqI = freqOrder === "desc" ? barCount - 1 - i : i;
   const x = (freqI / barCount) * canvas.width;
-  const w = Math.max(canvas.width / barCount - 2, 1);
+  const w = Math.max(canvas.width / barCount - BAR_GAP, 1);
   const fullH = Math.max(amp * canvas.height, 1);
   const halfH = Math.max(amp * canvas.height / 2, 1);
   switch (extentSource) {
-    case "end":    return [{ x, y: 0, w, h: fullH }];
-    case "center": return [{ x, y: canvas.height / 2 - fullH / 2, w, h: halfH }];
+    case "end":    return [{ x, y: 0, w, h: fullH, anchor: "near" }];
+    case "center": return [{ x, y: canvas.height / 2 - fullH / 2, w, h: fullH, anchor: "middle" }];
     case "split":  return [
-      { x, y: canvas.height - halfH, w, h: halfH },
-      { x, y: 0, w, h: halfH },
+      { x, y: canvas.height - halfH, w, h: halfH, anchor: "far" },
+      { x, y: 0, w, h: halfH, anchor: "near" },
     ];
-    default:       return [{ x, y: canvas.height - halfH, w, h: halfH }];
+    default:       return [{ x, y: canvas.height - halfH, w, h: halfH, anchor: "far" }];
   }
 }
 
@@ -266,17 +287,17 @@ function horizontalBaseRects(
 ): Rect[] {
   const freqI = freqOrder === "desc" ? barCount - 1 - i : i;
   const y = (freqI / barCount) * canvas.height;
-  const h = Math.max(canvas.height / barCount - 2, 1);
+  const h = Math.max(canvas.height / barCount - BAR_GAP, 1);
   const fullW = Math.max(amp * canvas.width, 1);
   const halfW = Math.max(amp * canvas.width / 2, 1);
   switch (extentSource) {
-    case "end":    return [{ x: canvas.width - fullW, y, w: fullW, h }];
-    case "center": return [{ x: canvas.width / 2 - fullW / 2, y, w: fullW, h }];
+    case "end":    return [{ x: canvas.width - fullW, y, w: fullW, h, anchor: "far" }];
+    case "center": return [{ x: canvas.width / 2 - fullW / 2, y, w: fullW, h, anchor: "middle" }];
     case "split":  return [
-      { x: 0, y, w: halfW, h },
-      { x: canvas.width - halfW, y, w: halfW, h },
+      { x: 0, y, w: halfW, h, anchor: "near" },
+      { x: canvas.width - halfW, y, w: halfW, h, anchor: "far" },
     ];
-    default:       return [{ x: 0, y, w: fullW, h }];
+    default:       return [{ x: 0, y, w: fullW, h, anchor: "near" }];
   }
 }
 
@@ -303,6 +324,7 @@ function BarsVisualizer({
   extentSource,
   mirrorFreq,
   barStyle,
+  stackBlockSize,
 }: {
   frequencies: FrequencyReading[] | null;
   barCount: number;
@@ -313,6 +335,7 @@ function BarsVisualizer({
   extentSource: string;
   mirrorFreq: boolean;
   barStyle: string;
+  stackBlockSize: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const data = normalizeData(frequencies);
@@ -347,11 +370,12 @@ function BarsVisualizer({
       if (mirrorFreq) {
         rects = applyMirrorFreq(rects, canvas.width, canvas.height, direction);
       }
-      for (const r of rects) {
-        drawBar(ctx, r.x, r.y, r.w, r.h, barStyle, color);
+      const drawRects = barStyle === "stack" ? rects.flatMap((r) => stackSegments(r, direction, stackBlockSize)) : rects;
+      for (const r of drawRects) {
+        drawBar(ctx, r.x, r.y, r.w, r.h, color);
       }
     }
-  }, [data, barCount, showWhenIdle, direction, freqOrder, extentSource, mirrorFreq, barStyle, color]);
+  }, [data, barCount, showWhenIdle, direction, freqOrder, extentSource, mirrorFreq, barStyle, stackBlockSize, color]);
 
   return (
     <canvas
@@ -369,28 +393,59 @@ function drawBar(
   y: number,
   width: number,
   height: number,
-  style: string,
   color: string,
 ) {
-  switch (style) {
-    case "bar":
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, width, height);
-      break;
-    case "stack": {
-      // Works badly, information on stack "source" (which edge the bar is growing from) is needed to add segemnts on the correct end of the bar
-      // also likely to fail on e.g. centered bars where bars are growing from the middle outwards in both directions, whereas up/down bars should be independent
-      const segmentHeight = 10;
-      const spacing = 2;
-      const segmentCount = Math.floor(height / (segmentHeight + spacing));
-      for (let i = 0; i < segmentCount; i++) {
-        const segmentY = y + segmentHeight * i + spacing * (i - 1);
-        ctx.fillStyle = color;
-        ctx.fillRect(x, segmentY, width, segmentHeight);
-      }
-      break;
-    }
+  // Snap edges to whole pixels. Rect coordinates come from continuous amplitude/ratio
+  // math and land on a different fractional pixel each frame; fillRect anti-aliases
+  // those fractional edges, which makes otherwise-identical gaps between adjacent
+  // bars/segments appear to vary in width. Rounding each edge independently (rather
+  // than rounding x/width separately) keeps shared boundaries between rects aligned.
+  const x0 = Math.round(x);
+  const y0 = Math.round(y);
+  const w0 = Math.max(Math.round(x + width) - x0, 1);
+  const h0 = Math.max(Math.round(y + height) - y0, 1);
+  ctx.fillStyle = color;
+  ctx.fillRect(x0, y0, w0, h0);
+}
+
+function stackSegments(rect: Rect, direction: string, blockSize: number): Rect[] {
+  const segmentLength = blockSize;
+  // Capped at BAR_GAP: a wider segment gap than the bar-to-bar gap reads as an
+  // uneven LED grid, so only that direction of mismatch gets clamped — a segment
+  // gap narrower than BAR_GAP (small blockSize) is left alone, it's not the ugly case.
+  const spacing = Math.min(Math.max(Math.round(blockSize / 5), 1), BAR_GAP);
+  const step = segmentLength + spacing;
+  const vertical = direction === "vertical";
+
+  // Express the rect purely in terms of its length axis (h for vertical, w for
+  // horizontal); the thickness axis (the other one) just gets carried through unchanged.
+  const axisPos = vertical ? rect.y : rect.x;
+  const axisLen = vertical ? rect.h : rect.w;
+  const makeRect = (pos: number, len: number, anchor: Rect["anchor"]): Rect =>
+    vertical
+      ? { x: rect.x, y: pos, w: rect.w, h: len, anchor }
+      : { x: pos, y: rect.y, w: len, h: rect.h, anchor };
+
+  if (rect.anchor === "middle") {
+    // Grow two independent stacks outward from the rect's midpoint, each inset by
+    // half the spacing so the two innermost segments leave a normal-sized gap
+    // between them instead of forming one double-length segment at the seam.
+    const halfLen = Math.max(axisLen / 2 - spacing / 2, 0);
+    const nearHalf = makeRect(axisPos, halfLen, "far");
+    const farHalf = makeRect(axisPos + axisLen / 2 + spacing / 2, halfLen, "near");
+    return [...stackSegments(nearHalf, direction, blockSize), ...stackSegments(farHalf, direction, blockSize)];
   }
+
+  const segmentCount = Math.max(Math.floor(axisLen / step), 0);
+  const segments: Rect[] = [];
+  for (let i = 0; i < segmentCount; i++) {
+    const offset = i * step;
+    const pos = rect.anchor === "far"
+      ? axisPos + axisLen - offset - segmentLength // anchored at the far edge, grow toward the near edge
+      : axisPos + offset;                           // anchored at the near edge, grow toward the far edge
+    segments.push(makeRect(pos, segmentLength, rect.anchor));
+  }
+  return segments;
 }
 
 function RadialBars({
@@ -402,6 +457,7 @@ function RadialBars({
   mirror,
   freqOrder,
   barStyle,
+  stackBlockSize,
   origin,
 }: {
   frequencies: FrequencyReading[] | null;
@@ -412,6 +468,7 @@ function RadialBars({
   mirror: string;
   freqOrder: string;
   barStyle: string;
+  stackBlockSize: number;
   origin: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -458,8 +515,8 @@ function RadialBars({
       style: string,
     ) {
       if (style === "stack") {
-        const segmentLength = 8;
-        const spacing = 2;
+        const segmentLength = stackBlockSize;
+        const spacing = Math.max(Math.round(stackBlockSize / 5), 1);
         const segmentCount = Math.floor(
           (outerRadius - innerRadius) / (segmentLength + spacing),
         );
@@ -539,7 +596,7 @@ function RadialBars({
           break;
       }
     }
-  }, [data, barCount, showWhenIdle, freqOrder, mirror, innerRadius, origin, barStyle, color]);
+  }, [data, barCount, showWhenIdle, freqOrder, mirror, innerRadius, origin, barStyle, stackBlockSize, color]);
 
   return (
     <canvas

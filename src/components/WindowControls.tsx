@@ -5,7 +5,6 @@ import {
   ArrowsRightLeftIcon,
   PlusIcon,
 } from "@heroicons/react/16/solid";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useState, useEffect } from "react";
 import { ipc, ipcListen } from "../ipc";
 import type { LayoutInfo, ThemeInfo } from "../ffi_types";
@@ -71,13 +70,13 @@ export default function WindowControls() {
   }
 
   return (
-    <div className={styles.window_controls} data-onboarding="controls">
+    <div className={styles.windowControls} data-onboarding="controls">
       <div className={styles.buttons}>
         <HoverWrapper
           Element={"button"}
           onClick={() => ipc.exitProgram()}
           hoverText="Exit"
-          className={styles.exit_button}
+          className={styles.exitButton}
           data-onboarding="exit"
         >
           <XMarkIcon />
@@ -116,10 +115,10 @@ export default function WindowControls() {
           className={styles.selector}
           data-onboarding="layout"
         >
-          <span className={styles.selector_label}>Layout</span>
+          <span className={styles.selectorLabel}>Layout</span>
           <select
             name="layout"
-            className={styles.selector_select}
+            className={styles.selectorSelect}
             value={activeLayout ?? ""}
             onChange={handleLayoutChange}
           >
@@ -136,10 +135,10 @@ export default function WindowControls() {
           className={styles.selector}
           data-onboarding="theme"
         >
-          <span className={styles.selector_label}>Theme</span>
+          <span className={styles.selectorLabel}>Theme</span>
           <select
             name="theme"
-            className={styles.selector_select}
+            className={styles.selectorSelect}
             value={themeUnsaved ? "__unsaved__" : (activeTheme ?? "dark")}
             onChange={handleThemeChange}
           >
@@ -196,13 +195,13 @@ function HoverWrapper<T extends React.ElementType>({
   const E = Element as React.ElementType; // NOSONAR — cast needed for JSX spread; TSC rejects LibraryManagedAttributes<T,any> without it
   return (
     <E
-      className={combineClassNames(styles.control_button, className)}
+      className={combineClassNames(styles.controlButton, className)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       {...props}
     >
       {children}
-      {hovered && <span className={styles.hover_text}>{hoverText}</span>}
+      {hovered && <span className={styles.hoverText}>{hoverText}</span>}
     </E>
   );
 }

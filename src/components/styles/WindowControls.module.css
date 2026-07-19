@@ -1,4 +1,4 @@
-.window_controls {
+.windowControls {
   position: fixed;
   top: 0;
   left: 0;
@@ -54,13 +54,13 @@
   gap: 4px;
 }
 
-.exit_button {
+.exitButton {
   &:hover {
     color: var(--ui-danger-text);
   }
 }
 
-.control_button {
+.controlButton {
   position: relative;
   width: 1.7rem;
   height: 1.7rem;
@@ -83,18 +83,18 @@
   align-items: flex-start;
   gap: 4px;
   color: inherit;
-  /* override control_button fixed dimensions */
+  /* override controlButton fixed dimensions */
   width: auto;
   height: auto;
   border: none;
 }
 
-.selector_label {
+.selectorLabel {
   font-size: 0.8rem;
   color: var(--ui-text-muted);
 }
 
-.selector_select {
+.selectorSelect {
   width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -111,7 +111,7 @@
   }
 }
 
-.hover_text {
+.hoverText {
   position: absolute;
   top: 100%;
   left: 50%;
@@ -130,12 +130,12 @@
 }
 
 /* Force control bar visible during onboarding tour */
-:global([data-tour-active]) .window_controls {
+:global([data-tour-active]) .windowControls {
   opacity: 1;
   z-index: 2001;
   border-color: var(--ui-border);
 }
 
-:global([data-tour-active]) .window_controls > * {
+:global([data-tour-active]) .windowControls > * {
   opacity: 1;
 }

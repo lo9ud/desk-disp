@@ -1,23 +1,75 @@
 import styles from "./styles/Button.module.css";
 import { combineClassNames } from "../utils/format";
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 
 type ButtonSize = "sm" | "md";
 
 const variantClass = {
   default: undefined,
   ghost: styles.ghost,
-  ghost_danger: styles.ghost_danger,
+  ghost_danger: styles.ghostDanger,
   accent: styles.accent,
   danger: styles.danger,
   warning: styles.warning,
 };
 export type ButtonVariant = keyof typeof variantClass;
 
+type Char =
+  | "a"
+  | "b"
+  | "c"
+  | "d"
+  | "e"
+  | "f"
+  | "g"
+  | "h"
+  | "i"
+  | "j"
+  | "k"
+  | "l"
+  | "m"
+  | "n"
+  | "o"
+  | "p"
+  | "q"
+  | "r"
+  | "s"
+  | "t"
+  | "u"
+  | "v"
+  | "w"
+  | "x"
+  | "y"
+  | "z";
+type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+const modifierToKeyMap = {
+  alt: "Alt",
+  ctrl: "Control",
+  shift: "Shift",
+  meta: "Meta",
+} as const;
+type ModifierKey = keyof typeof modifierToKeyMap;
+type SpecialKey =
+  | "enter"
+  | "return"
+  | "space"
+  | "tab"
+  | "backspace"
+  | "delete"
+  | "esc"
+  | "escape"
+  | "up"
+  | "down"
+  | "left"
+  | "right";
+
+type Keybind = KeybindPart[];
+type KeybindPart = Char | Digit | ModifierKey | SpecialKey;
+
 export type ButtonProps = {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  keybind?: [string, () => void];
+  keybind?: [Keybind, () => void];
 };
 
 export function Button({
@@ -25,8 +77,36 @@ export function Button({
   size = "md",
   className,
   children,
+  keybind,
   ...props
 }: ButtonProps & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  useEffect(() => {
+    if (!keybind) return;
+    const [keys, callback] = keybind;
+    const handler = (e: KeyboardEvent) => {
+      let states = Object.keys(modifierToKeyMap).map((k) => [
+        k,
+        e.getModifierState(modifierToKeyMap[k as ModifierKey]),
+      ]);
+      console.log(
+        "Checking against keybind:",
+        keys,
+        "Keydown event:",
+        e.key,
+        "Modifier states:",
+        states,
+      );
+      if (
+        keys.every((k) => e.getModifierState(k) || e.key.toLowerCase() === k)
+      ) {
+        callback();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+    };
+  }, [keybind]);
   return (
     <button
       className={combineClassNames(
@@ -38,17 +118,48 @@ export function Button({
       {...props}
     >
       {children}
-      {/* {keybind && <KeyIcons keys={keybind[0]} />} */}
+      {keybind && <KeyIcons keys={keybind[0]} />}
     </button>
   );
 }
 
-function KeyIcons({ keys }: { keys: string }) {
+const keyIconMap: Record<string, string> = {
+  shift: "⇧",
+  ctrl: "⌃",
+  alt: "⌥",
+  meta: "⌘",
+  enter: "⏎",
+  return: "⏎",
+  space: "␣",
+  tab: "⇥",
+  backspace: "⌫",
+  esc: "Esc",
+  escape: "Esc",
+  up: "↑",
+  down: "↓",
+  left: "←",
+  right: "→",
+};
+
+const keyIcons = new Proxy({} as Record<string, ReactNode>, {
+  get: (_, key: string) => {
+    key = key.toLowerCase().trim();
+    if (key in keyIconMap) return keyIconMap[key];
+    if (key.length === 1 && key >= "a" && key <= "z") return key.toUpperCase();
+    return null;
+  },
+});
+
+function KeyIcon({ keyStr }: { keyStr: string }) {
+  const icon = keyIcons[keyStr] ?? keyStr;
+  return <kbd className={styles.keyIcon}>{icon}</kbd>;
+}
+
+function KeyIcons({ keys }: { keys: string[] }) {
   return (
-    <kbd>
+    <kbd className={styles.keybind}>
       {keys
-        .split("+")
-        .flatMap((k) => [<kbd key={k}>{k}</kbd>, <>+</>])
+        .flatMap((k) => [<KeyIcon keyStr={k} key={k} />, <>+</>])
         .slice(0, -1)}
     </kbd>
   );

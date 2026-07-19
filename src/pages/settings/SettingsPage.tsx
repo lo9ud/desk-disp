@@ -1,6 +1,6 @@
 import styles from "./styles/Settings.module.css";
 import ThemeSection from "./ThemeSection";
-import { Component, memo, useState } from "react";
+import { useState } from "react";
 import GeneralSection from "./GeneralSection";
 import AdvancedSection from "./AdvancedSection";
 import AboutSection from "./AboutSection";

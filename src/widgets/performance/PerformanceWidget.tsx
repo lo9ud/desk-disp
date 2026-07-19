@@ -9,6 +9,7 @@ const PERFORMANCE_WIDGET_SETTINGS_DEF = {
   style: {
     label: "Style",
     type: "select",
+    default: "simple",
     options: {
       simple: "Simple",
       dense: "Dense",
