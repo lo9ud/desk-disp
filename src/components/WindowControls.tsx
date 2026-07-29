@@ -12,11 +12,23 @@ import styles from "./styles/WindowControls.module.css";
 import { combineClassNames } from "../utils/format";
 import { useEditMode } from "../context/EditModeContext";
 import { logger } from "../utils/logger";
+import { Button } from "../primitives/Button";
 
 const { warn } = logger("window-controls");
 
 async function toggleSettings() {
-  ipc.toggleSettingsVisibility()
+  ipc.toggleSettingsVisibility();
+}
+
+async function handleThemeChange(e: React.ChangeEvent<HTMLSelectElement>) {
+  if (e.target.value === "__unsaved__") return;
+  const id = e.target.value || null;
+  await ipc.setActiveTheme(id);
+}
+
+async function handleLayoutChange(e: React.ChangeEvent<HTMLSelectElement>) {
+  const id = e.target.value || null;
+  await ipc.setActiveLayout(id);
 }
 
 export default function WindowControls() {
@@ -58,22 +70,12 @@ export default function WindowControls() {
     };
   }, []);
 
-  async function handleThemeChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    if (e.target.value === "__unsaved__") return;
-    const id = e.target.value || null;
-    await ipc.setActiveTheme(id);
-  }
-
-  async function handleLayoutChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const id = e.target.value || null;
-    await ipc.setActiveLayout(id);
-  }
-
   return (
     <div className={styles.windowControls} data-onboarding="controls">
       <div className={styles.buttons}>
         <HoverWrapper
-          Element={"button"}
+          Element={Button}
+          variant="icon"
           onClick={() => ipc.exitProgram()}
           hoverText="Exit"
           className={styles.exitButton}
@@ -82,23 +84,33 @@ export default function WindowControls() {
           <XMarkIcon />
         </HoverWrapper>
         <HoverWrapper
-          Element={"button"}
+          Element={Button}
+          variant="icon"
           onClick={toggleSettings}
           hoverText="Settings"
           data-onboarding="settings"
         >
           <Cog8ToothIcon />
         </HoverWrapper>
+        {monitorCount > 1 && (
+            <HoverWrapper
+              Element={Button}
+              variant="icon"
+              hoverText="Switch Monitors"
+              onClick={() =>
+                ipc.switchMonitor().catch((e) => {
+                  warn("Failed to switch monitors", e);
+                })
+              }
+              data-onboarding="switch"
+            >
+              <ArrowsRightLeftIcon />
+            </HoverWrapper>
+        )}
+        <ControlSeparator />
         <HoverWrapper
-          Element={"button"}
-          onClick={() => enterEditMode()}
-          hoverText="Edit Layout"
-          data-onboarding="edit"
-        >
-          <PencilSquareIcon />
-        </HoverWrapper>
-        <HoverWrapper
-          Element="button"
+          Element={Button}
+          variant="icon"
           hoverText="New Layout"
           onClick={() =>
             enterEditMode({
@@ -108,6 +120,15 @@ export default function WindowControls() {
           data-onboarding="new-layout"
         >
           <PlusIcon />
+        </HoverWrapper>
+        <HoverWrapper
+          Element={Button}
+          variant="icon"
+          onClick={() => enterEditMode()}
+          hoverText="Edit Layout"
+          data-onboarding="edit"
+        >
+          <PencilSquareIcon />
         </HoverWrapper>
         <HoverWrapper
           Element={"div"}
@@ -129,6 +150,7 @@ export default function WindowControls() {
             ))}
           </select>
         </HoverWrapper>
+        <ControlSeparator />
         <HoverWrapper
           Element={"div"}
           hoverText="Select Theme"
@@ -158,20 +180,6 @@ export default function WindowControls() {
             ))}
           </select>
         </HoverWrapper>
-        {monitorCount > 1 && (
-          <HoverWrapper
-            Element="button"
-            hoverText="Switch Monitors"
-            onClick={() =>
-              ipc.switchMonitor().catch((e) => {
-                warn("Failed to switch monitors", e);
-              })
-            }
-            data-onboarding="switch"
-          >
-            <ArrowsRightLeftIcon />
-          </HoverWrapper>
-        )}
       </div>
     </div>
   );
@@ -195,7 +203,7 @@ function HoverWrapper<T extends React.ElementType>({
   const E = Element as React.ElementType; // NOSONAR — cast needed for JSX spread; TSC rejects LibraryManagedAttributes<T,any> without it
   return (
     <E
-      className={combineClassNames(styles.controlButton, className)}
+      className={className}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       {...props}
@@ -204,4 +212,8 @@ function HoverWrapper<T extends React.ElementType>({
       {hovered && <span className={styles.hoverText}>{hoverText}</span>}
     </E>
   );
+}
+
+function ControlSeparator() {
+  return <div className={styles.controlSeparator} />;
 }

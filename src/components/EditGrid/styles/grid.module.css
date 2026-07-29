@@ -36,7 +36,7 @@
 }
 
 .widgetFlash {
-  animation: flashDanger 0.2s ease-in-out 3;
+  animation: flashDanger 0.3s ease-in-out 3;
 }
 
 /* Static widget preview rendered beneath edit affordances */

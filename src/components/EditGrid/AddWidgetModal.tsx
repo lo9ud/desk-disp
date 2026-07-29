@@ -149,6 +149,12 @@ export function AddWidgetModal({
   onClose: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<
+    keyof typeof CATEGORIES | null
+  >(null);
+  const [selectedTag, setSelectedTag] = useState<keyof typeof TAGS | null>(
+    null,
+  );
   const defs = getAllWidgetDefinitions();
   return (
     <Modal
@@ -167,19 +173,60 @@ export function AddWidgetModal({
         className={styles.searchInput}
         autoFocus
       />
+      <div>
+        {Object.keys(CATEGORIES).map((cat) => (
+          <Button
+            key={cat}
+            variant={selectedCategory === cat ? "accent" : "default"}
+            onClick={() =>
+              setSelectedCategory(
+                selectedCategory === cat
+                  ? null
+                  : (cat as keyof typeof CATEGORIES),
+              )
+            }
+          >
+            {CATEGORIES[cat as keyof typeof CATEGORIES]}
+          </Button>
+        ))}
+      </div>
+      <div>
+        {Object.keys(TAGS).map((tag) => (
+          <Button
+            key={tag}
+            variant={selectedTag === tag ? "accent" : "default"}
+            onClick={() =>
+              setSelectedTag(
+                selectedTag === tag ? null : (tag as keyof typeof TAGS),
+              )
+            }
+          >
+            {tag}
+          </Button>
+        ))}
+      </div>
       <div className={styles.modalList}>
-        {defs
-          .filter(
-            (def) =>
-              def.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              def.tags?.some((t) =>
-                t.toLowerCase().includes(searchTerm.toLowerCase()),
-              ) ||
-              def.category.toLowerCase().includes(searchTerm.toLowerCase()),
-          )
-          .map((def) => (
-            <WidgetEntry key={def.id} def={def} onAdd={onAdd} />
-          ))}
+        {
+          defs
+            .filter(
+              (def) =>
+                (def.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  def.tags?.some((t) =>
+                    t.toLowerCase().includes(searchTerm.toLowerCase()),
+                  ) ||
+                  def.category
+                    .toLowerCase()
+                    .includes(searchTerm.toLowerCase())) &&
+                (selectedCategory === null ||
+                  def.category === selectedCategory) &&
+                (selectedTag === null || def.tags?.includes(selectedTag)),
+            )
+            .flatMap((def) => [
+              <WidgetEntry key={def.id} def={def} onAdd={onAdd} />,
+              <hr key={`${def.id}-hr`} />,
+            ])
+            .slice(0, -1) /* remove last <hr> */
+        }
       </div>
     </Modal>
   );

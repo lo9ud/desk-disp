@@ -17,7 +17,7 @@ const BandwidthWidget = registerWidget(Bandwidth, {
   name: "Bandwidth",
   description: "Shows network upload and download speeds",
   category: "system",
-  tags: ["interactive"],
+  tags: [],
   settingsDef: {},
   minSize: [null, null],
   maxSize: [null, null],

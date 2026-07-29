@@ -16,13 +16,13 @@
   display: grid;
   grid-template:
     "name category tags add" auto
-    "desc desc desc desc" auto
-    "settings settings settings settings" auto
+    "desc desc desc add" auto
+    "settings settings settings ." auto
     / max-content max-content 1fr min-content;
   gap: 4px;
   padding: 8px;
-  border: 1px solid var(--ui-border-subtle);
-  border-radius: 5px;
+  /* border-bottom: 1px solid var(--ui-border-subtle);
+  border-radius: 5px; */
   place-items: center stretch;
 }
 
@@ -57,8 +57,9 @@
 .widgetAddButtonContainer {
   grid-area: add;
   display: flex;
-  align-items: center;
+  align-items: start;
   justify-content: flex-end;
+  align-self: start;
 }
 
 .widgetDescription {

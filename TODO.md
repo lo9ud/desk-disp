@@ -19,16 +19,17 @@
   - todo list widget
   - calendar widget
   - RSS feed widget
+    - maybe special-case for certain feeds like reddit (using .json feed)? to get better quality data than the generic RSS feed
   - news widget (maybe via specialised RSS feed, or via newsapi.org)
   - picture widget (APOD, or user-specified image feed)
     - needs provider
     - options include stock photo feeds, user-paid api's, APOD (NASA) (Also satelite imagery, weather maps, etc.)
     - additional options
-  - lock dashboard via tray menu or something, prevents window controls from showing or edits being made (tauri set_ignore_pointer_events or similar)
-    - keyboard shortcut? window only or global?
-  - initial setup/onboarding flow?
-    - maybe a quick tutorial on how to add widgets, or a link to the wiki for that
-    - overlay?
+- lock dashboard via tray menu or something, prevents window controls from showing or edits being made (tauri set_ignore_pointer_events or similar)
+  - keyboard shortcut? window only or global?
+- initial setup/onboarding flow?
+  - maybe a quick tutorial on how to add widgets, or a link to the wiki for that
+  - overlay?
 - Add a plug-in system for MCP or other AI-assisted widgets
   - "recent Claude session" widget — via MCP, surface what the last active Claude conversation was with a resume button/link
   - "Claude context" widget — expose a snippet of Claude conversation history as a text block (e.g. a summary paragraph or a bullet list of recent topics)
@@ -147,6 +148,18 @@
     - pulse/breathe
     - wave (special-case for radial, so smoothly & continuously moves around the circle)
     - other?
+- editgrid placement errors could be nicer, currently slightly too fast, or missing full-stop
+  - tiers/other issues:
+    - overlap has no flash
+    - out-of-bounds has no flash
+- tags are currently not automated the way i would like
+  - customizable should be automatically added to any widget with a settingsDef
+  - requires-setup should be automatically added to any widget that has a settingsDef with any required fields
+  - other tags should be automatically added based on the widget's behaviour
+    - pending mechanism for this, maybe widgets must request access to a manager for certain resources (media, network, etc.) and the manager can add the appropriate tags based on the widget's requests at registration time
+- more tags
+  - "needs network" for widgets with network dependencies?
+  - think of others
 
 ## Bugfixes - issues with existing features or code
 

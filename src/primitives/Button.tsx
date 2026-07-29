@@ -11,6 +11,7 @@ const variantClass = {
   accent: styles.accent,
   danger: styles.danger,
   warning: styles.warning,
+  icon: styles.icon,
 };
 export type ButtonVariant = keyof typeof variantClass;
 
@@ -84,18 +85,6 @@ export function Button({
     if (!keybind) return;
     const [keys, callback] = keybind;
     const handler = (e: KeyboardEvent) => {
-      let states = Object.keys(modifierToKeyMap).map((k) => [
-        k,
-        e.getModifierState(modifierToKeyMap[k as ModifierKey]),
-      ]);
-      console.log(
-        "Checking against keybind:",
-        keys,
-        "Keydown event:",
-        e.key,
-        "Modifier states:",
-        states,
-      );
       if (
         keys.every((k) => e.getModifierState(k) || e.key.toLowerCase() === k)
       ) {
