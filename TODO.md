@@ -44,7 +44,9 @@
   - build
   - releases
   - needs versioning strategy and changelog management
-
+- Webrequest handler, see [discussion file](gitignore/webrequest_handler.md)
+  - waiting on file-persistence and caching layer to be implemented first, so that the webrequest handler can cache responses and persist them across app restarts
+  
 ## Refinements - improvements to existing features or code quality
 
 - hijack button titles to look better than UI native hover tooltips
