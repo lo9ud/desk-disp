@@ -10,7 +10,7 @@
   - More variety of datetime widgets
   - weather widget with forecast
     - openmeteo
-  - additional system info widgets
+  - additional system info widgets <-- careful not to make too many "techy" widgets - maybe wait until better category system w/ subcategories and disclosures so as not to overwhelm users/bury ones they might want under a million variations on system stats etc.
     - battery/power info
     - disks/storage info
     - extend network widget to show current network etc
@@ -25,6 +25,20 @@
     - needs provider
     - options include stock photo feeds, user-paid api's, APOD (NASA) (Also satelite imagery, weather maps, etc.)
     - additional options
+  - searchbar widget (google, duckduckgo, bing, etc.)
+  - tracker widget (e.g. numeric input, either a sparkline or a progress bar, or both, or something else)
+    - possibly a ETA or projected completion date based on current/average/historical rate of change
+  - countdown/timer widget (countdown to a date, or count up from a date, or a timer that counts down from a set time)
+    - specialization for pomodoro timers and related? scheduled/patterns? maybe worth a distinct widget for this, with a few presets and a simple UI for setting up custom patterns
+  - integrations
+    - pending webrequest handler and caching layer, and probably needs a relay server to handle OAuth2 flows and keep dev keys secret
+    - todoist (maybe special-case the todolist widget for this)
+    - spotify (media integration and this overlap, but depends what spotify allows)
+    - discord?
+    - various social medias (twitter, reddit, etc.) - depends on specifics of API's and what data is available. compilcated by RSS feeds duplicating some functionality, but not all. e.g. reddit has a json feed, but twitter does not, and the twitter API is very limited now. so some social media may be better served by RSS feeds, others by direct API integration. maybe some sort of tutorial or guide on which flavour works best? maybe media-specific widgets just use whatever i consider the "best" way to get the data, but user can create RSS pointing at the same data if they want to
+  - webhook/arbitrary http request widget? how to display arbitrary data? 
+    - accept a selector pointing at a simple datatype (number, string, boolean) in response?
+    - format string with {object.property} style placeholders for simple objects, or {array[0]} for arrays, etc.? <-- i like this
 - lock dashboard via tray menu or something, prevents window controls from showing or edits being made (tauri set_ignore_pointer_events or similar)
   - keyboard shortcut? window only or global?
 - initial setup/onboarding flow?
@@ -46,9 +60,21 @@
   - needs versioning strategy and changelog management
 - Webrequest handler, see [discussion file](gitignore/webrequest_handler.md)
   - waiting on file-persistence and caching layer to be implemented first, so that the webrequest handler can cache responses and persist them across app restarts
-  
+
 ## Refinements - improvements to existing features or code quality
 
+- fiel.rs atomic writes all use the same tmp.json extension, which means concurrent writes to different files can collide and corrupt each other; need to use a unique tmp file per target file
+  - linked, probably needs a mutex for files to keep contention explicit rather than relying on the filesystem to handle it
+  - while at it, cache directory/file handles, maybe make them singleton (keyed on path) so that only one handle exists for any given filesystem path
+- add widget modal needs better search/sort/filtering, and maybe a "recently used" section
+  - even with only a handful of widgets, the list is already long enough to be unwieldy; with more widgets it will be worse
+  - maybe a "favourites" section for widgets you use often, or a way to pin widgets to the top of the list
+  - more thought needed on how to work with tags, categories etc.
+    - hierarchial categories? e.g. "media" -> "music" etc.
+    - concurrent 'vibe' tags? e.g. "aesthetic" or "minimalist" or "retro" etc.
+      - sits alongside the functional tags like "requires setup" and "customisable"
+      - probably needs a specific callout that these are subject to customisation and may not be accurate for setups
+    - hide filters with no results!!
 - hijack button titles to look better than UI native hover tooltips
   - Needs dedicated tooltip component
 - remove Spotify integration
@@ -56,7 +82,7 @@
   - Remove `SpotifyClientAuth`, `SpotifyAccessToken`, `request_token`, `get_high_res_album_art` from `media/mod.rs`; remove `use serde_json::Value`
   - Remove `spotify_auth`, `spotify_api_token` fields from `AppStateInner` in `lib.rs`; remove hardcoded credentials (lines 279–282) and the `use crate::media::{SpotifyAccessToken, SpotifyClientAuth}` import
   - Remove `reqwest` from `Cargo.toml` (only user of it)
-- Extend the gen-licenses script to try pull license text from the package's repository (if malformed?), and NOTICE files (for Apache-2.0 licenses specifically, but maybe all licenses if such a file exists?)
+- Extend the gen-licenses script to try pull license text from the package's repository (what if malformed?), and NOTICE files (for Apache-2.0 licenses specifically, but maybe all licenses if such a file exists?) <-- overengineering?
 - explicit error path on malformed config/layout/theme/etc., with user-friendly error messages and fallback to defaults
 - better client-specific handling for media - replace is_apple_music with client enum, and add methods to pre- or post-process media data based on client
   - e.g. for youtube _videos_ we can display the youtube logo on/instead of album art, and maybe use the channel art instead of album art for better results?
@@ -82,9 +108,20 @@
   - standardise certain actions like "Cancel"/"Close" that are used across the app, so they look and behave the same everywhere (or just a cross (X) close icon? needs explicit close handler for all windows regardless of other actions however, to prevent malformed/inconsistent data)
   - the "raised surface" recipe (bg/border/radius/shadow) is currently hand-copied independently across Panel, Modal, EditGrid's edit bar, and Onboarding's card - should consolidate into one shared base once this gets tackled
 - EditGrid's icon/edge buttons still hand-roll their own CSS instead of using the Button primitive's ghost/ghost_danger variants - left alone for now since EditGrid needs a proper overhaul anyway
+- onboarding needs lots of updates
+  - order of window controls is wrong, should go left-to-right, currently jumps around as order has been changed a few times during development
+  - there are more targets that need to be added
+  - language feels slimy - prefer more neutral than the current "im your friend" vibe
+  - more stages/trigger in more contexts
+    - tour for making/editing layouts
+    - tour for customizing themes
+- font scale need proper setup
+  - probably involves a lot more measurements being in rem/em instead of px, and a root font-size being set on the body based on the font scale setting
 - LayoutSection/ThemeSection settings pages have a lot of duplicated CSS that should probably be shared primitives/components instead of unique theming per section
   - LayoutSection.module.css has a block explicitly marked "Copied verbatim from ThemeSection.module.css" plus a couple other classes that are fully dead now, and a gridPreview/gridSettings block that doesn't seem to be wired up to anything - not sure if that's abandoned or half-built, check before ripping out
-
+- unify themes and ui css, so all components can be used in either context
+  - provides more colour tokens for widgets to use
+  - allows for more consistent styling across the app, and reuse of already extant components
 - widget backgrounds should properly border the actual widget content, to maximise legibility over transparent backgrounds + complex wallpapers
   - flat background on widget class results in unintuitive background shapes and sizes, especially with padding and gaps
   - separate background layer? (allwos for backdrop effects and such in the future maybe) that is sized to the widget content (+ padding?), and respects border radius settings if/when those are added
@@ -117,7 +154,8 @@
   - colour options
     - rainbow mode? (+ hue-rotate?)
     - pull from album art colours?
-    - maybe add combined albumart + visualiser widget with visualiser bordering(inset and outset)/masking the album art? circular?
+    - mask album art with visualiser bars?
+    - maybe add combined albumart + visualiser widget with visualiser bordering(inset and outset) the album art? circular?
 - themes need additional colors:
   - secondary accents?
   - graphics (i.e. for the visualizer, accent is too aggressive for the bars, maybe a more muted secondary accent for graphics?)

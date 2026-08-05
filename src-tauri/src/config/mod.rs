@@ -217,6 +217,20 @@ fn app_config_dir() -> Option<PathBuf> {
     })
 }
 
+pub fn app_cache_dir() -> Option<PathBuf> {
+    dirs::cache_dir().map(|mut p| {
+        p.push("desk-disp");
+        p
+    })
+}
+
+pub fn app_data_dir() -> Option<PathBuf> {
+    dirs::data_dir().map(|mut p| {
+        p.push("desk-disp");
+        p
+    })
+}
+
 pub fn get_config_path() -> Option<PathBuf> {
     app_config_dir().map(|mut p| {
         p.push("config.json");

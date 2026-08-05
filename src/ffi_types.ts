@@ -41,6 +41,8 @@ export type Preferences = { rounded: boolean, widget_transparent: boolean, backg
 
 export type Processor = { brand: string, cores: Array<Core>, };
 
+export type Scope = { "Widget": string } | { "Group": string };
+
 export type SystemStats = { cpu: CpuStats, memory: MemoryStats, };
 
 export type TemperatureReading = { label: string, current: number, max: number, };

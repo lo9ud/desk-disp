@@ -1,4 +1,4 @@
-use clap::{Parser, builder::ArgPredicate};
+use clap::Parser;
 
 #[derive(Clone, Debug, clap::ValueEnum)]
 pub enum LogLevel {
@@ -25,7 +25,7 @@ impl LogLevel {
 #[command(name = "desk-disp", about = "Desktop display overlay", version = env!("CARGO_PKG_VERSION"))]
 pub struct Args {
     /// Enable development defaults (decorations, shadow, taskbar, resizable, no_always_on_bottom, no_transparent, windowed with 800x600 size)
-    #[arg(long, default_value_t = false, action = clap::ArgAction::SetTrue, group = "mode", help_heading = "Modes")]
+    #[arg(long, default_value_t = false, action = clap::ArgAction::SetTrue)]
     pub dev: bool,
 
     /// Default log level

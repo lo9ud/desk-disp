@@ -1,5 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Config, LayoutFile, LayoutInfo, Preferences, ThemeData, ThemeInfo, WidgetConfig } from "../ffi_types";
+import type {
+  Config,
+  LayoutFile,
+  LayoutInfo,
+  Preferences,
+  Scope,
+  ThemeData,
+  ThemeInfo,
+  WidgetConfig,
+} from "../ffi_types";
 import type { BackendEvents, ChannelName } from "./events";
 
 export interface SubscribeResult<T extends ChannelName> {
@@ -36,9 +45,12 @@ export const ipc = {
   switchMonitor: () => invoke<void>("next_monitor"),
   getMonitorCount: () => invoke<number>("get_monitor_count"),
 
-  setPreferences: (prefs: Preferences) => invoke<void>("set_preferences", { prefs }),
-  previewPreferences: (prefs: Preferences) => invoke<void>("preview_preferences", { prefs }),
-  generateTheme: (seedHex: string) => invoke<void>("generate_theme", { seedHex }),
+  setPreferences: (prefs: Preferences) =>
+    invoke<void>("set_preferences", { prefs }),
+  previewPreferences: (prefs: Preferences) =>
+    invoke<void>("preview_preferences", { prefs }),
+  generateTheme: (seedHex: string) =>
+    invoke<void>("generate_theme", { seedHex }),
 
   listLayouts: () => invoke<LayoutInfo[]>("list_layouts"),
   getLayout: (id: string) => invoke<LayoutFile>("get_layout", { id }),
@@ -53,7 +65,14 @@ export const ipc = {
     grid_cols: number,
     gap: number,
     padding: number,
-  ) => invoke<void>("update_layout_grid", { id, grid_rows, grid_cols, gap, padding }),
+  ) =>
+    invoke<void>("update_layout_grid", {
+      id,
+      grid_rows,
+      grid_cols,
+      gap,
+      padding,
+    }),
   openLayoutsFolder: () => invoke<void>("open_layouts_folder"),
 
   updateWidget: (id: string, config: WidgetConfig) =>
@@ -75,4 +94,31 @@ export const ipc = {
     message: string,
     hint?: string,
   ) => invoke<void>("log_from_frontend", { level, module, message, hint }),
+
+  // persistence
+  // key-value store
+  getKeyValue: (key: string, scope: Scope) =>
+    invoke<string | null>("get_kv", { key, scope }),
+  setKeyValue: (key: string, value: string, scope: Scope) =>
+    invoke<void>("set_kv", { key, value, scope }),
+  deleteKeyValue: (key: string, scope: Scope) =>
+    invoke<void>("delete_kv", { key, scope, strict: false }),
+  listKeyValues: (scope: Scope) =>
+    invoke<string[]>("list_kv", { scope }),
+  // object store
+  getObject: <T extends object>(
+    key: string,
+    scope: Scope,
+    collection?: string,
+  ) => invoke<T | null>("get_object", { key, scope, collection }),
+  setObject: <T extends object>(
+    key: string,
+    value: T,
+    scope: Scope,
+    collection?: string,
+  ) => invoke<void>("set_object", { key, value, scope, collection }),
+  deleteObject: (key: string, scope: Scope, collection?: string) =>
+    invoke<void>("delete_object", { key, scope, collection, strict: false }),
+  listObjects: (scope: Scope, collection?: string) =>
+    invoke<string[]>("list_objects", { scope, collection }),
 };

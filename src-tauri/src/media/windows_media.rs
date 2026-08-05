@@ -26,7 +26,7 @@ fn emit_media(app: &tauri::AppHandle, state: MediaState) {
 const TARGET: &str = "media::windows";
 
 fn e<T: fmt::Debug>(e: T) -> String {
-    format!("{:?}", e)
+    return format!("{:?}", e)
 }
 
 struct SessionCache {

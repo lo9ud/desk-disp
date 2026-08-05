@@ -1,0 +1,90 @@
+.container {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-base);
+    border-radius: 1rem;
+}
+
+.controlBar {
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 4px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.renameInput {
+    border: none;
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 14px;
+    padding: 4px 8px;
+}
+
+.controlButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    padding: 3px;
+}
+
+.taskCountLabel {
+    font-size: small;
+}
+
+.taskCount {
+    font-size: small;
+    justify-self: end;
+    grid-column: span 3;
+}
+
+.item {
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: auto auto 1fr auto;
+    gap: 4px;
+    padding: 4px 0;
+}
+.dragHandle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: var(--color-text-secondary);
+    cursor: grab;
+}
+.removeButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 1px;
+    color: var(--color-text-secondary);
+    transition: color 0.12s ease-in-out;
+    border: none;
+    cursor: pointer;
+    &:hover {
+        color: var(--color-danger);
+    }
+}
+.itemTextInput {
+    border: none;
+    background-color: var(--color-surface);
+    font-size: 14px;
+    padding: 4px 8px;
+}

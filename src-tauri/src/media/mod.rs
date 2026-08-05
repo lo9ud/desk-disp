@@ -15,9 +15,6 @@ mod imp {
     pub use super::linux_media::*;
 }
 
-use serde_json::Value;
-use tauri::Manager;
-
 /* Tauri command wrappers  */
 
 macro_rules! spawn_command {
@@ -119,105 +116,6 @@ async fn request_token(auth: &SpotifyClientAuth) -> Result<SpotifyAccessToken, S
         .json::<SpotifyAccessToken>()
         .await
         .map_err(|e| e.to_string())
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub async fn get_high_res_album_art(
-    app: tauri::AppHandle,
-    track_name: String,
-    artist_name: String,
-) -> Result<Option<String>, String> {
-    use crate::AppState;
-    use std::time::Instant;
-
-    const TARGET: &str = "media::spotify";
-    tracing::info!(target: TARGET, track = %track_name, artist = %artist_name, "fetching hi-res album art");
-
-    let state = app.state::<AppState>();
-    let mut state = state.lock().await;
-
-    // Check that client credentials were provided
-    if let Some(auth) = &state.spotify_auth {
-        let need_token = match &state.spotify_api_token {
-            Some((acquired, token)) => acquired.elapsed().as_secs() > token.expires_in as u64 - 60,
-            None => true,
-        };
-
-        if need_token {
-            tracing::debug!(target: TARGET, "requesting new Spotify access token");
-            let new_token = request_token(auth).await.map_err(|e| {
-                tracing::error!(target: TARGET, error = %e, "Spotify token request failed");
-                e
-            })?;
-            tracing::debug!(target: TARGET, expires_in = new_token.expires_in, "Spotify token acquired");
-            state.spotify_api_token = Some((Instant::now(), new_token));
-        }
-
-        let (_, token) = state
-            .spotify_api_token
-            .clone()
-            .expect("Token should be set");
-
-        tracing::debug!(target: TARGET, track = %track_name, artist = %artist_name, "querying Spotify search API");
-        let result = reqwest::Client::new()
-            .get("https://api.spotify.com/v1/search")
-            .query(&[
-                ("q", format!("track:{} artist:{}", track_name, artist_name)),
-                ("type", "track".to_string()),
-                ("limit", "1".to_string()),
-            ])
-            .bearer_auth(&token.access_token)
-            .send()
-            .await
-            .map_err(|e| {
-                tracing::error!(target: TARGET, error = %e, "Spotify search request failed");
-                e.to_string()
-            })?
-            .json::<Value>()
-            .await
-            .map_err(|e| e.to_string())
-            .and_then(|value| {
-                Ok(Some(
-                    value
-                        .get("tracks")
-                        .ok_or("No 'tracks' field in response")
-                        .and_then(|t| t.get("items").ok_or("No 'items' field in 'tracks'"))
-                        .and_then(|i| i.as_array().ok_or("No 'items' array in 'tracks'"))
-                        .and_then(|arr| arr.first().ok_or("No tracks in 'items' array"))
-                        .and_then(|item| item.get("album").ok_or("No 'album' field in track"))
-                        .and_then(|album| album.get("images").ok_or("No 'images' field in album"))
-                        .and_then(|imgs| imgs.as_array().ok_or("No images in 'images' array"))
-                        .map(|arr| {
-                            arr.iter()
-                                .map(|a| (a.get("url"), a.get("height"), a.get("width")))
-                                .collect::<Vec<_>>()
-                        })
-                        .and_then(|urls| {
-                            urls.into_iter()
-                                .max_by_key(|(_, h, w)| {
-                                    h.and_then(|h| h.as_u64())
-                                        .unwrap_or(0)
-                                        .saturating_mul(w.and_then(|w| w.as_u64()).unwrap_or(0))
-                                })
-                                .ok_or("No max image found")
-                        })
-                        .and_then(|(url, _, _)| {
-                            url.and_then(|u| u.as_str())
-                                .map(|s| s.to_string())
-                                .ok_or("No URL string found")
-                        })?,
-                ))
-            });
-        match &result {
-            Ok(Some(url)) => tracing::info!(target: TARGET, url = %url, "hi-res album art found"),
-            Ok(None) => tracing::info!(target: TARGET, "no hi-res album art found"),
-            Err(e) => tracing::warn!(target: TARGET, error = %e, "hi-res album art lookup failed"),
-        }
-        result
-    } else {
-        tracing::warn!(target: "media::spotify", "no Spotify credentials configured; skipping hi-res art lookup");
-        return Ok(None);
-    }
 }
 
 /// Returns the name of the current default output device — the one the

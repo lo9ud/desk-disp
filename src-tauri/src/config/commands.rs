@@ -455,7 +455,7 @@ fn linear_to_srgb_channel(c: f64) -> u8 {
 fn oklch_to_hex(l: f64, c: f64, h: f64) -> String {
     let (lab_l, lab_a, lab_b) = oklch_to_oklab(l, c, h);
     let (rl, gl, bl) = oklab_to_linear_srgb(lab_l, lab_a, lab_b);
-    format!(
+    return format!(
         "#{:02x}{:02x}{:02x}",
         linear_to_srgb_channel(rl),
         linear_to_srgb_channel(gl),
@@ -607,8 +607,8 @@ fn make_theme(seed_hex: &str, dark: bool) -> Result<ThemeData, String> {
 }
 
 #[tauri::command]
-pub async fn generate_theme(seed_hex: String, app: tauri::AppHandle) -> Result<(), String> {
-    use super::{ThemeData, ThemeVar};
+pub async fn generate_theme(seed_hex: String) -> Result<(), String> {
+    
 
     let dark_theme = make_theme(&seed_hex, true)?;
     let light_theme = make_theme(&seed_hex, false)?;
@@ -626,9 +626,6 @@ pub async fn generate_theme(seed_hex: String, app: tauri::AppHandle) -> Result<(
     }
     let json = serde_json::to_string_pretty(&light_theme).map_err(|e| e.to_string())?;
     fs::write(&light_path, json).map_err(|e| e.to_string())?;
-
-    let state = app.state::<crate::AppState>();
-    let mut state = state.lock().await;
 
     Ok(())
 }

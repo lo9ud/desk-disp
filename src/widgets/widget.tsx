@@ -15,7 +15,7 @@ import {
 import { combineClassNames } from "../utils/format";
 import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 
-const WidgetInstanceIdContext = createContext<string | undefined>(undefined);
+export const WidgetInstanceIdContext = createContext<string | undefined>(undefined);
 
 export type { GridSize } from "./Grid";
 export { useGridSize } from "./Grid";

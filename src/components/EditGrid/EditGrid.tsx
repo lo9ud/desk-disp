@@ -25,7 +25,7 @@ import { useSaveFlow } from "./useSaveFlow";
 import { useSizeErrors } from "./useSizeErrors";
 import { WidgetTile } from "./WidgetTile";
 
-export default function EditGrid({containerSize}: {containerSize: {width: number, height: number}}) {
+export default function EditGrid() {
   const {
     draftGridDims: dims,
     widgetErrors,

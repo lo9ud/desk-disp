@@ -23,3 +23,6 @@ import "./thermal/SystemTempWidget";
 // General
 import "./general/QuoteWidget";
 import "./general/ErrorTestWidget";
+
+// Productivity
+import "./applets/todolist/TodoListWidget";

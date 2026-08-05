@@ -6,7 +6,6 @@ import AdvancedSection from "./AdvancedSection";
 import AboutSection from "./AboutSection";
 import { combineClassNames } from "../../utils/format";
 import LayoutSection from "./LayoutSection";
-import KeysSection from "./KeysSection";
 
 /* Component  */
 
@@ -14,7 +13,6 @@ const TABS = {
   general: GeneralSection,
   themes: ThemeSection,
   layouts: LayoutSection,
-  keys: KeysSection,
   advanced: AdvancedSection,
   licenses: AboutSection,
 };
@@ -27,6 +25,7 @@ export default function SettingsPage() {
       <div className={styles.tabs}>
         {Object.keys(TABS).map((t) => (
           <button
+            type="button"
             key={t}
             className={`${styles.sectionTitle} ${t === tab ? styles.active : ""}`}
             onClick={() => setTab(t as keyof typeof TABS)}

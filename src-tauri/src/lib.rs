@@ -2,30 +2,33 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use std::time::Instant;
-use tauri::{async_runtime::Mutex, Manager, Monitor};
-use tracing::{info, debug};
+use tauri::{async_runtime::{Mutex, RwLock}, Manager, Monitor};
+use tracing::{debug, info};
 
-use crate::media::{SpotifyAccessToken, SpotifyClientAuth};
 
 pub mod cli;
 mod config;
 mod error;
 pub mod events;
+mod file;
 mod logging;
 mod media;
 mod system;
 
 struct AppStateInner {
+    // System information and hardware state
     system_info: sysinfo::System,
     disks: sysinfo::Disks,
     components: sysinfo::Components,
     networks: sysinfo::Networks,
-    spotify_auth: Option<SpotifyClientAuth>,
-    spotify_api_token: Option<(Instant, SpotifyAccessToken)>,
+
+    // Application configuration and command-line arguments
     config: config::Config,
     args: cli::Args,
     monitor_cache: config::MonitorCache,
+
+    // File management'
+    file_manager: Arc<RwLock<file::FileManager>>,
 }
 
 type AppState = Mutex<AppStateInner>;
@@ -36,7 +39,9 @@ struct ChannelSubscribers {
 
 impl ChannelSubscribers {
     fn new() -> Self {
-        Self { channels: HashMap::new() }
+        Self {
+            channels: HashMap::new(),
+        }
     }
 
     /// Registers a channel and returns the Arc that should be passed to its loop.
@@ -110,7 +115,10 @@ fn get_monitor(win: &tauri::WebviewWindow, config: &config::Config) -> Result<Mo
 }
 
 #[tauri::command]
-async fn subscribe_channel(channel: String, app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+async fn subscribe_channel(
+    channel: String,
+    app: tauri::AppHandle,
+) -> Result<serde_json::Value, String> {
     let subs = app.state::<ChannelSubscribers>();
     let count = subs.increment(&channel);
     let last_value = app.state::<ChannelCache>().get(&channel);
@@ -180,33 +188,27 @@ pub fn run(args: cli::Args) {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             exit_program,
-
             // stream subscription
             subscribe_channel,
             unsubscribe_channel,
-
             // config commands
             get_config_path,
             get_config,
             log_from_frontend,
             get_log_level,
-
             // media commands
             media::play_media,
             media::pause_media,
             media::next_track,
             media::prev_track,
             media::toggle_playback,
-
             // monitor commands
             config::next_monitor,
             config::get_monitor_count,
-
             // settings commands
             config::open_settings,
             config::close_settings,
             config::toggle_settings_visibility,
-
             // theme commands
             config::preview_theme,
             config::list_themes,
@@ -215,7 +217,6 @@ pub fn run(args: cli::Args) {
             config::save_theme,
             config::delete_theme,
             config::open_themes_folder,
-
             // layout commands
             config::list_layouts,
             config::get_layout,
@@ -227,13 +228,20 @@ pub fn run(args: cli::Args) {
             config::open_layouts_folder,
             config::update_widget,
             config::restore_defaults,
-
             // preferences commands
             config::set_preferences,
             config::preview_preferences,
-
-            // generate-from-colour
+            // theme generation
             config::generate_theme,
+            // file persistence commands
+            file::get_kv,
+            file::set_kv,
+            file::delete_kv,
+            file::list_kv,
+            file::get_object,
+            file::set_object,
+            file::delete_object,
+            file::list_objects,
         ])
         .setup(move |app| {
             let config = config::get_config().unwrap_or_else(|e| {
@@ -260,15 +268,20 @@ pub fn run(args: cli::Args) {
                     .expect("Failed to set window size");
                 config::build_monitor_cache(&win, None)
             } else {
-                let target_monitor = get_monitor(&win, &config).expect("Failed to get target monitor");
-                let cache = config::build_monitor_cache(&win, target_monitor.name().map(|s| s.as_str()));
+                let target_monitor =
+                    get_monitor(&win, &config).expect("Failed to get target monitor");
+                let cache =
+                    config::build_monitor_cache(&win, target_monitor.name().map(|s| s.as_str()));
                 place_window(&win, target_monitor);
                 cache
             };
 
-            config::get_or_create_settings_window(app.handle()).expect("Failed to create settings window");
+            config::get_or_create_settings_window(app.handle())
+                .expect("Failed to create settings window");
 
             win.show().expect("Failed to show window");
+
+            let file_manager = Arc::new(RwLock::new(file::FileManager::new()));
 
             app.manage::<AppState>(Mutex::new(AppStateInner {
                 system_info: sysinfo::System::new_with_specifics(
@@ -279,14 +292,10 @@ pub fn run(args: cli::Args) {
                 disks: sysinfo::Disks::new_with_refreshed_list(),
                 components: sysinfo::Components::new_with_refreshed_list(),
                 networks: sysinfo::Networks::new_with_refreshed_list(),
-                spotify_auth: Some(SpotifyClientAuth {
-                    client_id: "bacd8615b652440fbc0661e8939420dd".into(),
-                    client_secret: "87c94d8c57fa4228b5385568c32d4646".into(),
-                }),
-                spotify_api_token: None,
                 config,
                 args,
                 monitor_cache,
+                file_manager,
             }));
 
             /* Channel subscription counters and cache  */
@@ -317,7 +326,11 @@ pub fn run(args: cli::Args) {
                 Arc::clone(&hardware_subs),
                 Duration::from_millis(500),
             ));
-            media::spawn_visualizer_loop(handle, Arc::clone(&visualizer_subs), Duration::from_millis(33));
+            media::spawn_visualizer_loop(
+                handle,
+                Arc::clone(&visualizer_subs),
+                Duration::from_millis(33),
+            );
 
             Ok(())
         })

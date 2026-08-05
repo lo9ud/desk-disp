@@ -6,6 +6,7 @@ export const TAGS = {
   interactive: "#b84d8c",
   customizable: "#4db88c",
   "requires setup": "#c97f5f",
+  applet: "#4d8cb8",
 } as const;
 
 export const CATEGORIES = {
@@ -26,7 +27,7 @@ export interface WidgetDefinition {
   description: string;
   component: React.ComponentType<any>;
   category: keyof typeof CATEGORIES;
-  tags: (keyof typeof TAGS)[];
+  tags: (keyof Omit<typeof TAGS, "applet">)[];
   minSize: [number | null, number | null];
   maxSize: [number | null, number | null];
   settingsDef: WidgetSettingsDefinition;
@@ -42,7 +43,6 @@ export type SettingType = {
   boolean: boolean;
   select: string;
 };
-
 
 export type SettingCondition =
   | {

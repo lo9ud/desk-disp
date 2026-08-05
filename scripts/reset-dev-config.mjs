@@ -5,7 +5,7 @@
  * Run via: pnpm reset-dev-config
  */
 
-import { rmSync, existsSync } from "node:fs";
+import { rmSync, existsSync, walkSync } from "node:fs";
 import { join } from "node:path";
 
 const appDataDir =
@@ -14,11 +14,7 @@ const appDataDir =
 
 const baseDir = join(appDataDir, "desk-disp");
 
-const targets = [
-  join(baseDir, "config.json"),
-  join(baseDir, "themes"),
-  join(baseDir, "layouts"),
-];
+const targets = walkSync(baseDir, { withFileTypes: true });
 
 let removed = 0;
 for (const target of targets) {
