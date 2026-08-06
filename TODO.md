@@ -198,6 +198,16 @@
 - more tags
   - "needs network" for widgets with network dependencies?
   - think of others
+- App manages one big state object for some channel state, but other channel state is managed separately in distinct app.manage calls
+  - this is inconsistent and makes it hard to reason about the state of the app, especially when trying to debug issues with channel state
+  - rather have state-per-channel, maybe switch to channel trait/structs?
+    - trait has associated types State & Event (& Runner? thread::JoinHandle vs. tokio::task::JoinHandle)
+    - trait has methods for:
+      - starting/interacting with the loop
+      - adding/removing subscribers
+      - some dev affordances? (reset, dump state, etc.)
+    - struct can own handle to the thread/async task it runs on
+    - api becomes more like: app.manage(SystemChannel::new())
 
 ## Bugfixes - issues with existing features or code
 
