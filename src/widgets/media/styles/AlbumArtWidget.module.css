@@ -50,11 +50,7 @@
 }
 
 .greyPartial {
-  --f-saturation: 40%;
-}
-
-.greyFull {
-  --f-saturation: 0%;
+  --f-saturation: 80%;
 }
 
 .glow {
@@ -89,7 +85,15 @@
 }
 
 .rotate {
-  animation: rotate 60s linear infinite;
+  animation: rotate 30s linear infinite;
+}
+
+.fast {
+  animation-duration: 15s;
+}
+
+.slow {
+  animation-duration: 60s;
 }
 
 @keyframes rotate {

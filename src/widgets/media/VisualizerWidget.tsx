@@ -43,7 +43,7 @@ const VISUALIZER_SETTINGS_DEF = {
               start: "Start",
               end: "End",
               center: "Center",
-              split: "Both edges",
+              split: "Edges",
             },
             default: "start",
             showWhen: { key: "direction", is: ["vertical", "horizontal"] },
@@ -273,7 +273,7 @@ function verticalBaseRects(
       { x, y: canvas.height - halfH, w, h: halfH, anchor: "far" },
       { x, y: 0, w, h: halfH, anchor: "near" },
     ];
-    default:       return [{ x, y: canvas.height - halfH, w, h: halfH, anchor: "far" }];
+    default:       return [{ x, y: canvas.height - fullH, w, h: fullH, anchor: "far" }];
   }
 }
 

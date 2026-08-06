@@ -23,6 +23,17 @@ const ALBUM_ART_WIDGET_SETTINGS_DEF = {
             label: "Rotate when playing",
             default: false,
           },
+          speed: {
+            type: "select",
+            label: "Rotation speed",
+            options: {
+              slow: "Slow",
+              medium: "Medium",
+              fast: "Fast",
+            },
+            default: "slow",
+            showWhen: { key: "rotate", is: true },
+          }
         },
       },
     },
@@ -35,7 +46,7 @@ const ALBUM_ART_WIDGET_SETTINGS_DEF = {
   },
   filterLightness: {
     type: "select",
-    label: "Border lightness",
+    label: "Glow lightness",
     options: {
       none: "None",
       lighten: "Lighten",
@@ -46,13 +57,12 @@ const ALBUM_ART_WIDGET_SETTINGS_DEF = {
   },
   filterSaturation: {
     type: "select",
-    label: "Border saturation",
+    label: "Glow saturation",
     options: {
       max: "Max",
       boost: "Boost",
       normal: "Normal",
       reduced: "Reduced",
-      none: "None",
     },
     default: "none",
     enableWhen: { key: "filterGlow", is: true },
@@ -61,6 +71,7 @@ const ALBUM_ART_WIDGET_SETTINGS_DEF = {
 
 export function AlbumArt({
   style,
+  speed,
   rotate,
   filterGlow,
   filterLightness,
@@ -88,8 +99,12 @@ export function AlbumArt({
     boost: styles.satBoost,
     normal: null,
     reduced: styles.greyPartial,
-    none: styles.greyFull,
   }[filterSaturation];
+  const speedStyle = {
+    slow: styles.slow,
+    medium: null,
+    fast: styles.fast,
+  }[speed];
   return (
     <div className={styles.container}>
       {albumArtSrc && (
@@ -100,6 +115,7 @@ export function AlbumArt({
                 styles.glow,
                 pausedStyle,
                 rotateStyle,
+                speedStyle,
                 shapeStyle,
                 glowStyle,
                 lightnessStyle,
@@ -114,6 +130,7 @@ export function AlbumArt({
               styles.art,
               pausedStyle,
               rotateStyle,
+              speedStyle,
               shapeStyle,
             )}
             alt="Currently playing album art (main image)"
