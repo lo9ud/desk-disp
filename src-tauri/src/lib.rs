@@ -261,6 +261,7 @@ pub fn run(args: cli::Args) {
                 .skip_taskbar(!args.dev)
                 .resizable(args.dev)
                 .visible(false)
+                .disable_drag_drop_handler()
                 .build()
                 .expect("Failed to create main window");
             let monitor_cache = if args.dev {
