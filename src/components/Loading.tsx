@@ -24,3 +24,13 @@ export default function Loading({what}:{what:string}) {
     </div>
   );
 }
+
+export function DelayedLoading({what, delay = 500}:{what:string, delay?:number}) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const timeout = setTimeout(() => setShow(true), delay);
+    return () => clearTimeout(timeout);
+  }, [delay]);
+  if (!show) return null;
+  return <Loading what={what}/>;
+}

@@ -3,10 +3,15 @@ import { Scope } from "../ffi_types";
 import { ipc } from "./invoke";
 import { WidgetInstanceIdContext } from "../widgets/widget";
 import { TodoList } from "../widgets/applets/todolist/TodoListWidget";
-// import { logger } from "../utils/logger";
+import { logger } from "../utils/logger";
 import {
+  clearError,
+  peekError,
   readCache,
+  recordError,
   subscribeTo,
+  useSuspenseGate,
+  withRetry,
   writeCache,
   writeOptimistic,
 } from "./persistence_store";
@@ -18,6 +23,8 @@ type KeyValueTypeMap = {
   string: string;
   boolean: boolean;
 };
+
+type FallbackProducer<T> = () => T | Promise<T>;
 
 class KeyValueHandle<T extends KeyValueType> {
   constructor(
@@ -96,8 +103,6 @@ class CollectionHandle<T extends object> {
     return ipc.listObjects(this._scope, this._collection);
   }
 
-  // Synchronous - no I/O, no existence check. "Does this exist" is answered
-  // by reading through the resulting handle, not by asking here.
   entry(key: string): ObjectHandle<T> {
     return new ObjectHandle<T>(key, this._scope, this._collection);
   }
@@ -109,7 +114,7 @@ class CollectionHandle<T extends object> {
 
 class LiveKeyValue<T extends KeyValueType> {
   constructor(
-    public readonly value: T | null | undefined,
+    public readonly value: T,
     private readonly _set: (v: T) => void,
   ) {}
   set(v: T) {
@@ -120,7 +125,7 @@ export type { LiveKeyValue, LiveObject, LiveCollection };
 
 class LiveObject<T extends object> {
   constructor(
-    public readonly value: T | null | undefined,
+    public readonly value: T,
     private readonly _commit: (v: T) => void,
     private readonly _update: (recipe: (draft: T) => T) => void,
   ) {}
@@ -163,17 +168,58 @@ class LiveCollection<T extends object> {
   }
 }
 
+const log = logger("persistence");
+
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+
+function loadWithFallback<T>(
+  fetch: () => Promise<T | null>,
+  persist: (v: T) => Promise<void>,
+  fallback: FallbackProducer<T>,
+): () => Promise<T> {
+  return async () => {
+    log.debug("loadWithFallback: calling fetch()");
+    const v = await withRetry(fetch);
+    if (v !== null) {
+      log.debug("loadWithFallback: fetch() returned a value, done");
+      return v;
+    }
+    log.debug("loadWithFallback: fetch() returned null, invoking fallback producer");
+    const fb = await fallback();
+    log.debug("loadWithFallback: calling persist() with fallback value");
+    await withRetry(() => persist(fb));
+    log.debug("loadWithFallback: persist() succeeded, done");
+    return fb;
+  };
+}
+
+function useReactiveValue<T>(cacheKey: string): T {
+  const subscribe = useCallback(
+    (onChange: () => void) => subscribeTo(cacheKey)(onChange),
+    [cacheKey],
+  );
+  const value = useSyncExternalStore(subscribe, () => readCache<T>(cacheKey) as T);
+  const err = peekError(cacheKey);
+  if (err) {
+    log.debug(`useReactiveValue: throwing pending recorded error for "${cacheKey}"`, describeError(err));
+    throw err;
+  }
+  return value;
+}
+
 function useLiveKeyValue<T extends KeyValueType>(
   handle: KeyValueHandle<T>,
+  fallback: FallbackProducer<T>,
 ): LiveKeyValue<T> {
-  const subscribe = useCallback(
-    (onChange: () => void) =>
-      subscribeTo(handle.cacheKey, () => handle.fetch())(onChange),
-    [handle],
+  useSuspenseGate(
+    handle.cacheKey,
+    loadWithFallback(() => handle.fetch(), (v) => handle.persist(v), fallback),
   );
-  const value = useSyncExternalStore(subscribe, () =>
-    readCache<T>(handle.cacheKey),
-  );
+
+  const value = useReactiveValue<T>(handle.cacheKey);
   const set = useCallback(
     (next: T) =>
       writeOptimistic(
@@ -189,15 +235,14 @@ function useLiveKeyValue<T extends KeyValueType>(
 
 function useLiveObject<T extends object>(
   handle: ObjectHandle<T>,
+  fallback: FallbackProducer<T>,
 ): LiveObject<T> {
-  const subscribe = useCallback(
-    (onChange: () => void) =>
-      subscribeTo(handle.cacheKey, () => handle.fetch())(onChange),
-    [handle],
+  useSuspenseGate(
+    handle.cacheKey,
+    loadWithFallback(() => handle.fetch(), (v) => handle.persist(v), fallback),
   );
-  const value = useSyncExternalStore(subscribe, () =>
-    readCache<T>(handle.cacheKey),
-  );
+
+  const value = useReactiveValue<T>(handle.cacheKey);
   const commit = useCallback(
     (next: T) =>
       writeOptimistic(
@@ -222,21 +267,18 @@ function useLiveObject<T extends object>(
 function useLiveCollection<T extends object>(
   handle: CollectionHandle<T>,
 ): LiveCollection<T> {
-  const subscribe = useCallback(
-    (onChange: () => void) =>
-      subscribeTo(handle.cacheKey, async () => {
-        const ids = await handle.fetch();
-        const pairs = await Promise.all(
-          ids.map(async (id) => [id, await handle.entry(id).fetch()] as const),
-        );
-        return Object.fromEntries(pairs);
-      })(onChange),
-    [handle],
-  );
-  const raw =
-    useSyncExternalStore(subscribe, () =>
-      readCache<Record<string, T>>(handle.cacheKey),
-    ) ?? {};
+  const load = async () => {
+    const ids = await withRetry(() => handle.fetch());
+    const pairs = await Promise.all(
+      ids.map(
+        async (id) => [id, await withRetry(() => handle.entry(id).fetch())] as const,
+      ),
+    );
+    return Object.fromEntries(pairs) as Record<string, T>;
+  };
+  useSuspenseGate(handle.cacheKey, load);
+
+  const raw = useReactiveValue<Record<string, T>>(handle.cacheKey);
 
   const update = useCallback(
     (id: string, recipe: (draft: T) => T) => {
@@ -262,10 +304,16 @@ function useLiveCollection<T extends object>(
 
   const del = useCallback(
     (id: string) => {
-      const { [id]: _, ...rest } =
-        readCache<Record<string, T>>(handle.cacheKey) ?? {};
+      const current = readCache<Record<string, T>>(handle.cacheKey) as Record<string, T>;
+      const { [id]: _removed, ...rest } = current;
       writeCache(handle.cacheKey, rest);
-      handle.delete(id).catch(console.error);
+      withRetry(() => handle.delete(id))
+        .then(() => clearError(handle.cacheKey))
+        .catch((err) => {
+          console.error(`persistence: delete ${id} from ${handle.cacheKey} failed, reverting`, err);
+          writeCache(handle.cacheKey, current);
+          recordError(handle.cacheKey, err);
+        });
     },
     [handle],
   );
@@ -296,7 +344,7 @@ function useLiveCollection<T extends object>(
 export function useInstanceKeyValue<
   K extends KeyValueKind,
   T extends KeyValueTypeMap[K],
->(key: string, kind: K): LiveKeyValue<T> {
+>(key: string, kind: K, fallback: FallbackProducer<T>): LiveKeyValue<T> {
   const widgetId = useContext(WidgetInstanceIdContext);
   if (!widgetId)
     throw new Error(
@@ -306,11 +354,12 @@ export function useInstanceKeyValue<
     () => new KeyValueHandle<T>(key, { Widget: widgetId }, kind),
     [key, widgetId, kind],
   );
-  return useLiveKeyValue<T>(handle);
+  return useLiveKeyValue<T>(handle, fallback);
 }
 
 export function useInstanceObject<T extends object>(
   key: string,
+  fallback: FallbackProducer<T>,
   collection?: string,
 ): LiveObject<T> {
   const widgetId = useContext(WidgetInstanceIdContext);
@@ -322,7 +371,7 @@ export function useInstanceObject<T extends object>(
     () => new ObjectHandle<T>(key, { Widget: widgetId }, collection),
     [key, widgetId, collection],
   );
-  return useLiveObject(handle);
+  return useLiveObject(handle, fallback);
 }
 
 export function useInstanceCollection<T extends object>(
@@ -340,24 +389,6 @@ export function useInstanceCollection<T extends object>(
   return useLiveCollection(handle);
 }
 
-// Called once per row/entry in a list, in its own child component - see
-// "Collections and the rules of hooks" below for why this has to be a
-// separate hook rather than something called from inside .map().
-export function useInstanceCollectionEntry<T extends object>(
-  collection: string,
-  key: string,
-): LiveObject<T> {
-  const widgetId = useContext(WidgetInstanceIdContext);
-  if (!widgetId)
-    throw new Error(
-      "useInstanceCollectionEntry must be used within a WidgetInstanceIdContext provider",
-    );
-  const handle = useMemo(
-    () => new ObjectHandle<T>(key, { Widget: widgetId }, collection),
-    [widgetId, collection, key],
-  );
-  return useLiveObject(handle);
-}
 
 // Group-scoped key-value and object store handles
 
@@ -393,7 +424,12 @@ export function useGroupKeyValue<
       ? U[K]
       : never
     : never,
->(scope_alias: G, key: K, kind: KeyValueKind): LiveKeyValue<T> {
+>(
+  scope_alias: G,
+  key: K,
+  kind: KeyValueKind,
+  fallback: FallbackProducer<T>,
+): LiveKeyValue<T> {
   const handle = useMemo(
     () =>
       new KeyValueHandle<T>(
@@ -403,7 +439,7 @@ export function useGroupKeyValue<
       ),
     [key, scope_alias, kind],
   );
-  return useLiveKeyValue(handle);
+  return useLiveKeyValue(handle, fallback);
 }
 
 export function useGroupObject<
@@ -414,12 +450,12 @@ export function useGroupObject<
       ? U[K]
       : never
     : never,
->(scope_alias: G, key: K): LiveObject<T> {
+>(scope_alias: G, key: K, fallback: FallbackProducer<T>): LiveObject<T> {
   const handle = useMemo(
     () => new ObjectHandle<T>(key as string, { Group: scope_alias as string }),
     [key, scope_alias],
   );
-  return useLiveObject(handle);
+  return useLiveObject(handle, fallback);
 }
 
 export function useGroupCollection<

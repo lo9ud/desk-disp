@@ -108,6 +108,9 @@
   - standardise certain actions like "Cancel"/"Close" that are used across the app, so they look and behave the same everywhere (or just a cross (X) close icon? needs explicit close handler for all windows regardless of other actions however, to prevent malformed/inconsistent data)
   - the "raised surface" recipe (bg/border/radius/shadow) is currently hand-copied independently across Panel, Modal, EditGrid's edit bar, and Onboarding's card - should consolidate into one shared base once this gets tackled
 - EditGrid's icon/edge buttons still hand-roll their own CSS instead of using the Button primitive's ghost/ghost_danger variants - left alone for now since EditGrid needs a proper overhaul anyway
+- the widget harness (suspense, error boundary, placement, etc.) is split between the `Widget` component and the registerWidget wrapper
+  - this should ideally be consolidated, possibly into a single file, so that ordering is clear and consistent
+  - needed for custom error components to be used in the error boundary (via same mechanism as the loading component is currently passed in)
 - onboarding needs lots of updates
   - order of window controls is wrong, should go left-to-right, currently jumps around as order has been changed a few times during development
   - there are more targets that need to be added
@@ -203,7 +206,7 @@
 
 ## Bugfixes - issues with existing features or code
 
-- visualiser stack style dows not work (confirmed horizontal bars, check other variants)
+- devtools console always says backend log level is "info"
 - fix broken settings
   - run on startup, taskbar/dock icon, tray icon toggles all exist in GeneralSection already but are non-functional stubs with no backend wiring - tauri has a plugin for run on startup specifically
 - visualizer FFTStream thrashing on subscribe/unsubscribe cycles — edit-mode → standard-view transitions unmount then remount the visualizer widget, firing unsubscribe + subscribe in quick succession; each cycle tears down and recreates the WASAPI loopback stream and real-time audio thread. Confirm old stream and callback handles are fully closed before the new stream opens (no handle leak across cycles). Consider caching the live `FFTStream` for a short grace period before tearing it down, so rapid re-subscriptions reuse the existing stream.
@@ -221,6 +224,8 @@
     - theme -> corrupt means user edits, wipe and regenerate with a warn
   - assume edits were made, fail load, crash
   - assume edits made, best-effort recovery
+  - clear and reset to defaults?
+  - zod?
 
 ## Dependency Updates
 

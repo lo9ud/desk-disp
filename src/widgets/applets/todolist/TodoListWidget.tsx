@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   LiveCollection,
   LiveKeyValue,
@@ -33,31 +33,19 @@ export function TodoList({}: AppletSettingsProps<
   typeof TODO_LIST_SETTINGS_DEF
 >) {
   const lists = useGroupCollection("todo", "todo_lists");
-  const activeListId = useInstanceKeyValue("active_list", "string");
+  const activeListId = useInstanceKeyValue("active_list", "string", () => {
+    if (lists.items.length > 0) return lists.items[0].value.id;
+    const id = crypto.randomUUID();
+    lists.add(id, { id, title: "New List", items: {} });
+    return id;
+  });
 
-  if (!activeListId.value) {
-    if (lists.items.length > 0) {
-      activeListId.set(lists.items[0].value!.id);
-    } else {
-      // Create a new list if none exist
-      const id = crypto.randomUUID();
-      const newList: TodoList = {
-        id,
-        title: "New List",
-        items: {},
-      };
-      lists.add(id, newList);
-      activeListId.set(id);
-    }
-  }
-
-  // list is guaranteed to exist here because we either set it above or it was already set
-  const activeList = lists.get(activeListId.value!)!;
+  const activeList = lists.get(activeListId.value)!;
 
   return (
     <div className={styles.container}>
       <ControlBar lists={lists} activeListId={activeListId} />
-      <List items={activeList!} />
+      <List items={activeList} />
     </div>
   );
 }
@@ -69,11 +57,11 @@ function ControlBar({
   lists: LiveCollection<TodoList>;
   activeListId: LiveKeyValue<string>;
 }) {
-  const activeList = lists.get(activeListId.value!);
-  const nTasks = activeList?.value?.items
+  const activeList = lists.get(activeListId.value);
+  const nTasks = activeList?.value.items
     ? Object.values(activeList.value.items).length
     : 0;
-  const nCompletedTasks = activeList?.value?.items
+  const nCompletedTasks = activeList?.value.items
     ? Object.values(activeList.value.items).filter((item) => item.completed)
         .length
     : 0;
@@ -81,7 +69,7 @@ function ControlBar({
     <div className={styles.controlBar}>
       <input
         className={styles.renameInput}
-        value={activeList?.value?.title ?? ""}
+        value={activeList?.value.title ?? ""}
         onChange={(e) => {
           activeList?.update((draft) => ({ ...draft, title: e.target.value }));
         }}
@@ -112,7 +100,7 @@ function Item({
   itemId: string;
   items: LiveObject<TodoList>;
 }) {
-  const item = items.value?.items[itemId];
+  const item = items.value.items[itemId];
   return (
     <li className={styles.item}>
       <Bars3Icon className={styles.dragHandle} />
@@ -149,12 +137,9 @@ function Item({
         className={styles.removeButton}
         onClick={() => {
           items.update((draft) => {
-            console.log("Removing item", itemId, "from", draft.items);
             const updatedItems = { ...draft.items };
             delete updatedItems[itemId];
-            const newItems = { ...draft, items: updatedItems };
-            console.log("Updated items after removal:", newItems.items);
-            return newItems;
+            return { ...draft, items: updatedItems };
           });
         }}
       >
@@ -166,15 +151,13 @@ function Item({
 
 function List({ items }: { items: LiveObject<TodoList> }) {
   const [newItemText, setNewItemText] = useState("");
-  console.log("Rendering List with items:", items.value?.items);
 
   return (
     <div>
       <ul>
-        {items.value?.items &&
-          Object.keys(items.value.items).map((item, i) => (
-            <Item key={i} itemId={item} items={items} />
-          ))}
+        {Object.keys(items.value.items).map((item, i) => (
+          <Item key={i} itemId={item} items={items} />
+        ))}
         <li className={styles.item}>
           <Bars3Icon className={styles.dragHandle} />
           <input type="checkbox" checked={false} disabled />

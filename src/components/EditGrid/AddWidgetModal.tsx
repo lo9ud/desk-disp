@@ -219,6 +219,7 @@ export function AddWidgetModal({
                     .includes(searchTerm.toLowerCase())) &&
                 (selectedCategory === null ||
                   def.category === selectedCategory) &&
+                  //@ts-expect-error applet tag can be filtered on, but typeof def.tags technically disallows it.
                 (selectedTag === null || def.tags?.includes(selectedTag)),
             )
             .flatMap((def) => [

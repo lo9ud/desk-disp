@@ -154,7 +154,7 @@ export default function Onboarding() {
     };
   }, [step, visible, isWelcome]);
 
-  // Measurement-based card positioning — runs after every render where step/visible changes
+  //card positioning
   useLayoutEffect(() => {
     if (!visible || !cardRef.current) return;
     const card = cardRef.current;
@@ -164,7 +164,7 @@ export default function Onboarding() {
     const vh = window.innerHeight;
     const targets = STEPS[step]?.target ?? [];
 
-    // Welcome step: center on screen, no arrow
+    // center card on screen if no targets specified
     if (targets.length === 0) {
       setPos({
         top: Math.round(vh / 2 - cardH / 2),
@@ -176,13 +176,13 @@ export default function Onboarding() {
       return;
     }
 
-    // Gather all target elements and compute their union bounding rect
+    // bounding rect of all target elements combined
     const els = targets.flatMap((t) => [
       ...document.querySelectorAll<HTMLElement>(`[data-onboarding="${t}"]`),
     ]);
 
     if (els.length === 0) {
-      // Target doesn't exist in the DOM (e.g. switch button hidden) — skip step
+      // skip if target element(s) not present
       setStep((s) => (s < STEPS.length - 1 ? s + 1 : s));
       return;
     }

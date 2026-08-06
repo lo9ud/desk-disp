@@ -14,6 +14,7 @@ import {
 } from "../registry/instanceRegistry";
 import { combineClassNames } from "../utils/format";
 import { ErrorBoundary, FallbackProps } from "react-error-boundary";
+import { retryAfterReset } from "../ipc/persistence_store";
 
 export const WidgetInstanceIdContext = createContext<string | undefined>(undefined);
 
@@ -88,8 +89,9 @@ function WidgetErrorWidget({
 }: FallbackProps & WidgetPlacementProps) {
   return (
     <Widget {...placement}>
-      <div className={styles.error}>{error.message}</div>
+      <div className={styles.error}>{error.message}
       <button onClick={resetErrorBoundary}>Reset Widget</button>
+      </div>
     </Widget>
   );
 }
@@ -134,6 +136,7 @@ export function RenderWidget({
       FallbackComponent={(props) => (
         <WidgetErrorWidget {...placementProps} {...props} />
       )}
+      onReset={retryAfterReset}
     >
       <WidgetInstanceIdContext.Provider value={instanceId}>
         <WidgetComponent {...placementProps} {...widget.settings} />
@@ -155,6 +158,7 @@ export function Widgets() {
           Error loading widgets: {error.message}
         </div>
       )}
+      onReset={retryAfterReset}
     >
       {ids.map((id) => (
         <RenderWidget key={id} instanceId={id} />

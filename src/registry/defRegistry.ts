@@ -1,5 +1,6 @@
 import React from "react";
 import Widget, { WidgetPlacementProps } from "../widgets/widget";
+import Loading, { DelayedLoading } from "../components/Loading";
 import { logger } from "../utils/logger";
 
 export const TAGS = {
@@ -152,11 +153,27 @@ export type WidgetSettingsProps<T extends WidgetSettingsDefinition> =
 
 const widgetRegistry = new Map<string, WidgetDefinition>();
 
+// What to render in exceptional states, distinct from both the widget's own
+// component and its catalog metadata - extensible later (e.g. a custom error
+// component) without touching either of those.
+export interface WidgetFallbacks<S extends WidgetSettingsDefinition> {
+  // Shown in place of the widget while its persisted data is first loading
+  // (see src/ipc/persistence.ts). Defaults to a generic spinner naming the
+  // widget if not provided.
+  loading?: React.ComponentType<WidgetSettingsProps<S>>;
+}
+
 export function registerWidget<S extends WidgetSettingsDefinition>(
   inner: React.ComponentType<WidgetSettingsProps<S>>,
   definition: Omit<WidgetDefinition, "component"> & { settingsDef: S },
+  fallbacks?: WidgetFallbacks<S>,
 ): React.FC<WidgetPlacementProps & WidgetSettingsProps<S>> {
   debug(`Registering widget: ${definition.id}`);
+
+  function DefaultLoading(_settings: Record<string, unknown>) {
+    return React.createElement(DelayedLoading, { what: definition.name, delay: 300 });
+  }
+  const LoadingComponent = fallbacks?.loading ?? DefaultLoading;
 
   function WidgetWrapper(
     props: WidgetPlacementProps & WidgetSettingsProps<S>,
@@ -167,8 +184,17 @@ export function registerWidget<S extends WidgetSettingsDefinition>(
       Widget,
       { col, row, colSpan, rowSpan },
       React.createElement(
-        inner as React.ComponentType<Record<string, unknown>>,
-        settings,
+        React.Suspense,
+        {
+          fallback: React.createElement(
+            LoadingComponent as React.ComponentType<Record<string, unknown>>,
+            settings,
+          ),
+        },
+        React.createElement(
+          inner as React.ComponentType<Record<string, unknown>>,
+          settings,
+        ),
       ),
     );
   }
