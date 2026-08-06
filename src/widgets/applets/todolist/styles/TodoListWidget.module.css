@@ -1,90 +1,182 @@
 .container {
-    width: 100%;
-    height: 100%;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    padding: 1rem;
-    border: 1px solid var(--color-border);
-    background-color: var(--color-base);
-    border-radius: 1rem;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-base);
+  border-radius: 1rem;
+  gap: 4px;
 }
 
 .controlBar {
-    display: grid;
-    grid-template-rows: 1fr;
-    grid-template-columns: 1fr auto auto auto;
-    gap: 4px;
-    border-bottom: 1px solid var(--color-border);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 4px;
+  padding: 4px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .renameInput {
-    border: none;
-    background-color: var(--color-surface);
+  border: none;
+  font-size: 14px;
+  padding: 4px 8px 2px 2px;
+  border-bottom: 1px solid transparent;
+  background-color: none;
+  &:focus {
     border-bottom: 1px solid var(--color-border);
-    font-size: 14px;
-    padding: 4px 8px;
+    outline: none;
+  }
 }
 
 .controlButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  padding: 3px;
+  transition: background-color 0.12s ease-in-out;
+  & > svg {
+    transition: transform 0.12s ease-in-out;
+  }
+  &:hover {
+    background-color: var(--color-text-subtle);
+  }
+}
+
+.controlButtonOpen {
+  & > svg {
+    transform: rotate(-180deg);
+  }
+}
+
+.listMenu {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+}
+
+.listMenuItem {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text);
+
+  &:hover {
     background-color: var(--color-surface);
-    color: var(--color-text-primary);
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    padding: 3px;
+  }
+}
+
+.listMenuItemActive {
+  border-color: var(--color-border);
+  background-color: var(--color-surface);
+  font-weight: 600;
+}
+
+.taskCountContainer {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr auto;
+  gap: 4px;
+  padding: 4px;
+  grid-column: span 4;
 }
 
 .taskCountLabel {
-    font-size: small;
+  font-size: small;
 }
 
 .taskCount {
-    font-size: small;
-    justify-self: end;
-    grid-column: span 3;
+  font-size: small;
+  justify-self: end;
+}
+
+.listContainer {
+  overflow-y: scroll;
+  height: 100%;
+}
+
+.list {
+  overflow-y: scroll;
+  height: 100%;
 }
 
 .item {
-    display: grid;
-    grid-template-rows: 1fr;
-    grid-template-columns: auto auto 1fr auto;
-    gap: 4px;
-    padding: 4px 0;
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 4px;
+  padding: 4px 0;
+  height: 2rem;
+  place-items: center stretch;
 }
 .dragHandle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    color: var(--color-text-secondary);
-    cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-muted);
+  cursor: grab;
 }
 .removeButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    padding: 1px;
-    color: var(--color-text-secondary);
-    transition: color 0.12s ease-in-out;
-    border: none;
-    cursor: pointer;
-    &:hover {
-        color: var(--color-danger);
-    }
+  shape-rendering: crispEdges;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-muted);
+  transition: color 0.12s ease-in-out;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  &:hover {
+    color: var(--color-danger);
+  }
+}
+.addButton {
+  &:hover {
+    color: var(--color-success);
+  }
+}
+.addButton:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.addButton:disabled:hover {
+  color: var(--color-text-muted);
 }
 .itemTextInput {
-    border: none;
-    background-color: var(--color-surface);
-    font-size: 14px;
-    padding: 4px 8px;
+  border: none;
+  font-size: 14px;
+  padding: 4px 8px 2px 2px;
+  border-bottom: 1px solid transparent;
+  background-color: none;
+  &:focus {
+    border-bottom: 1px solid var(--color-border);
+    outline: none;
+  }
+}
+.itemTextCompleted {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
 }

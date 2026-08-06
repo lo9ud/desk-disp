@@ -8,13 +8,17 @@ import {
 } from "../../../ipc/persistence";
 import styles from "./styles/TodoListWidget.module.css";
 import {
-  Bars3Icon,
   ChevronDownIcon,
   PlusIcon,
   TrashIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/solid";
-import {AppletSettingsDefinition, AppletSettingsProps, registerApplet} from "../Applet";
+import { XMarkIcon, Bars3Icon } from "@heroicons/react/16/solid";
+import {
+  AppletSettingsDefinition,
+  AppletSettingsProps,
+  registerApplet,
+} from "../Applet";
+import { combineClassNames } from "../../../utils/format";
 
 const TODO_LIST_SETTINGS_DEF = {} satisfies AppletSettingsDefinition;
 
@@ -57,6 +61,7 @@ function ControlBar({
   lists: LiveCollection<TodoList>;
   activeListId: LiveKeyValue<string>;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const activeList = lists.get(activeListId.value);
   const nTasks = activeList?.value.items
     ? Object.values(activeList.value.items).length
@@ -65,6 +70,43 @@ function ControlBar({
     ? Object.values(activeList.value.items).filter((item) => item.completed)
         .length
     : 0;
+
+  function handleSwitchList(id: string) {
+    activeListId.set(id);
+    setMenuOpen(false);
+  }
+
+  function handleAddList() {
+    const listIndex =
+      lists.items
+        .filter((list) => list.value.title.startsWith("New List"))
+        .map((list) => {
+          const match = list.value.title.match(/New List(?: (\d+))?/);
+          return match ? (match[1] ? Number.parseInt(match[1]) : 0) : 0;
+        })
+        .reduce((max, curr) => Math.max(max, curr), 0) + 1;
+    const id = crypto.randomUUID();
+    lists.add(id, {
+      id,
+      title: `New List${listIndex != 0 ? ` ${listIndex}` : ""}`,
+      items: {},
+    });
+    activeListId.set(id);
+    setMenuOpen(false);
+  }
+
+  function handleDeleteList() {
+    const currentId = activeListId.value;
+    let nextId = lists.ids.find((id) => id !== currentId);
+    if (!nextId) {
+      nextId = crypto.randomUUID();
+      lists.add(nextId, { id: nextId, title: "New List", items: {} });
+    }
+    activeListId.set(nextId);
+    lists.delete(currentId);
+    setMenuOpen(false);
+  }
+
   return (
     <div className={styles.controlBar}>
       <input
@@ -74,21 +116,59 @@ function ControlBar({
           activeList?.update((draft) => ({ ...draft, title: e.target.value }));
         }}
       />
-      <button className={styles.controlButton}>
+      <button
+        type="button"
+        className={combineClassNames(
+          styles.controlButton,
+          menuOpen && styles.controlButtonOpen,
+        )}
+        onClick={() => setMenuOpen((open) => !open)}
+        title="Switch list"
+      >
         <ChevronDownIcon />
       </button>
-      <button className={styles.controlButton}>
+      <button
+        type="button"
+        className={styles.controlButton}
+        onClick={handleAddList}
+        title="New list"
+      >
         <PlusIcon />
       </button>
-      <button className={styles.controlButton}>
+      <button
+        type="button"
+        className={styles.controlButton}
+        onClick={handleDeleteList}
+        title="Delete list"
+      >
         <TrashIcon />
       </button>
-      <span className={styles.taskCountLabel}>
-        {nTasks} task{Math.abs(nTasks) !== 1 ? "s" : ""}
-      </span>
-      <span className={styles.taskCount}>
-        {nCompletedTasks}/{nTasks}
-      </span>
+      {menuOpen && (
+        <div className={styles.listMenu}>
+          {lists.items.map((list) => (
+            <button
+              type="button"
+              key={list.value.id}
+              className={combineClassNames(
+                styles.listMenuItem,
+                list.value.id === activeListId.value &&
+                  styles.listMenuItemActive,
+              )}
+              onClick={() => handleSwitchList(list.value.id)}
+            >
+              {list.value.title || "Untitled list"}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className={styles.taskCountContainer}>
+        <span className={styles.taskCountLabel}>
+          {nTasks} task{Math.abs(nTasks) !== 1 ? "s" : ""}
+        </span>
+        <span className={styles.taskCount}>
+          {nCompletedTasks}/{nTasks} completed
+        </span>
+      </div>
     </div>
   );
 }
@@ -96,14 +176,44 @@ function ControlBar({
 function Item({
   itemId,
   items,
+  isDragging,
+  onDragStart,
+  onDragOver,
+  onDrop,
 }: {
   itemId: string;
   items: LiveObject<TodoList>;
+  isDragging: boolean;
+  onDragStart: (id: string) => void;
+  onDragOver: (e: React.DragEvent<HTMLLIElement>) => void;
+  onDrop: (id: string) => void;
 }) {
   const item = items.value.items[itemId];
+  // Native drag is only armed by a mousedown on the handle, so dragging the
+  // row doesn't fight with selecting text in the item's own input.
+  const [dragArmed, setDragArmed] = useState(false);
+
   return (
-    <li className={styles.item}>
-      <Bars3Icon className={styles.dragHandle} />
+    <li
+      className={styles.item}
+      draggable={dragArmed}
+      style={isDragging ? { opacity: 0.5 } : undefined}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", itemId);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart(itemId);
+      }}
+      onDragEnd={() => setDragArmed(false)}
+      onDragOver={onDragOver}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop(itemId);
+      }}
+    >
+      <Bars3Icon
+        className={styles.dragHandle}
+        onMouseDown={() => setDragArmed(true)}
+      />
       <input
         type="checkbox"
         checked={item?.completed}
@@ -121,7 +231,7 @@ function Item({
       />
       <input
         value={item?.text}
-        className={styles.itemTextInput}
+        className={combineClassNames(styles.itemTextInput, item.completed && styles.itemTextCompleted)}
         onChange={(e) => {
           items.update((draft) => {
             const updatedItems = { ...draft.items };
@@ -134,7 +244,9 @@ function Item({
         }}
       />
       <button
+        type="button"
         className={styles.removeButton}
+        title="Remove item"
         onClick={() => {
           items.update((draft) => {
             const updatedItems = { ...draft.items };
@@ -149,26 +261,84 @@ function Item({
   );
 }
 
+function handleDragOver(e: React.DragEvent<HTMLLIElement>) {
+  e.preventDefault();
+}
+
 function List({ items }: { items: LiveObject<TodoList> }) {
   const [newItemText, setNewItemText] = useState("");
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  function handleAddItem() {
+    const text = newItemText.trim();
+    if (!text) return;
+    const id = crypto.randomUUID();
+    items.update((draft) => ({
+      ...draft,
+      items: { ...draft.items, [id]: { text, completed: false } },
+    }));
+    setNewItemText("");
+  }
+
+  function handleDrop(targetId: string) {
+    const sourceId = draggedId;
+    setDraggedId(null);
+    if (!sourceId || sourceId === targetId) return;
+    items.update((draft) => {
+      const ids = Object.keys(draft.items);
+      const from = ids.indexOf(sourceId);
+      const to = ids.indexOf(targetId);
+      if (from === -1 || to === -1) return draft;
+      ids.splice(from, 1);
+      ids.splice(to, 0, sourceId);
+      const reordered: Record<string, TodoItem> = {};
+      for (const id of ids) reordered[id] = draft.items[id];
+      return { ...draft, items: reordered };
+    });
+  }
 
   return (
-    <div>
-      <ul>
-        {Object.keys(items.value.items).map((item, i) => (
-          <Item key={i} itemId={item} items={items} />
+    <div className={styles.listContainer}>
+      <ul className={styles.list}>
+        {Object.keys(items.value.items).map((itemId) => (
+          <Item
+            key={itemId}
+            itemId={itemId}
+            items={items}
+            isDragging={draggedId === itemId}
+            onDragStart={setDraggedId}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          />
         ))}
         <li className={styles.item}>
-          <Bars3Icon className={styles.dragHandle} />
-          <input type="checkbox" checked={false} disabled />
+          <Bars3Icon
+            className={styles.dragHandle}
+            style={{ visibility: "hidden" }}
+          />
+          <div></div>
           <input
             value={newItemText}
             className={styles.itemTextInput}
             onChange={(e) => setNewItemText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAddItem();
+            }}
             placeholder="Add new item..."
           />
-          <button className={styles.removeButton} disabled={!newItemText.trim()}>
-            <XMarkIcon className={styles.removeButton} />
+          <button
+            type="button"
+            className={combineClassNames(styles.removeButton, styles.addButton)}
+            onClick={handleAddItem}
+            disabled={!newItemText.trim()}
+            title="Add item"
+          >
+            <PlusIcon
+              className={combineClassNames(
+                styles.removeButton,
+                styles.addButton,
+              )}
+            />
           </button>
         </li>
       </ul>
