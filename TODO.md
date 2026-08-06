@@ -58,12 +58,12 @@
   - build
   - releases
   - needs versioning strategy and changelog management
-- Webrequest handler, see [discussion file](gitignore/webrequest_handler.md)
+- Webrequest handler
   - waiting on file-persistence and caching layer to be implemented first, so that the webrequest handler can cache responses and persist them across app restarts
 
 ## Refinements - improvements to existing features or code quality
 
-- fiel.rs atomic writes all use the same tmp.json extension, which means concurrent writes to different files can collide and corrupt each other; need to use a unique tmp file per target file
+- file.rs atomic writes all use the same tmp.json extension, which means concurrent writes to different files can collide and corrupt each other; need to use a unique tmp file per target file
   - linked, probably needs a mutex for files to keep contention explicit rather than relying on the filesystem to handle it
   - while at it, cache directory/file handles, maybe make them singleton (keyed on path) so that only one handle exists for any given filesystem path
 - add widget modal needs better search/sort/filtering, and maybe a "recently used" section
@@ -74,14 +74,9 @@
     - concurrent 'vibe' tags? e.g. "aesthetic" or "minimalist" or "retro" etc.
       - sits alongside the functional tags like "requires setup" and "customisable"
       - probably needs a specific callout that these are subject to customisation and may not be accurate for setups
-    - hide filters with no results!!
+    - hide filters with no results!! (progressive disclosure)
 - hijack button titles to look better than UI native hover tooltips
   - Needs dedicated tooltip component
-- remove Spotify integration
-  - `get_high_res_album_art` was never registered in the Tauri invoke handler and has no TypeScript caller
-  - Remove `SpotifyClientAuth`, `SpotifyAccessToken`, `request_token`, `get_high_res_album_art` from `media/mod.rs`; remove `use serde_json::Value`
-  - Remove `spotify_auth`, `spotify_api_token` fields from `AppStateInner` in `lib.rs`; remove hardcoded credentials (lines 279–282) and the `use crate::media::{SpotifyAccessToken, SpotifyClientAuth}` import
-  - Remove `reqwest` from `Cargo.toml` (only user of it)
 - Extend the gen-licenses script to try pull license text from the package's repository (what if malformed?), and NOTICE files (for Apache-2.0 licenses specifically, but maybe all licenses if such a file exists?) <-- overengineering?
 - explicit error path on malformed config/layout/theme/etc., with user-friendly error messages and fallback to defaults
 - better client-specific handling for media - replace is_apple_music with client enum, and add methods to pre- or post-process media data based on client
@@ -206,6 +201,13 @@
 
 ## Bugfixes - issues with existing features or code
 
+- high-frequency emits from the visualizer can cause OOM
+  - unconfirmed cause, but prior art exists (<https://github.com/tauri-apps/tauri/issues/8177>) and makes sense given context
+    - realtime FFT audio capture triggers emits regardless of system state
+    - if screen turns off or the app is backgrounded, the events don't get consumed
+    - on wake, the backlog of events is processed, which can cause a spike in memory usage and potentially OOM
+    - likely needs a complete transfer of all event channels to tauri Channel API, which allows for backpressure and flow control, instead of the current event bus usage
+      - probably worth it regardless, as the event bus is not really intended for high-frequency data streams
 - devtools console always says backend log level is "info"
 - fix broken settings
   - run on startup, taskbar/dock icon, tray icon toggles all exist in GeneralSection already but are non-functional stubs with no backend wiring - tauri has a plugin for run on startup specifically
@@ -225,7 +227,9 @@
   - assume edits were made, fail load, crash
   - assume edits made, best-effort recovery
   - clear and reset to defaults?
-  - zod?
+  - zod or similar? <-- probably a good idea for multiple things, worth investigating re: persistence/webreq to catch bad shapes
+- todolist widget does not have proper ordering semantics/behaviour
+  - probably the serde roundtrip from file -> serde -> IPC -> widget parsing then IPC -> serde -> file is losing the ordering of the items
 
 ## Dependency Updates
 
