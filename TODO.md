@@ -60,9 +60,18 @@
   - needs versioning strategy and changelog management
 - Webrequest handler
   - waiting on file-persistence and caching layer to be implemented first, so that the webrequest handler can cache responses and persist them across app restarts
+- widget plugin system
+  - how to find/load plugins? (local folder, remote repo, etc.)
+  - management of plugin dependencies and versions
+  - security considerations for running untrusted code in plugins
+  - internal API exposure, needs to be well-defined and stable, with clear documentation for plugin authors
+  - see also: [widget plugins](gitignore/plugin-system-design-summary.md) and [native plugins](gitignore/native-abi-plugin-design-summary.md.md) planning docs
 
 ## Refinements - improvements to existing features or code quality
 
+- forward state of `dev` cli arg to frontend for dev-only features (e.g. dev-only debug panel, config and storage purge/management, etc.)
+  - extra settings page?
+  - maybe compile-time flag as well/instead, to keep dev-only code out of production builds
 - file.rs atomic writes all use the same tmp.json extension, which means concurrent writes to different files can collide and corrupt each other; need to use a unique tmp file per target file
   - linked, probably needs a mutex for files to keep contention explicit rather than relying on the filesystem to handle it
   - while at it, cache directory/file handles, maybe make them singleton (keyed on path) so that only one handle exists for any given filesystem path
@@ -162,7 +171,7 @@
   - `generate_theme`'s `color_scheme` is still computed with the old literal comparison (`if 0.12_f64 < 0.5`) instead of the `dark` param, so both variants save `color_scheme: "dark"`
   - generated themes do something seriously weird when setting colours, seems like events stack up then fire all at once
 - edit mode placement ghosts are very saturated, need higher transparency (maybe stronger border to make them more visible on light backgrounds)
-- Edit mode needs significant updates, see [discussion file](gitignore/edit_layout_overhaul.md)
+- Edit mode needs significant updates, see [planning doc](gitignore/edit_layout_overhaul.md)
 - editing layouts should have a name field, so the user can rename the layout without having to go into settings
 - visualiser "No audio data" message is extremely ugly and not very legible, needs a better design
 - per-widget error handling
@@ -211,13 +220,16 @@
 
 ## Bugfixes - issues with existing features or code
 
-- high-frequency emits from the visualizer can cause OOM
+- if licenses file is missing, dev build wont run, and the gen-licenses wont run without cargo-about
+  - in dev mode specifically, this can be ignored, but in production mode it should be a hard error and the app should not run without a valid licenses file
+- some widget wrapper styles reach into the widget and override its styles (setting width and height specifically). should not do that (some fixes however: box-sizing: border-box etc global styles already applied, should this be removed from the global styles and applied per-widget instead? probably yes, but needs a careful review of all widgets to ensure they don't break, and documentation for widget authors on how to handle sizing and layouting)
+- channel/event architecture needs a broader overhaul, see [planning doc](gitignore/channel_architecture_overhaul.md) — high-frequency emits from the visualizer causing OOM is a symptom of this rather than worth fixing standalone
   - unconfirmed cause, but prior art exists (<https://github.com/tauri-apps/tauri/issues/8177>) and makes sense given context
     - realtime FFT audio capture triggers emits regardless of system state
     - if screen turns off or the app is backgrounded, the events don't get consumed
     - on wake, the backlog of events is processed, which can cause a spike in memory usage and potentially OOM
-    - likely needs a complete transfer of all event channels to tauri Channel API, which allows for backpressure and flow control, instead of the current event bus usage
-      - probably worth it regardless, as the event bus is not really intended for high-frequency data streams
+  - window-visibility/focus-based pausing (actually stopping streams when backgrounded, vs. just capping backlog) is a distinct follow-up, not covered by the overhaul doc
+  - `pnpm check-events`, which CLAUDE.md documents and `pnpm build` already invokes, doesn't actually exist as a script anywhere — currently a dead/broken reference, independent of the overhaul
 - devtools console always says backend log level is "info"
 - fix broken settings
   - run on startup, taskbar/dock icon, tray icon toggles all exist in GeneralSection already but are non-functional stubs with no backend wiring - tauri has a plugin for run on startup specifically
