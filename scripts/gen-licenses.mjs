@@ -16,6 +16,7 @@ mkdirSync(outDir, { recursive: true });
 /* npm licenses  */
 const init = promisify(licenseChecker.init);
 
+console.info("[gen-licenses] Getting npm licenses...")
 const packages = await init({
   start: root,
   production: true,
@@ -25,6 +26,7 @@ const packages = await init({
   customFormat: { licenseText: "" },
 });
 
+console.info("[gen-licenses] Collecting npm licenses...")
 const npmEntries = Object.entries(packages).map(([key, info]) => {
   const atIndex = key.lastIndexOf("@");
   return {
@@ -45,6 +47,7 @@ writeFileSync(
 console.log(`[gen-licenses] npm: ${npmEntries.length} entries`);
 
 // Rust/cargo licenses
+console.info("[gen-licenses] Checking cargo-about version...");
 const versionCheck = spawnSync("cargo", ["about", "--version"], {
   encoding: "utf8",
 });
@@ -59,6 +62,7 @@ const manifestPath = join(root, "src-tauri", "Cargo.toml");
 const configPath = join(root, "src-tauri", "about.toml");
 const cargoOutPath = join(outDir, "licenses-cargo-raw.json");
 
+console.info("[gen-licenses] Getting cargo licenses...")
 const result = spawnSync(
   "cargo",
   [
@@ -83,6 +87,7 @@ if (result.status !== 0) {
   process.exit(1);
 }
 
+console.info("[gen-licenses] Parsing cargo licenses...")
 let rawJson;
 try {
   rawJson = JSON.parse(readFileSync(cargoOutPath, "utf8"));
@@ -92,6 +97,7 @@ try {
 }
 
 // Build map: "name@version" → concatenated license texts (crates can have multiple)
+console.info("[gen-licenses] Collecting cargo licenses...")
 const licenseTextMap = new Map();
 for (const lic of rawJson.licenses ?? []) {
   for (const { crate: pkg } of lic.used_by ?? []) {
