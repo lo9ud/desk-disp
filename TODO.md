@@ -229,7 +229,6 @@
     - if screen turns off or the app is backgrounded, the events don't get consumed
     - on wake, the backlog of events is processed, which can cause a spike in memory usage and potentially OOM
   - window-visibility/focus-based pausing (actually stopping streams when backgrounded, vs. just capping backlog) is a distinct follow-up, not covered by the overhaul doc
-  - `pnpm check-events`, which CLAUDE.md documents and `pnpm build` already invokes, doesn't actually exist as a script anywhere — currently a dead/broken reference, independent of the overhaul
 - devtools console always says backend log level is "info"
 - fix broken settings
   - run on startup, taskbar/dock icon, tray icon toggles all exist in GeneralSection already but are non-functional stubs with no backend wiring - tauri has a plugin for run on startup specifically
