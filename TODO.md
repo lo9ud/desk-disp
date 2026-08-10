@@ -66,6 +66,10 @@
   - security considerations for running untrusted code in plugins
   - internal API exposure, needs to be well-defined and stable, with clear documentation for plugin authors
   - see also: [widget plugins](gitignore/plugin-system-design-summary.md) and [native plugins](gitignore/native-abi-plugin-design-summary.md.md) planning docs
+- synthetic layouts
+  - function-generated widgets
+  - for debug/development reasons
+  - tie into the onboarding flow, so static layouts don't have to be relied upon for onboarding, and the synthetic layouts can be used to demonstrate different widget configurations and interactions
 
 ## Refinements - improvements to existing features or code quality
 
