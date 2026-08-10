@@ -7,6 +7,7 @@
     "gen-types": "cd src-tauri && cargo test",
     "gen-licenses": "node scripts/gen-licenses.mjs",
     "reset-dev-config": "node scripts/reset-dev-config.mjs",
+    "watch-mem": "node scripts/webview-memory-snapshot.mjs",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
@@ -17,21 +18,21 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-error-boundary": "^6.0.0",
-    "react-icons": "^5.5.0"
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-opener": "^2.5.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-error-boundary": "^6.1.2",
+    "react-icons": "^5.7.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^4.6.0",
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^4.7.0",
     "license-checker-rseidelsohn": "^4.4.2",
     "typescript": "~5.8.3",
     "typescript-plugin-css-modules": "^5.2.0",
-    "vite": "^7.0.4"
+    "vite": "^7.3.6"
   }
 }
