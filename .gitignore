@@ -17,6 +17,9 @@ src/generated/licenses-npm.json
 src/generated/licenses-cargo.json
 src/generated/licenses-cargo-raw.json
 
+# memory-leak debugging output (scripts/webview-memory-snapshot.mjs)
+mem-dumps/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
