@@ -352,8 +352,12 @@ pub struct MonitorCache {
 
 /// Build a monitor cache seeded to the monitor with `current_name` so that the
 /// first `next()` call advances past whichever monitor the window is already on.
-pub fn build_monitor_cache(win: &tauri::WebviewWindow, current_name: Option<&str>) -> MonitorCache {
-    let monitors = win.available_monitors().unwrap_or_default();
+///
+/// Takes an `AppHandle` rather than a window on purpose: this runs during
+/// `setup()` before any webview exists (so state can be `manage()`-d ahead of
+/// window creation — see lib.rs), and monitor enumeration doesn't need one.
+pub fn build_monitor_cache(app: &tauri::AppHandle, current_name: Option<&str>) -> MonitorCache {
+    let monitors = app.available_monitors().unwrap_or_default();
     let index = current_name
         .and_then(|name| monitors.iter().position(|m| m.name().map_or(false, |n| n == name)))
         .unwrap_or(0);

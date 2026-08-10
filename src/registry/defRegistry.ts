@@ -1,6 +1,6 @@
 import React from "react";
 import Widget, { WidgetPlacementProps } from "../widgets/widget";
-import Loading, { DelayedLoading } from "../components/Loading";
+import { DelayedLoading } from "../components/Loading";
 import { logger } from "../utils/logger";
 
 export const TAGS = {

@@ -70,18 +70,9 @@ pub struct NetworkInterfaceInfo {
 
 #[derive(serde::Serialize, Clone, TS)]
 #[ts(export, export_to = "../../src/ffi_types.ts")]
-pub struct TemperatureReading {
-    pub label: String,
-    pub current: f32,
-    pub max: f32,
-}
-
-#[derive(serde::Serialize, Clone, TS)]
-#[ts(export, export_to = "../../src/ffi_types.ts")]
 pub struct HardwareStats {
     pub disks: Vec<DiskInfo>,
     pub networks: Vec<NetworkInterfaceInfo>,
-    pub temperatures: Vec<TemperatureReading>,
 }
 
 fn collect_system_stats(sys: &sysinfo::System) -> SystemStats {
@@ -153,7 +144,6 @@ pub async fn run_system_loop(app: tauri::AppHandle, subscribers: Arc<AtomicUsize
 fn collect_hardware_stats(
     disks: &sysinfo::Disks,
     networks: &sysinfo::Networks,
-    components: &sysinfo::Components,
 ) -> HardwareStats {
     HardwareStats {
         disks: disks
@@ -184,14 +174,6 @@ fn collect_hardware_stats(
                 })
             })
             .collect(),
-        temperatures: components
-            .iter()
-            .map(|comp| TemperatureReading {
-                label: comp.label().to_string(),
-                current: comp.temperature().unwrap_or(f32::NAN),
-                max: comp.max().unwrap_or(f32::NAN),
-            })
-            .collect(),
     }
 }
 
@@ -220,8 +202,7 @@ pub async fn run_hardware_loop(app: tauri::AppHandle, subscribers: Arc<AtomicUsi
             let mut state = state.lock().await;
             state.disks.refresh(false);
             state.networks.refresh(false);
-            state.components.refresh(false);
-            collect_hardware_stats(&state.disks, &state.networks, &state.components)
+            collect_hardware_stats(&state.disks, &state.networks)
         };
         if let Ok(value) = serde_json::to_value(&stats) {
             app.state::<crate::ChannelCache>().set("hardware", value);

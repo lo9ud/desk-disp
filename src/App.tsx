@@ -11,15 +11,14 @@ import { Widgets } from "./widgets/widget";
 import EditGrid from "./components/EditGrid";
 import WindowControls from "./components/WindowControls";
 import Onboarding from "./components/Onboarding";
-import {
-  canonicalRegistry,
-  genWidgetId,
-} from "./registry/instanceRegistry";
+import { canonicalRegistry, genWidgetId } from "./registry/instanceRegistry";
 import { PersistenceProvider } from "./context/PersistenceContext";
 import { ipc, ipcListen } from "./ipc";
 import type { BackendEvents } from "./ipc";
 import { useThemeCss } from "./hooks/useTheme";
 import { logger } from "./utils/logger";
+import { DevModeProvider, useDevMode } from "./context/DevModeContext";
+import DevModeToolbox from "./components/DevModeToolbox";
 
 const ALL_EVENTS: (keyof BackendEvents)[] = [
   "stream::system",
@@ -35,21 +34,36 @@ const ALL_EVENTS: (keyof BackendEvents)[] = [
 ];
 
 const eventLog = logger("events");
-const {error} = logger("app");
+const { error } = logger("app");
 
-function logEvent(window: string | undefined, event: keyof BackendEvents, payload: unknown) {
+function logEvent(
+  window: string | undefined,
+  event: keyof BackendEvents,
+  payload: unknown,
+) {
   // eventLog.trace(event, JSON.stringify(objectToTypes(payload)).slice(0, 120));
-  eventLog.trace(event, `${window ? `[${window}] ` : ""}${JSON.stringify(payload).slice(0, 120)}`);
+  eventLog.trace(
+    event,
+    `${window ? `[${window}] ` : ""}${JSON.stringify(payload).slice(0, 120)}`,
+  );
 }
 
 function detach(p: Promise<() => void>) {
   p.then((fn) => fn());
 }
 
-function useEventDebugLog(window?: string,filter?: (event: keyof BackendEvents) => boolean) {
+function useEventDebugLog(
+  window?: string,
+  filter?: (event: keyof BackendEvents) => boolean,
+) {
   useEffect(() => {
-    const unlistens = (filter ? ALL_EVENTS.filter(filter) : ALL_EVENTS).map((event) => ipcListen(event, (payload) => logEvent(window, event, payload)));
-    return () => { unlistens.forEach(detach); };
+    const unlistens = (filter ? ALL_EVENTS.filter(filter) : ALL_EVENTS).map(
+      (event) =>
+        ipcListen(event, (payload) => logEvent(window, event, payload)),
+    );
+    return () => {
+      unlistens.forEach(detach);
+    };
   }, [filter]);
 }
 
@@ -76,15 +90,10 @@ const DEMO_PLACEMENTS: WidgetPlacement[][] = [
     { col: 5, row: 6, col_span: 1, row_span: 1 },
     { col: 3, row: 3, col_span: 1, row_span: 1 },
   ],
-  [
-    { col: 1, row: 1, col_span: 6, row_span: 5 },
-  ],
+  [{ col: 1, row: 1, col_span: 6, row_span: 5 }],
 ];
 
-export function registerDemoWidgets(
-  type: string,
-  props?: Record<string, any>,
-) {
+export function registerDemoWidgets(type: string, props?: Record<string, any>) {
   canonicalRegistry.clear();
   for (const placement of DEMO_PLACEMENTS[0]) {
     canonicalRegistry.add(genWidgetId(type), type, placement, props);
@@ -94,8 +103,9 @@ export function registerDemoWidgets(
 /* Main display view  */
 
 function MainContent({ gridDims }: { gridDims: GridDims }) {
-  const { active } = useEditMode();
-  if (active) return <EditGrid />;
+  const { toolboxSettings } = useDevMode();
+  const { active: editModeActive } = useEditMode();
+  if (editModeActive) return <EditGrid />;
   return (
     <>
       <Grid
@@ -109,15 +119,25 @@ function MainContent({ gridDims }: { gridDims: GridDims }) {
       </Grid>
       <WindowControls />
       <Onboarding />
+      {toolboxSettings.showToolbox && <DevModeToolbox />}
     </>
   );
 }
 
 function applyPreferences(prefs: Preferences) {
   const root = document.documentElement;
-  root.style.setProperty("--radius-widget", prefs.rounded ? "min(12px, 1.5vmin)" : "0px");
-  root.style.setProperty("--color-surface", prefs.widget_transparent ? "transparent" : "");
-  root.style.setProperty("--color-base", prefs.background_transparent ? "transparent" : "");
+  root.style.setProperty(
+    "--radius-widget",
+    prefs.rounded ? "min(12px, 1.5vmin)" : "0px",
+  );
+  root.style.setProperty(
+    "--color-surface",
+    prefs.widget_transparent ? "transparent" : "",
+  );
+  root.style.setProperty(
+    "--color-base",
+    prefs.background_transparent ? "transparent" : "",
+  );
   root.style.fontSize = `${prefs.font_scale}rem`;
 }
 
@@ -142,7 +162,8 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
   }, []);
 
   useEffect(() => {
-    ipc.getLayout(activeLayoutId)
+    ipc
+      .getLayout(activeLayoutId)
       .then((layout) => {
         profileRef.current = layout;
         setGridDims({
@@ -157,10 +178,10 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
         }
       })
       .catch((_) => {
-          error("Failed to load layout:", activeLayoutId);
+        error("Failed to load layout:", activeLayoutId);
       });
   }, [activeLayoutId]);
-  
+
   // let i = 0;
   // for (const def of getAllWidgetDefinitions()) {
   //   let row = Math.floor(i / 3) + 1;
@@ -169,31 +190,34 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
   //   i++;
   // }
 
-  const buildLayout = useCallback((dims: GridDims): LayoutFile => {
-    const base = profileRef.current ?? {
-      id: activeLayoutId,
-      name: "Layout",
-      grid_rows: dims.rows,
-      grid_cols: dims.cols,
-      gap: dims.gap,
-      padding: dims.padding,
-      widgets: [] as LayoutFile["widgets"],
-    };
-    return {
-      ...base,
-      id: activeLayoutId,
-      grid_rows: dims.rows,
-      grid_cols: dims.cols,
-      gap: dims.gap,
-      padding: dims.padding,
-      widgets: canonicalRegistry.getAll().map((inst) => ({
-        id: inst.id,
-        type: inst.definitionId,
-        placement: inst.placement,
-        options: inst.settings,
-      })),
-    };
-  }, [activeLayoutId]);
+  const buildLayout = useCallback(
+    (dims: GridDims): LayoutFile => {
+      const base = profileRef.current ?? {
+        id: activeLayoutId,
+        name: "Layout",
+        grid_rows: dims.rows,
+        grid_cols: dims.cols,
+        gap: dims.gap,
+        padding: dims.padding,
+        widgets: [] as LayoutFile["widgets"],
+      };
+      return {
+        ...base,
+        id: activeLayoutId,
+        grid_rows: dims.rows,
+        grid_cols: dims.cols,
+        gap: dims.gap,
+        padding: dims.padding,
+        widgets: canonicalRegistry.getAll().map((inst) => ({
+          id: inst.id,
+          type: inst.definitionId,
+          placement: inst.placement,
+          options: inst.settings,
+        })),
+      };
+    },
+    [activeLayoutId],
+  );
 
   const getLayout = useCallback(
     () => buildLayout(gridDims),
@@ -207,7 +231,10 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
       buildLayout={buildLayout}
       onGridDimsChange={setGridDims}
     >
-      <PersistenceProvider activeLayoutId={activeLayoutId} getLayout={getLayout}>
+      <PersistenceProvider
+        activeLayoutId={activeLayoutId}
+        getLayout={getLayout}
+      >
         <MainContent gridDims={gridDims} />
       </PersistenceProvider>
     </EditModeProvider>
@@ -228,13 +255,21 @@ export default function App() {
 
     let unlisten: (() => void) | null = null;
     ipcListen("layout::changed", ({ id }) => setActiveLayoutId(id)).then(
-      (fn) => { unlisten = fn; },
+      (fn) => {
+        unlisten = fn;
+      },
     );
-    return () => { unlisten?.(); };
+    return () => {
+      unlisten?.();
+    };
   }, []);
 
   if (windowLabel === "settings") return <SettingsPage />;
   if (!activeLayoutId) return null;
 
-  return <MainView activeLayoutId={activeLayoutId} />;
+  return (
+    <DevModeProvider>
+      <MainView activeLayoutId={activeLayoutId} />
+    </DevModeProvider>
+  );
 }

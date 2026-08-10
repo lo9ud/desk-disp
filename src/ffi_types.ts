@@ -14,7 +14,7 @@ export type GridPadding = { top: number, right: number, bottom: number, left: nu
 
 export type GridSettings = { grid_rows: number, grid_cols: number, gap: number, padding: GridPadding, };
 
-export type HardwareStats = { disks: Array<DiskInfo>, networks: Array<NetworkInterfaceInfo>, temperatures: Array<TemperatureReading>, };
+export type HardwareStats = { disks: Array<DiskInfo>, networks: Array<NetworkInterfaceInfo>, };
 
 export type LayoutFile = { id: string, name: string, widgets: Array<WidgetConfig>, grid_rows: number, grid_cols: number, gap: number, padding: GridPadding, };
 
@@ -44,8 +44,6 @@ export type Processor = { brand: string, cores: Array<Core>, };
 export type Scope = { "Widget": string } | { "Group": string };
 
 export type SystemStats = { cpu: CpuStats, memory: MemoryStats, };
-
-export type TemperatureReading = { label: string, current: number, max: number, };
 
 export type ThemeData = { id: string, name: string, vars: Array<ThemeVar>, color_scheme: string, };
 

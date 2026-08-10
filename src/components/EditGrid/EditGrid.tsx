@@ -1,4 +1,4 @@
-import { CSSProperties, useState } from "react";
+import { useState } from "react";
 import { WidgetPlacement } from "../../ffi_types";
 import { useEditMode } from "../../context/EditModeContext";
 import { useWidgetInstanceIds } from "../../registry/instanceRegistry";

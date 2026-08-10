@@ -17,12 +17,9 @@ import "./network/BandwidthWidget";
 import "./network/UploadWidget";
 import "./network/DownloadWidget";
 
-// Thermal
-import "./thermal/SystemTempWidget";
-
 // General
 import "./general/QuoteWidget";
 import "./general/ErrorTestWidget";
 
 // Productivity
-import "./applets/todolist/TodoListWidget";
+import "./applets/register";

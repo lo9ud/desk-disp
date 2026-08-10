@@ -21,7 +21,6 @@ struct AppStateInner {
     // System information and hardware state
     system_info: sysinfo::System,
     disks: sysinfo::Disks,
-    components: sysinfo::Components,
     networks: sysinfo::Networks,
 
     // Application configuration and command-line arguments
@@ -92,8 +91,9 @@ impl ChannelCache {
     }
 }
 
-fn get_monitor(win: &tauri::WebviewWindow, config: &config::Config) -> Result<Monitor, String> {
-    let monitors = win.available_monitors().map_err(|e| e.to_string())?;
+// Takes an `AppHandle` rather than a window on purpose — see build_monitor_cache in config/mod.rs.
+fn get_monitor(app: &tauri::AppHandle, config: &config::Config) -> Result<Monitor, String> {
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
 
     if monitors.is_empty() {
         return Err("No monitors found".into());
@@ -109,7 +109,7 @@ fn get_monitor(win: &tauri::WebviewWindow, config: &config::Config) -> Result<Mo
         }
     }
 
-    if let Ok(Some(primary)) = win.primary_monitor() {
+    if let Ok(Some(primary)) = app.primary_monitor() {
         return Ok(primary);
     }
 
@@ -261,40 +261,19 @@ pub fn run(args: cli::Args) {
             config::ensure_default_themes();
             config::ensure_default_layouts();
 
-            let url = tauri::WebviewUrl::App("index.html".into());
-            let mut win_builder = tauri::WebviewWindowBuilder::new(app, "main", url)
-                .title("desk-disp")
-                .always_on_bottom(true)
-                .decorations(false)
-                .transparent(true)
-                .shadow(false)
-                .skip_taskbar(true)
-                .resizable(false)
-                .visible(false)
-                .disable_drag_drop_handler();
-
-            // If dev mode is enabled, override some window properties to make it easier to debug/manipulate the window.
-            win_builder = if args.dev {
-                win_builder
-                    .skip_taskbar(false)
-                    .resizable(true)
-                    .decorations(true)
-                    .additional_browser_args("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=9222")
-            } else {
-                win_builder
-            };
-
-            let win = win_builder.build().expect("Failed to create main window");
-
-            let target_monitor = get_monitor(&win, &config).expect("Failed to get target monitor");
+            // Everything state-related (`app.manage()`) must happen before any webview is
+            // built below: building a window starts loading frontend JS immediately, and
+            // its very first render can `invoke()` a command that reads this state (e.g.
+            // App.tsx's is_dev_mode/get_config hooks). If that invoke is dispatched before
+            // manage() runs, `app.state::<AppState>()` panics with "state() called before
+            // manage()" — a race that's normally too fast to hit, but becomes real once
+            // window creation gets slow enough (e.g. --remote-debugging-port) for the page
+            // to load within it. Monitor lookups use the AppHandle instead of the (not yet
+            // built) window so this ordering is possible at all — see build_monitor_cache.
+            let dev = args.dev;
+            let target_monitor = get_monitor(app.handle(), &config).expect("Failed to get target monitor");
             let monitor_cache =
-                config::build_monitor_cache(&win, target_monitor.name().map(|s| s.as_str()));
-            place_window(&win, target_monitor);
-
-            config::get_or_create_settings_window(app.handle())
-                .expect("Failed to create settings window");
-
-            win.show().expect("Failed to show window");
+                config::build_monitor_cache(app.handle(), target_monitor.name().map(|s| s.as_str()));
 
             let file_manager = Arc::new(RwLock::new(file::FileManager::new()));
 
@@ -305,7 +284,6 @@ pub fn run(args: cli::Args) {
                         .with_memory(sysinfo::MemoryRefreshKind::everything()),
                 ),
                 disks: sysinfo::Disks::new_with_refreshed_list(),
-                components: sysinfo::Components::new_with_refreshed_list(),
                 networks: sysinfo::Networks::new_with_refreshed_list(),
                 config,
                 args,
@@ -322,6 +300,39 @@ pub fn run(args: cli::Args) {
             let hardware_subs = channel_subs.register("hardware");
             app.manage(channel_subs);
             app.manage(ChannelCache::new());
+
+            /* Windows — only now, with all state already managed  */
+
+            let url = tauri::WebviewUrl::App("index.html".into());
+            let mut win_builder = tauri::WebviewWindowBuilder::new(app, "main", url)
+                .title("desk-disp")
+                .always_on_bottom(true)
+                .decorations(false)
+                .transparent(true)
+                .shadow(false)
+                .skip_taskbar(true)
+                .resizable(false)
+                .visible(false)
+                .disable_drag_drop_handler();
+
+            // If dev mode is enabled, override some window properties to make it easier to debug/manipulate the window.
+            win_builder = if dev {
+                win_builder
+                    .skip_taskbar(false)
+                    .resizable(true)
+                    .decorations(true)
+                    .additional_browser_args("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=9222")
+            } else {
+                win_builder
+            };
+
+            let win = win_builder.build().expect("Failed to create main window");
+            place_window(&win, target_monitor);
+
+            config::get_or_create_settings_window(app.handle())
+                .expect("Failed to create settings window");
+
+            win.show().expect("Failed to show window");
 
             /* Background event loops  */
 

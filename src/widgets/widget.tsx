@@ -10,8 +10,6 @@ import { widgetPlacementToProps } from "../utils/config";
 import styles from "./styles/widget.module.css";
 import {
   getWidgetDefinition,
-  WidgetSettingsDefinition,
-  SettingType,
 } from "../registry/defRegistry";
 import {
   canonicalRegistry,
@@ -23,6 +21,7 @@ import { combineClassNames } from "../utils/format";
 import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 import { retryAfterReset } from "../ipc/persistence_store";
 import { useDevMode } from "../context/DevModeContext";
+import { Button } from "../primitives/Button";
 
 export const WidgetInstanceIdContext = createContext<string | undefined>(
   undefined,
@@ -134,7 +133,7 @@ function WidgetErrorWidget({
     <Widget {...placement}>
       <div className={styles.error}>
         {error.message}
-        <button onClick={resetErrorBoundary}>Reset Widget</button>
+        <Button onClick={resetErrorBoundary}>Reset Widget</Button>
       </div>
     </Widget>
   );
@@ -174,12 +173,14 @@ export function RenderWidget({
     );
   }
 
+  function FallbackErrorWidget(props: FallbackProps) {
+    return <WidgetErrorWidget {...placementProps} {...props} />
+  }
+
   const WidgetComponent = widgetDef.component;
   return (
     <ErrorBoundary
-      FallbackComponent={(props) => (
-        <WidgetErrorWidget {...placementProps} {...props} />
-      )}
+      FallbackComponent={FallbackErrorWidget}
       onReset={retryAfterReset}
     >
       <WidgetInstanceIdContext.Provider value={instanceId}>
