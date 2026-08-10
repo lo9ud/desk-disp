@@ -4,15 +4,16 @@ import {
   PencilSquareIcon,
   ArrowsRightLeftIcon,
   PlusIcon,
+  BugAntIcon,
 } from "@heroicons/react/16/solid";
 import { useState, useEffect } from "react";
 import { ipc, ipcListen } from "../ipc";
 import type { LayoutInfo, ThemeInfo } from "../ffi_types";
 import styles from "./styles/WindowControls.module.css";
-import { combineClassNames } from "../utils/format";
 import { useEditMode } from "../context/EditModeContext";
 import { logger } from "../utils/logger";
 import { Button } from "../primitives/Button";
+import { useDevMode } from "../context/DevModeContext";
 
 const { warn } = logger("window-controls");
 
@@ -32,6 +33,7 @@ async function handleLayoutChange(e: React.ChangeEvent<HTMLSelectElement>) {
 }
 
 export default function WindowControls() {
+  const devMode = useDevMode();
   const { enterEditMode } = useEditMode();
   const [themes, setThemes] = useState<ThemeInfo[]>([]);
   const [activeTheme, setActiveTheme] = useState<string | null>(null);
@@ -93,19 +95,19 @@ export default function WindowControls() {
           <Cog8ToothIcon />
         </HoverWrapper>
         {monitorCount > 1 && (
-            <HoverWrapper
-              Element={Button}
-              variant="icon"
-              hoverText="Switch Monitors"
-              onClick={() =>
-                ipc.switchMonitor().catch((e) => {
-                  warn("Failed to switch monitors", e);
-                })
-              }
-              data-onboarding="switch"
-            >
-              <ArrowsRightLeftIcon />
-            </HoverWrapper>
+          <HoverWrapper
+            Element={Button}
+            variant="icon"
+            hoverText="Switch Monitors"
+            onClick={() =>
+              ipc.switchMonitor().catch((e) => {
+                warn("Failed to switch monitors", e);
+              })
+            }
+            data-onboarding="switch"
+          >
+            <ArrowsRightLeftIcon />
+          </HoverWrapper>
         )}
         <ControlSeparator />
         <HoverWrapper
@@ -180,6 +182,19 @@ export default function WindowControls() {
             ))}
           </select>
         </HoverWrapper>
+        {devMode.active && (
+          <>
+            <ControlSeparator />
+            <HoverWrapper
+              Element={Button}
+              variant="icon"
+              hoverText="Show Dev Toolbox"
+              onClick={() => (devMode.setToolboxSettings((s) => ({ ...s, showToolbox: !s.showToolbox })), console.log("clicked", devMode.toolboxSettings))}
+            >
+              <BugAntIcon />
+            </HoverWrapper>
+          </>
+        )}
       </div>
     </div>
   );

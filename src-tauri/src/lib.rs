@@ -2,9 +2,11 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{async_runtime::{Mutex, RwLock}, Manager, Monitor};
+use tauri::{
+    async_runtime::{Mutex, RwLock},
+    Manager, Monitor,
+};
 use tracing::{debug, info};
-
 
 pub mod cli;
 mod config;
@@ -178,6 +180,13 @@ async fn exit_program(_app: tauri::AppHandle) {
     std::process::exit(0);
 }
 
+#[tauri::command]
+async fn is_dev_mode(app: tauri::AppHandle) -> Result<bool, String> {
+    let state = app.state::<AppState>();
+    let state = state.lock().await;
+    Ok(state.args.dev)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run(args: cli::Args) {
     logging::init(args.log_level.as_str());
@@ -188,6 +197,7 @@ pub fn run(args: cli::Args) {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             exit_program,
+            is_dev_mode,
             // stream subscription
             subscribe_channel,
             unsubscribe_channel,
@@ -252,30 +262,34 @@ pub fn run(args: cli::Args) {
             config::ensure_default_layouts();
 
             let url = tauri::WebviewUrl::App("index.html".into());
-            let win = tauri::WebviewWindowBuilder::new(app, "main", url)
+            let mut win_builder = tauri::WebviewWindowBuilder::new(app, "main", url)
                 .title("desk-disp")
-                .always_on_bottom(!args.dev)
-                .decorations(args.dev)
-                .transparent(!args.dev)
+                .always_on_bottom(true)
+                .decorations(false)
+                .transparent(true)
                 .shadow(false)
-                .skip_taskbar(!args.dev)
-                .resizable(args.dev)
+                .skip_taskbar(true)
+                .resizable(false)
                 .visible(false)
-                .disable_drag_drop_handler()
-                .build()
-                .expect("Failed to create main window");
-            let monitor_cache = if args.dev {
-                win.set_size(tauri::Size::Logical(tauri::LogicalSize::new(800.0, 600.0)))
-                    .expect("Failed to set window size");
-                config::build_monitor_cache(&win, None)
+                .disable_drag_drop_handler();
+
+            // If dev mode is enabled, override some window properties to make it easier to debug/manipulate the window.
+            win_builder = if args.dev {
+                win_builder
+                    .skip_taskbar(false)
+                    .resizable(true)
+                    .decorations(true)
+                    .additional_browser_args("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=9222")
             } else {
-                let target_monitor =
-                    get_monitor(&win, &config).expect("Failed to get target monitor");
-                let cache =
-                    config::build_monitor_cache(&win, target_monitor.name().map(|s| s.as_str()));
-                place_window(&win, target_monitor);
-                cache
+                win_builder
             };
+
+            let win = win_builder.build().expect("Failed to create main window");
+
+            let target_monitor = get_monitor(&win, &config).expect("Failed to get target monitor");
+            let monitor_cache =
+                config::build_monitor_cache(&win, target_monitor.name().map(|s| s.as_str()));
+            place_window(&win, target_monitor);
 
             config::get_or_create_settings_window(app.handle())
                 .expect("Failed to create settings window");

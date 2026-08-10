@@ -24,7 +24,7 @@ impl LogLevel {
 #[derive(Parser, Clone, Debug)]
 #[command(name = "desk-disp", about = "Desktop display overlay", version = env!("CARGO_PKG_VERSION"))]
 pub struct Args {
-    /// Enable development defaults (decorations, shadow, taskbar, resizable, no_always_on_bottom, no_transparent, windowed with 800x600 size)
+    /// Enable development mode (renders with decorations + resizeable)
     #[arg(long, default_value_t = false, action = clap::ArgAction::SetTrue)]
     pub dev: bool,
 

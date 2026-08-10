@@ -28,6 +28,8 @@ export async function unsubscribeChannel(channel: ChannelName): Promise<void> {
 
 export const ipc = {
   getConfig: () => invoke<Config>("get_config"),
+  
+  isDevMode: () => invoke<boolean>("is_dev_mode"),
 
   setActiveTheme: (id: string | null) =>
     invoke<void>("set_active_theme", { name: id }),

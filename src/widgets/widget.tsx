@@ -1,4 +1,11 @@
-import { CSSProperties, createContext, useContext, useLayoutEffect, useRef, useState } from "react";
+import {
+  CSSProperties,
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { widgetPlacementToProps } from "../utils/config";
 import styles from "./styles/widget.module.css";
 import {
@@ -15,8 +22,11 @@ import {
 import { combineClassNames } from "../utils/format";
 import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 import { retryAfterReset } from "../ipc/persistence_store";
+import { useDevMode } from "../context/DevModeContext";
 
-export const WidgetInstanceIdContext = createContext<string | undefined>(undefined);
+export const WidgetInstanceIdContext = createContext<string | undefined>(
+  undefined,
+);
 
 export type { GridSize } from "./Grid";
 export { useGridSize } from "./Grid";
@@ -38,16 +48,22 @@ export default function Widget({
   className = undefined,
   children,
 }: WidgetProps) {
+  const devMode = useDevMode();
   const instanceId = useContext(WidgetInstanceIdContext);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [bgRect, setBgRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const [bgRect, setBgRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
     const containerRect = containerRef.current.getBoundingClientRect();
     const childEls = Array.from(containerRef.current.children).filter(
-      (el) => !el.classList.contains(styles.widgetBackground)
+      (el) => !el.classList.contains(styles.widgetBackground),
     );
     if (childEls.length === 0) return;
     const rects = childEls.map((el) => el.getBoundingClientRect());
@@ -64,20 +80,47 @@ export default function Widget({
     position: "relative",
   };
 
+  const devStyles = devMode.active? [
+    devMode.toolboxSettings.displayWidgetCells && styles.widgetDevCells
+  ]:[]
+    
+
   return (
     <div
       ref={containerRef}
-      className={combineClassNames(styles.widget, className)}
+      className={combineClassNames(
+        styles.widget,
+        className,
+        ...devStyles,
+      )}
       style={style}
       data-widget-id={instanceId}
     >
-      {bgRect && (
+      {devMode.active && devMode.toolboxSettings.showMissingBackground && bgRect && (
         <div
-          className={styles.widgetBackground}
-          style={{ position: "absolute", ...bgRect }}
+          className={styles.widgetDevMissingBackground}
+          style={{
+            position: "absolute",
+            left: bgRect.left,
+            top: bgRect.top,
+            width: bgRect.width,
+            height: bgRect.height,
+          }}
         />
       )}
       {children}
+      {devMode.active && devMode.toolboxSettings.displayWidgetUsedSpace && bgRect && (
+        <div
+          className={styles.widgetDevUsedSpace}
+          style={{
+            position: "absolute",
+            left: bgRect.left,
+            top: bgRect.top,
+            width: bgRect.width,
+            height: bgRect.height,
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -89,8 +132,9 @@ function WidgetErrorWidget({
 }: FallbackProps & WidgetPlacementProps) {
   return (
     <Widget {...placement}>
-      <div className={styles.error}>{error.message}
-      <button onClick={resetErrorBoundary}>Reset Widget</button>
+      <div className={styles.error}>
+        {error.message}
+        <button onClick={resetErrorBoundary}>Reset Widget</button>
       </div>
     </Widget>
   );
