@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSubscription } from "../../hooks";
 import {
   registerWidget,
@@ -163,52 +163,48 @@ export function Visualizer({
       )
     : null;
 
-  switch (style) {
-    case "bars":
-      switch (direction) {
-        case "vertical":
-        case "horizontal":
-          return (
-            <BarsVisualizer
-              frequencies={data}
-              barCount={barCount}
-              showWhenIdle={showWhenIdle}
-              color={color}
-              direction={direction}
-              freqOrder={freqOrder}
-              extentSource={extentSource}
-              mirrorFreq={mirrorFreq}
-              barStyle={barStyle}
-              stackBlockSize={stackBlockSize}
-            />
-          );
-        case "circular":
-          return (
-            <RadialBars
-              innerRadius={innerRadius}
-              frequencies={data}
-              barCount={barCount}
-              showWhenIdle={showWhenIdle}
-              color={color}
-              mirror={mirror}
-              freqOrder={freqOrder}
-              barStyle={barStyle}
-              stackBlockSize={stackBlockSize}
-              origin={origin}
-            />
-          );
-      }
-    // case "waveform":
-    //   return (
-    //     <Waveform
-    //       data={frequencies}
-    //       smoothing={smoothing}
-    //       showWhenIdle={showWhenIdle}
-    //     />
-    //   );
-    default:
-      return null;
-  }
+  if (style === "bars") {
+    if (["vertical", "horizontal"].includes(direction)) {
+      return (
+        <BarsVisualizer
+          frequencies={data}
+          barCount={barCount}
+          showWhenIdle={showWhenIdle}
+          color={color}
+          direction={direction}
+          freqOrder={freqOrder}
+          extentSource={extentSource}
+          mirrorFreq={mirrorFreq}
+          barStyle={barStyle}
+          stackBlockSize={stackBlockSize}
+        />
+      );
+    } else if (direction === "circular") {
+      return (
+        <RadialBars
+          innerRadius={innerRadius}
+          frequencies={data}
+          barCount={barCount}
+          showWhenIdle={showWhenIdle}
+          color={color}
+          mirror={mirror}
+          freqOrder={freqOrder}
+          barStyle={barStyle}
+          stackBlockSize={stackBlockSize}
+          origin={origin}
+        />
+      );
+    } // no else needed, direction is validated by settingsDef
+  } else if (style === "waveform") {
+    return (
+      <Waveform // FIXME: Waveform component is not implemented yet, this is just a placeholder
+        data={data}
+        smoothing={0.5}
+        showWhenIdle={showWhenIdle}
+        color={color}
+      />
+    );
+  } // no else needed, style is validated by settingsDef
 }
 
 const VisualizerWidget = registerWidget(Visualizer, {
@@ -229,7 +225,13 @@ export default VisualizerWidget;
 // anchor: "far"    -> anchored at the far edge (y+h / x+w); grows toward the near edge.
 // anchor: "middle" -> anchored at the rect's midpoint; grows outward toward both edges symmetrically.
 // The length axis is h for vertical bars, w for horizontal bars (the other is thickness).
-type Rect = { x: number; y: number; w: number; h: number; anchor: "near" | "far" | "middle" };
+type Rect = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  anchor: "near" | "far" | "middle";
+};
 
 // Gap between adjacent bars along the thickness axis. Stack mode caps its own
 // segment-to-segment gap at this value so both axes of the LED grid line up.
@@ -239,7 +241,10 @@ function scaleValue(value: number, cutoff: number, scale: number) {
   // Roughly:
   // Values less than cutoff are aggressively reduced to near zero
   // Values greater than cutoff are exponentially scaled so that 1 maps to 1, and cutoff maps to a small value close to zero (e.g. 0.001)
-  return Math.max((Math.pow(scale, (value - cutoff) / (1 - cutoff)) - 1) / (scale-1), 0.001);
+  return Math.max(
+    (Math.pow(scale, (value - cutoff) / (1 - cutoff)) - 1) / (scale - 1),
+    0.001,
+  );
 }
 
 function normalizeData(frequencies: FrequencyReading[] | null) {
@@ -265,15 +270,21 @@ function verticalBaseRects(
   const x = (freqI / barCount) * canvas.width;
   const w = Math.max(canvas.width / barCount - BAR_GAP, 1);
   const fullH = Math.max(amp * canvas.height, 1);
-  const halfH = Math.max(amp * canvas.height / 2, 1);
+  const halfH = Math.max((amp * canvas.height) / 2, 1);
   switch (extentSource) {
-    case "end":    return [{ x, y: 0, w, h: fullH, anchor: "near" }];
-    case "center": return [{ x, y: canvas.height / 2 - fullH / 2, w, h: fullH, anchor: "middle" }];
-    case "split":  return [
-      { x, y: canvas.height - halfH, w, h: halfH, anchor: "far" },
-      { x, y: 0, w, h: halfH, anchor: "near" },
-    ];
-    default:       return [{ x, y: canvas.height - fullH, w, h: fullH, anchor: "far" }];
+    case "end":
+      return [{ x, y: 0, w, h: fullH, anchor: "near" }];
+    case "center":
+      return [
+        { x, y: canvas.height / 2 - fullH / 2, w, h: fullH, anchor: "middle" },
+      ];
+    case "split":
+      return [
+        { x, y: canvas.height - halfH, w, h: halfH, anchor: "far" },
+        { x, y: 0, w, h: halfH, anchor: "near" },
+      ];
+    default:
+      return [{ x, y: canvas.height - fullH, w, h: fullH, anchor: "far" }];
   }
 }
 
@@ -289,19 +300,30 @@ function horizontalBaseRects(
   const y = (freqI / barCount) * canvas.height;
   const h = Math.max(canvas.height / barCount - BAR_GAP, 1);
   const fullW = Math.max(amp * canvas.width, 1);
-  const halfW = Math.max(amp * canvas.width / 2, 1);
+  const halfW = Math.max((amp * canvas.width) / 2, 1);
   switch (extentSource) {
-    case "end":    return [{ x: canvas.width - fullW, y, w: fullW, h, anchor: "far" }];
-    case "center": return [{ x: canvas.width / 2 - fullW / 2, y, w: fullW, h, anchor: "middle" }];
-    case "split":  return [
-      { x: 0, y, w: halfW, h, anchor: "near" },
-      { x: canvas.width - halfW, y, w: halfW, h, anchor: "far" },
-    ];
-    default:       return [{ x: 0, y, w: fullW, h, anchor: "near" }];
+    case "end":
+      return [{ x: canvas.width - fullW, y, w: fullW, h, anchor: "far" }];
+    case "center":
+      return [
+        { x: canvas.width / 2 - fullW / 2, y, w: fullW, h, anchor: "middle" },
+      ];
+    case "split":
+      return [
+        { x: 0, y, w: halfW, h, anchor: "near" },
+        { x: canvas.width - halfW, y, w: halfW, h, anchor: "far" },
+      ];
+    default:
+      return [{ x: 0, y, w: fullW, h, anchor: "near" }];
   }
 }
 
-function applyMirrorFreq(rects: Rect[], cw: number, ch: number, direction: string): Rect[] {
+function applyMirrorFreq(
+  rects: Rect[],
+  cw: number,
+  ch: number,
+  direction: string,
+): Rect[] {
   if (direction === "vertical") {
     return rects.flatMap((r) => [
       { ...r, x: r.x / 2, w: r.w / 2 },
@@ -349,13 +371,6 @@ function BarsVisualizer({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!data || (data.every((d) => d.magnitude === 0) && !showWhenIdle)) {
-      ctx.fillStyle = "#6b7280";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#d1d5db";
-      ctx.font = "14px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("No audio data", canvas.width / 2, canvas.height / 2);
       return;
     }
 
@@ -366,16 +381,37 @@ function BarsVisualizer({
     for (let i = 0; i < effectiveCount; i++) {
       const freqIndex = Math.floor((i / effectiveCount) * data.length);
       const amp = data[freqIndex]?.magnitude ?? 0;
-      let rects = getBaseRects(i, amp, canvas, effectiveCount, freqOrder, extentSource);
+      let rects = getBaseRects(
+        i,
+        amp,
+        canvas,
+        effectiveCount,
+        freqOrder,
+        extentSource,
+      );
       if (mirrorFreq) {
         rects = applyMirrorFreq(rects, canvas.width, canvas.height, direction);
       }
-      const drawRects = barStyle === "stack" ? rects.flatMap((r) => stackSegments(r, direction, stackBlockSize)) : rects;
+      const drawRects =
+        barStyle === "stack"
+          ? rects.flatMap((r) => stackSegments(r, direction, stackBlockSize))
+          : rects;
       for (const r of drawRects) {
         drawBar(ctx, r.x, r.y, r.w, r.h, color);
       }
     }
-  }, [data, barCount, showWhenIdle, direction, freqOrder, extentSource, mirrorFreq, barStyle, stackBlockSize, color]);
+  }, [
+    data,
+    barCount,
+    showWhenIdle,
+    direction,
+    freqOrder,
+    extentSource,
+    mirrorFreq,
+    barStyle,
+    stackBlockSize,
+    color,
+  ]);
 
   return (
     <canvas
@@ -408,7 +444,11 @@ function drawBar(
   ctx.fillRect(x0, y0, w0, h0);
 }
 
-function stackSegments(rect: Rect, direction: string, blockSize: number): Rect[] {
+function stackSegments(
+  rect: Rect,
+  direction: string,
+  blockSize: number,
+): Rect[] {
   const segmentLength = blockSize;
   // Capped at BAR_GAP: a wider segment gap than the bar-to-bar gap reads as an
   // uneven LED grid, so only that direction of mismatch gets clamped — a segment
@@ -432,17 +472,25 @@ function stackSegments(rect: Rect, direction: string, blockSize: number): Rect[]
     // between them instead of forming one double-length segment at the seam.
     const halfLen = Math.max(axisLen / 2 - spacing / 2, 0);
     const nearHalf = makeRect(axisPos, halfLen, "far");
-    const farHalf = makeRect(axisPos + axisLen / 2 + spacing / 2, halfLen, "near");
-    return [...stackSegments(nearHalf, direction, blockSize), ...stackSegments(farHalf, direction, blockSize)];
+    const farHalf = makeRect(
+      axisPos + axisLen / 2 + spacing / 2,
+      halfLen,
+      "near",
+    );
+    return [
+      ...stackSegments(nearHalf, direction, blockSize),
+      ...stackSegments(farHalf, direction, blockSize),
+    ];
   }
 
   const segmentCount = Math.max(Math.floor(axisLen / step), 0);
   const segments: Rect[] = [];
   for (let i = 0; i < segmentCount; i++) {
     const offset = i * step;
-    const pos = rect.anchor === "far"
-      ? axisPos + axisLen - offset - segmentLength // anchored at the far edge, grow toward the near edge
-      : axisPos + offset;                           // anchored at the near edge, grow toward the far edge
+    const pos =
+      rect.anchor === "far"
+        ? axisPos + axisLen - offset - segmentLength // anchored at the far edge, grow toward the near edge
+        : axisPos + offset; // anchored at the near edge, grow toward the far edge
     segments.push(makeRect(pos, segmentLength, rect.anchor));
   }
   return segments;
@@ -481,20 +529,15 @@ function RadialBars({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const mirrorFactor = mirror === "both" ? 4 : mirror === "vert" || mirror === "horiz" ? 2 : 1;
+    const mirrorFactor =
+      mirror === "both" ? 4 : mirror === "vert" || mirror === "horiz" ? 2 : 1;
     const effectiveCount = Math.ceil(barCount / mirrorFactor);
-    const freqToTheta = (index: number) => ((index + 0.5) / effectiveCount) * 2 * Math.PI;
+    const freqToTheta = (index: number) =>
+      ((index + 0.5) / effectiveCount) * 2 * Math.PI;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!data || (data.every((d) => d.magnitude === 0) && !showWhenIdle)) {
-      ctx.fillStyle = "#6b7280";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#d1d5db";
-      ctx.font = "14px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("No audio data", canvas.width / 2, canvas.height / 2);
       return;
     }
 
@@ -567,7 +610,7 @@ function RadialBars({
 
     ctx.fillStyle = color;
 
-    const angleOffset = origin/180 * Math.PI;
+    const angleOffset = (origin / 180) * Math.PI;
 
     for (let i = 0; i < effectiveCount; i++) {
       const freqI = freqOrder === "desc" ? effectiveCount - 1 - i : i;
@@ -578,25 +621,99 @@ function RadialBars({
       const outer = inner + Math.max(amp * (maxRadius - minRadius), 1);
       switch (mirror ?? "both") {
         case "none":
-          drawRadialBar(inner, outer, theta + angleOffset, angularWidth, color, barStyle);
+          drawRadialBar(
+            inner,
+            outer,
+            theta + angleOffset,
+            angularWidth,
+            color,
+            barStyle,
+          );
           break;
         case "vert":
-          drawRadialBar(inner, outer, theta / 2 + angleOffset, angularWidth, color, barStyle);
-          drawRadialBar(inner, outer, -theta / 2 + angleOffset, angularWidth, color, barStyle);
+          drawRadialBar(
+            inner,
+            outer,
+            theta / 2 + angleOffset,
+            angularWidth,
+            color,
+            barStyle,
+          );
+          drawRadialBar(
+            inner,
+            outer,
+            -theta / 2 + angleOffset,
+            angularWidth,
+            color,
+            barStyle,
+          );
           break;
         case "horiz":
-          drawRadialBar(inner, outer, theta / 2 + Math.PI / 2 + angleOffset, angularWidth, color, barStyle);
-          drawRadialBar(inner, outer, -theta / 2 + Math.PI / 2 + angleOffset, angularWidth, color, barStyle);
+          drawRadialBar(
+            inner,
+            outer,
+            theta / 2 + Math.PI / 2 + angleOffset,
+            angularWidth,
+            color,
+            barStyle,
+          );
+          drawRadialBar(
+            inner,
+            outer,
+            -theta / 2 + Math.PI / 2 + angleOffset,
+            angularWidth,
+            color,
+            barStyle,
+          );
           break;
         case "both":
-          drawRadialBar(inner, outer, theta / 4 + angleOffset, angularWidth, color, barStyle);
-          drawRadialBar(inner, outer, -theta / 4 + angleOffset, angularWidth, color, barStyle);
-          drawRadialBar(inner, outer, theta / 4 + Math.PI + angleOffset, angularWidth, color, barStyle);
-          drawRadialBar(inner, outer, -theta / 4 + Math.PI + angleOffset, angularWidth, color, barStyle);
+          drawRadialBar(
+            inner,
+            outer,
+            theta / 4 + angleOffset,
+            angularWidth,
+            color,
+            barStyle,
+          );
+          drawRadialBar(
+            inner,
+            outer,
+            -theta / 4 + angleOffset,
+            angularWidth,
+            color,
+            barStyle,
+          );
+          drawRadialBar(
+            inner,
+            outer,
+            theta / 4 + Math.PI + angleOffset,
+            angularWidth,
+            color,
+            barStyle,
+          );
+          drawRadialBar(
+            inner,
+            outer,
+            -theta / 4 + Math.PI + angleOffset,
+            angularWidth,
+            color,
+            barStyle,
+          );
           break;
       }
     }
-  }, [data, barCount, showWhenIdle, freqOrder, mirror, innerRadius, origin, barStyle, stackBlockSize, color]);
+  }, [
+    data,
+    barCount,
+    showWhenIdle,
+    freqOrder,
+    mirror,
+    innerRadius,
+    origin,
+    barStyle,
+    stackBlockSize,
+    color,
+  ]);
 
   return (
     <canvas
@@ -612,10 +729,12 @@ function Waveform({
   data,
   smoothing,
   showWhenIdle,
+  color,
 }: {
   data: FrequencyReading[] | null;
   smoothing: number;
   showWhenIdle: boolean;
+  color: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -629,15 +748,47 @@ function Waveform({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!data || (data.every((d) => d.magnitude === 0) && !showWhenIdle)) {
-      ctx.fillStyle = "#6b7280";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#d1d5db";
-      ctx.font = "14px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("No audio data", canvas.width / 2, canvas.height / 2);
+      return;
     }
-  }, [data, smoothing, showWhenIdle]);
+
+    if (showWhenIdle) {
+      data.forEach((d, i) => {
+        data[i] =
+          Math.sin((i / data.length) * Math.PI) > 0
+            ? d
+            : { ...d, magnitude: 0 };
+      });
+    }
+
+    const points = data.map((_, i) => [
+      (i / (data.length - 1)) * canvas.width,
+      (data.reduce(
+        (acc, d) =>
+          acc +
+          (d.magnitude *
+            (Math.sin(
+              ((d.freq_lo + d.freq_hi) / 2) *
+                (i / data.length + Date.now() / 100),
+            ) +
+              1)) /
+            2,
+        0,
+      ) /
+        data.length) *
+        canvas.height,
+    ]);
+
+    for (let i = 1; i < points.length; i++) {
+      const [x0, y0] = points[i - 1];
+      const [x1, y1] = points[i];
+      ctx.beginPath();
+      ctx.moveTo(x0, canvas.height - y0);
+      ctx.lineTo(x1, canvas.height - y1);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }, [data, smoothing, showWhenIdle, color]);
 
   return (
     <canvas
