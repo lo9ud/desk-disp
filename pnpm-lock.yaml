@@ -48,6 +48,9 @@ importers:
       license-checker-rseidelsohn:
         specifier: ^4.4.2
         version: 4.4.2
+      type-testing:
+        specifier: ^0.2.0
+        version: 0.2.0
       typescript:
         specifier: ~5.8.3
         version: 5.8.3
@@ -1794,6 +1797,10 @@ packages:
   type-fest@0.13.1:
     resolution: {integrity: sha512-34R7HTnG0XIJcBSn5XhDd7nNFPRcXYRZrBB2O2jdKqYODldSzBAqzsWoZYYvduky73toYS/ESqxPvkDf/F0XMg==}
     engines: {node: '>=10'}
+
+  type-testing@0.2.0:
+    resolution: {integrity: sha512-HAf4o9LjUAh9xEIXZTNm+ak2tjTgK64QhTlT/D8UNedII2/eagdEbtbaVK6920K7+QBrwfvxpjPGlfWVKZ+MZQ==}
+    engines: {node: '>= 20.x'}
 
   typescript-plugin-css-modules@5.2.0:
     resolution: {integrity: sha512-c5pAU5d+m3GciDr/WhkFldz1NIEGBafuP/3xhFt9BEXS2gmn/LvjkoZ11vEBIuP8LkXfPNhOt1BUhM5efFuwOw==}
@@ -3605,6 +3612,8 @@ snapshots:
 
   type-fest@0.13.1:
     optional: true
+
+  type-testing@0.2.0: {}
 
   typescript-plugin-css-modules@5.2.0(typescript@5.8.3):
     dependencies:
