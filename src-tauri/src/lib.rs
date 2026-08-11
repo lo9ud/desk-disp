@@ -18,11 +18,6 @@ mod media;
 mod system;
 
 struct AppStateInner {
-    // System information and hardware state
-    system_info: sysinfo::System,
-    disks: sysinfo::Disks,
-    networks: sysinfo::Networks,
-
     // Application configuration and command-line arguments
     config: config::Config,
     args: cli::Args,
@@ -35,7 +30,7 @@ struct AppStateInner {
 type AppState = Mutex<AppStateInner>;
 
 struct ChannelSubscribers {
-    channels: HashMap<&'static str, Arc<AtomicUsize>>,
+    channels: HashMap<events::StreamName, Arc<AtomicUsize>>,
 }
 
 impl ChannelSubscribers {
@@ -46,23 +41,23 @@ impl ChannelSubscribers {
     }
 
     /// Registers a channel and returns the Arc that should be passed to its loop.
-    fn register(&mut self, channel: &'static str) -> Arc<AtomicUsize> {
+    fn register(&mut self, channel: events::StreamName) -> Arc<AtomicUsize> {
         let counter = Arc::new(AtomicUsize::new(0));
         self.channels.insert(channel, Arc::clone(&counter));
         counter
     }
 
-    fn get_counter(&self, channel: &str) -> Option<&Arc<AtomicUsize>> {
-        self.channels.get(channel)
+    fn get_counter(&self, channel: events::StreamName) -> Option<&Arc<AtomicUsize>> {
+        self.channels.get(&channel)
     }
 
-    pub fn increment(&self, channel: &str) -> usize {
+    pub fn increment(&self, channel: events::StreamName) -> usize {
         self.get_counter(channel)
             .map(|c| c.fetch_add(1, Ordering::Relaxed) + 1)
             .unwrap_or(0)
     }
 
-    pub fn decrement(&self, channel: &str) {
+    pub fn decrement(&self, channel: events::StreamName) {
         if let Some(c) = self.get_counter(channel) {
             let _ = c.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
                 Some(v.saturating_sub(1))
@@ -73,21 +68,21 @@ impl ChannelSubscribers {
 
 /// Caches the last emitted value per stream channel so new subscribers can
 /// receive it immediately without waiting for the next poll tick.
-pub struct ChannelCache(std::sync::Mutex<HashMap<String, serde_json::Value>>);
+pub struct ChannelCache(std::sync::Mutex<HashMap<events::StreamName, serde_json::Value>>);
 
 impl ChannelCache {
     pub fn new() -> Self {
         Self(std::sync::Mutex::new(HashMap::new()))
     }
 
-    pub fn set(&self, channel: &str, value: serde_json::Value) {
+    pub fn set(&self, channel: events::StreamName, value: serde_json::Value) {
         if let Ok(mut map) = self.0.lock() {
-            map.insert(channel.to_string(), value);
+            map.insert(channel, value);
         }
     }
 
-    pub fn get(&self, channel: &str) -> Option<serde_json::Value> {
-        self.0.lock().ok()?.get(channel).cloned()
+    pub fn get(&self, channel: events::StreamName) -> Option<serde_json::Value> {
+        self.0.lock().ok()?.get(&channel).cloned()
     }
 }
 
@@ -118,12 +113,12 @@ fn get_monitor(app: &tauri::AppHandle, config: &config::Config) -> Result<Monito
 
 #[tauri::command]
 async fn subscribe_channel(
-    channel: String,
+    channel: events::StreamName,
     app: tauri::AppHandle,
 ) -> Result<serde_json::Value, String> {
     let subs = app.state::<ChannelSubscribers>();
-    let count = subs.increment(&channel);
-    let last_value = app.state::<ChannelCache>().get(&channel);
+    let count = subs.increment(channel);
+    let last_value = app.state::<ChannelCache>().get(channel);
     Ok(serde_json::json!({
         "is_first_subscriber": count == 1,
         "last_value": last_value
@@ -131,8 +126,11 @@ async fn subscribe_channel(
 }
 
 #[tauri::command]
-async fn unsubscribe_channel(channel: String, app: tauri::AppHandle) -> Result<(), String> {
-    app.state::<ChannelSubscribers>().decrement(&channel);
+async fn unsubscribe_channel(
+    channel: events::StreamName,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    app.state::<ChannelSubscribers>().decrement(channel);
     Ok(())
 }
 
@@ -278,13 +276,6 @@ pub fn run(args: cli::Args) {
             let file_manager = Arc::new(RwLock::new(file::FileManager::new()));
 
             app.manage::<AppState>(Mutex::new(AppStateInner {
-                system_info: sysinfo::System::new_with_specifics(
-                    sysinfo::RefreshKind::nothing()
-                        .with_cpu(sysinfo::CpuRefreshKind::everything())
-                        .with_memory(sysinfo::MemoryRefreshKind::everything()),
-                ),
-                disks: sysinfo::Disks::new_with_refreshed_list(),
-                networks: sysinfo::Networks::new_with_refreshed_list(),
                 config,
                 args,
                 monitor_cache,
@@ -294,10 +285,12 @@ pub fn run(args: cli::Args) {
             /* Channel subscription counters and cache  */
 
             let mut channel_subs = ChannelSubscribers::new();
-            let system_subs = channel_subs.register("system");
-            let media_subs = channel_subs.register("media");
-            let visualizer_subs = channel_subs.register("visualizer");
-            let hardware_subs = channel_subs.register("hardware");
+            let cpu_subs = channel_subs.register(events::StreamName::Cpu);
+            let memory_subs = channel_subs.register(events::StreamName::Memory);
+            let disks_subs = channel_subs.register(events::StreamName::Disks);
+            let networks_subs = channel_subs.register(events::StreamName::Networks);
+            let media_subs = channel_subs.register(events::StreamName::Media);
+            let visualizer_subs = channel_subs.register(events::StreamName::Visualizer);
             app.manage(channel_subs);
             app.manage(ChannelCache::new());
 
@@ -306,21 +299,46 @@ pub fn run(args: cli::Args) {
             let url = tauri::WebviewUrl::App("index.html".into());
             let mut win_builder = tauri::WebviewWindowBuilder::new(app, "main", url)
                 .title("desk-disp")
+                // Below all other windows
                 .always_on_bottom(true)
+                // No window chrome
                 .decorations(false)
+                // Transparent background (no white flash on load)
                 .transparent(true)
+                // No shadow 
                 .shadow(false)
+                // No taskbar icon
                 .skip_taskbar(true)
+                // No resize
                 .resizable(false)
+                // Invisible until we place it on the correct monitor
                 .visible(false)
+                // Disable zoom hotkeys (Ctrl+/-/0) so they don't interfere with widgets
+                .zoom_hotkeys_enabled(false)
+                // Accept first mouse click so the user doesn't have to click twice to interact with the window
+                .accept_first_mouse(true)
+                // Make the window visible on all workspaces (virtual desktops) so it doesn't get hidden when switching workspaces
+                .visible_on_all_workspaces(true)
+                // Disable drag-and-drop so HTML5 drag-and-drop functions correctly, instead of tauri intercepting the event(s)
                 .disable_drag_drop_handler();
 
             // If dev mode is enabled, override some window properties to make it easier to debug/manipulate the window.
             win_builder = if dev {
                 win_builder
+                    // Show the window in the taskbar so it can be easily found and manipulated
                     .skip_taskbar(false)
+                    // Allow resizing so the developer can resize the window to test different layouts/screen sizes
                     .resizable(true)
+                    // Show window chrome so the developer can easily move the window around or minimize/maximize it
                     .decorations(true)
+                    // Allow devtools to inspect the window elements
+                    .devtools(true)
+                    // Allow  zoom hotkeys to test different zoom levels
+                    .zoom_hotkeys_enabled(true)
+                    // Allow the remote debugging protocol to debug the window
+                    // Only applicable on Windows
+                    // First arg is Tauri default (disable Edge builtin context menus and Microsoft SmartScreen - checks URL's and downloaded files against reputation db)
+                    // Second arg enables remote debugging on port 9222 (Chrome DevTools Protocol)
                     .additional_browser_args("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=9222")
             } else {
                 win_builder
@@ -337,20 +355,18 @@ pub fn run(args: cli::Args) {
             /* Background event loops  */
 
             let handle = app.handle().clone();
-            tauri::async_runtime::spawn(system::run_system_loop(
+            tauri::async_runtime::spawn(system::run_resource_loop(
                 handle.clone(),
-                Arc::clone(&system_subs),
+                Arc::clone(&cpu_subs),
+                Arc::clone(&memory_subs),
+                Arc::clone(&disks_subs),
+                Arc::clone(&networks_subs),
                 Duration::from_millis(500),
             ));
             tauri::async_runtime::spawn(media::run_media_loop(
                 handle.clone(),
                 Arc::clone(&media_subs),
                 Duration::from_secs(2),
-            ));
-            tauri::async_runtime::spawn(system::run_hardware_loop(
-                handle.clone(),
-                Arc::clone(&hardware_subs),
-                Duration::from_millis(500),
             ));
             media::spawn_visualizer_loop(
                 handle,

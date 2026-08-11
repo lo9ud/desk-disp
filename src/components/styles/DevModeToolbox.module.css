@@ -50,3 +50,47 @@
   width: 16px;
   height: 16px;
 }
+
+.eventStats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+}
+
+.eventStatsList {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 4px;
+  & > hr {
+    grid-column: 1 / -1;
+    border-color: var(--ui-border);
+    border-width: 3px;
+  }
+}
+
+.eventName {
+  grid-column: 1;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.eventCount {
+  grid-column: 2;
+  text-align: right;
+  font-family: monospace;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.eventRate {
+  grid-column: 3;
+  text-align: right;
+  font-family: monospace;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.eventPeriod {
+  grid-column: 4;
+  text-align: right;
+  font-family: monospace;
+  border-bottom: 1px solid var(--ui-border);
+}

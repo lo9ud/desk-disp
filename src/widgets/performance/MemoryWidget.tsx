@@ -27,33 +27,33 @@ export function Memory({
   style,
   showDetail,
 }: WidgetSettingsProps<typeof MEMORY_WIDGET_SETTINGS_DEF>) {
-  const { data } = useSubscription("system");
+  const { data } = useSubscription("memory");
   return (
     <Readout
       title={showDetail ? "Memory Usage" : "Memory"}
       value={
         showDetail
-          ? `${((Number(data?.memory.used ?? 0n) / Number(data?.memory.total ?? 1n)) * 100).toFixed(1)}%`
+          ? `${((Number(data?.used ?? 0n) / Number(data?.total ?? 1n)) * 100).toFixed(1)}%`
           : undefined
       }
       subtitle={
         showDetail &&
-        `${(Number(data?.memory.used ?? 0n) / 1024 ** 3).toFixed(1)} used of ${(Number(data?.memory.total ?? 0n) / 1024 ** 3).toFixed(1)} GB total`
+        `${(Number(data?.used ?? 0n) / 1024 ** 3).toFixed(1)} used of ${(Number(data?.total ?? 0n) / 1024 ** 3).toFixed(1)} GB total`
       }
     >
       {style === "bar" ? (
         <Bar
           value={
-            (Number(data?.memory.used ?? 0n) /
-              Number(data?.memory.total ?? 1n)) *
+            (Number(data?.used ?? 0n) /
+              Number(data?.total ?? 1n)) *
             100
           }
         />
       ) : (
         <PieChart
           value={
-            (Number(data?.memory.used ?? 0n) /
-              Number(data?.memory.total ?? 1n)) *
+            (Number(data?.used ?? 0n) /
+              Number(data?.total ?? 1n)) *
             100
           }
           label={!showDetail}

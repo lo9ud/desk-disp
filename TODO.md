@@ -227,12 +227,12 @@
 - if licenses file is missing, dev build wont run, and the gen-licenses wont run without cargo-about
   - in dev mode specifically, this can be ignored, but in production mode it should be a hard error and the app should not run without a valid licenses file
 - some widget wrapper styles reach into the widget and override its styles (setting width and height specifically). should not do that (some fixes however: box-sizing: border-box etc global styles already applied, should this be removed from the global styles and applied per-widget instead? probably yes, but needs a careful review of all widgets to ensure they don't break, and documentation for widget authors on how to handle sizing and layouting)
-- channel/event architecture needs a broader overhaul, see [planning doc](gitignore/channel_architecture_overhaul.md) — high-frequency emits from the visualizer causing OOM is a symptom of this rather than worth fixing standalone
+- visualizer's high-frequency emits have no backpressure — still open, not touched by the cpu/memory/disks/networks loop consolidation
   - unconfirmed cause, but prior art exists (<https://github.com/tauri-apps/tauri/issues/8177>) and makes sense given context
     - realtime FFT audio capture triggers emits regardless of system state
     - if screen turns off or the app is backgrounded, the events don't get consumed
     - on wake, the backlog of events is processed, which can cause a spike in memory usage and potentially OOM
-  - window-visibility/focus-based pausing (actually stopping streams when backgrounded, vs. just capping backlog) is a distinct follow-up, not covered by the overhaul doc
+  - window-visibility/focus-based pausing (actually stopping streams when backgrounded, vs. just capping backlog) is a distinct follow-up
 - devtools console always says backend log level is "info"
 - fix broken settings
   - run on startup, taskbar/dock icon, tray icon toggles all exist in GeneralSection already but are non-functional stubs with no backend wiring - tauri has a plugin for run on startup specifically

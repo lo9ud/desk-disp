@@ -3,6 +3,9 @@ import styles from "./styles/DevModeToolbox.module.css";
 import { ArrowsPointingOutIcon } from "@heroicons/react/24/solid";
 import { useDevMode } from "../context/DevModeContext";
 import { QuestionMarkCircleIcon } from "@heroicons/react/16/solid";
+import { BackendEvents } from "../ipc";
+import { EVENT_NAMES } from "../ipc/events";
+import { listen } from "@tauri-apps/api/event";
 
 function Grabber({
   setPosition,
@@ -51,9 +54,33 @@ function Grabber({
   );
 }
 
+type EventStats = Record<keyof BackendEvents, { count: number }>;
+
+const unlistens: Awaited<ReturnType<typeof listen>>[] = [];
+const eventStatsInitial: EventStats = Object.fromEntries(
+  EVENT_NAMES.map((name) => [name, { count: 0 }]),
+) as EventStats;
+const startTime = new Date();
+const eventStats = eventStatsInitial;
+let rerender = () => {
+  return;
+};
+(async () => {
+  for (const eventName of EVENT_NAMES) {
+    const unlisten = await listen(eventName, () => {
+      eventStats[eventName].count++;
+      rerender();
+    });
+    unlistens.push(unlisten);
+  }
+})();
+
 export default function DevModeToolbox() {
   const { toolboxSettings, setToolboxSettings } = useDevMode();
   const [position, setPosition] = useState({ x: 30, y: 30 });
+  const [, setRerender] = useState(0);
+
+  rerender = () => setRerender((prev) => prev + 1);
 
   function toggle(setting: keyof typeof toolboxSettings) {
     setToolboxSettings((prev) => ({
@@ -111,6 +138,50 @@ export default function DevModeToolbox() {
             ])
             .slice(0, -1) /* remove last <hr> */
         }
+      </div>
+      <EventStatsDisplay eventStats={eventStats} />
+    </div>
+  );
+}
+
+function EventStatsDisplay({ eventStats }: { eventStats: EventStats }) {
+  const elapsed = (Date.now() - startTime.getTime()) / 1000;
+  const sum = Object.values(eventStats).reduce(
+    (acc, stats) => acc + stats.count,
+    0,
+  );
+  return (
+    <div className={styles.eventStats}>
+      <div className={styles.eventStatsList}>
+        <span className={styles.eventName}>Event</span>
+        <span className={styles.eventCount}>Count</span>
+        <span className={styles.eventRate}>Rate (/sec)</span>
+        <span className={styles.eventPeriod}>Period (ms)</span>
+        <hr />
+        {Object.entries(eventStats).map(([eventName, stats]) => (
+          <>
+            <span key={`event-${eventName}`} className={styles.eventName}>
+              {eventName}
+            </span>
+            <span
+              key={`event-${eventName}-count`}
+              className={styles.eventCount}
+            >
+              {stats.count}
+            </span>
+            <span key={`event-${eventName}-rate`} className={styles.eventRate}>
+              {(elapsed > 0 && stats.count > 0) ? (stats.count / elapsed).toFixed(1): ""}
+            </span>
+            <span key={`event-${eventName}-period`} className={styles.eventPeriod}>
+              {(elapsed > 0 && stats.count > 0) ? (1000 / (stats.count / elapsed)).toFixed(0) : ""}
+            </span>
+          </>
+        ))}
+        <hr />
+        <span className={styles.eventName}>Total</span>
+        <span className={styles.eventCount}>{sum}</span>
+        <span className={styles.eventRate}>{(sum / elapsed).toFixed(1)}</span>
+        <span className={styles.eventPeriod}>{(1000 / (sum / elapsed)).toFixed(0)}</span>
       </div>
     </div>
   );

@@ -18,7 +18,7 @@ use super::{FFTStream, FrequencyReading, MediaState};
 
 fn emit_media(app: &tauri::AppHandle, state: MediaState) {
     if let Ok(value) = serde_json::to_value(&state) {
-        app.state::<crate::ChannelCache>().set("media", value);
+        app.state::<crate::ChannelCache>().set(crate::events::StreamName::Media, value);
     }
     let _ = app.emit(crate::events::STREAM_MEDIA, state);
 }

@@ -27,33 +27,33 @@ export function Swap({
   style,
   showDetail,
 }: WidgetSettingsProps<typeof SWAP_WIDGET_SETTINGS_DEF>) {
-  const { data } = useSubscription("system");
+  const { data } = useSubscription("memory");
   return (
     <Readout
       title={showDetail ? "Swap Usage" : "Swap"}
       value={
         showDetail
-          ? `${((Number(data?.memory.swap_used ?? 0n) / Number(data?.memory.swap_total ?? 1n)) * 100).toFixed(1)}%`
+          ? `${((Number(data?.swap_used ?? 0n) / Number(data?.swap_total ?? 1n)) * 100).toFixed(1)}%`
           : undefined
       }
       subtitle={
         showDetail &&
-        `${(Number(data?.memory.swap_used ?? 0n) / 1024 ** 3).toFixed(1)} used of ${(Number(data?.memory.swap_total ?? 0n) / 1024 ** 3).toFixed(1)} GB total`
+        `${(Number(data?.swap_used ?? 0n) / 1024 ** 3).toFixed(1)} used of ${(Number(data?.swap_total ?? 0n) / 1024 ** 3).toFixed(1)} GB total`
       }
     >
       {style === "bar" ? (
         <Bar
           value={
-            (Number(data?.memory.swap_used ?? 0n) /
-              Number(data?.memory.swap_total ?? 1n)) *
+            (Number(data?.swap_used ?? 0n) /
+              Number(data?.swap_total ?? 1n)) *
             100
           }
         />
       ) : (
         <PieChart
           value={
-            (Number(data?.memory.swap_used ?? 0n) /
-              Number(data?.memory.swap_total ?? 1n)) *
+            (Number(data?.swap_used ?? 0n) /
+              Number(data?.swap_total ?? 1n)) *
             100
           }
           label={!showDetail}

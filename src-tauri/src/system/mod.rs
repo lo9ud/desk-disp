@@ -1,9 +1,8 @@
+use crate::events::{emit_stream, StreamName, SubscriberGate};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::Duration;
-use crate::AppState;
-use tauri::{Emitter, Manager};
 use ts_rs::TS;
 
 #[derive(serde::Serialize, Clone, TS)]
@@ -41,13 +40,6 @@ pub struct MemoryStats {
 
 #[derive(serde::Serialize, Clone, TS)]
 #[ts(export, export_to = "../../src/ffi_types.ts")]
-pub struct SystemStats {
-    pub cpu: CpuStats,
-    pub memory: MemoryStats,
-}
-
-#[derive(serde::Serialize, Clone, TS)]
-#[ts(export, export_to = "../../src/ffi_types.ts")]
 pub struct DiskInfo {
     pub name: String,
     pub mount_point: String,
@@ -68,14 +60,7 @@ pub struct NetworkInterfaceInfo {
     pub mac_address: String,
 }
 
-#[derive(serde::Serialize, Clone, TS)]
-#[ts(export, export_to = "../../src/ffi_types.ts")]
-pub struct HardwareStats {
-    pub disks: Vec<DiskInfo>,
-    pub networks: Vec<NetworkInterfaceInfo>,
-}
-
-fn collect_system_stats(sys: &sysinfo::System) -> SystemStats {
+fn collect_cpu_stats(sys: &sysinfo::System) -> CpuStats {
     let mut processors: HashMap<String, Processor> = HashMap::new();
     for cpu in sys.cpus() {
         let entry = processors
@@ -91,122 +76,141 @@ fn collect_system_stats(sys: &sysinfo::System) -> SystemStats {
         });
     }
 
-    SystemStats {
-        cpu: CpuStats {
-            global_usage: sys.global_cpu_usage(),
-            processors: processors.into_values().collect(),
-            total_physical_cores: num_cpus::get_physical(),
-            total_logical_cores: num_cpus::get(),
-        },
-        memory: MemoryStats {
-            used: sys.used_memory(),
-            total: sys.total_memory(),
-            swap_used: sys.used_swap(),
-            swap_total: sys.total_swap(),
-        },
+    CpuStats {
+        global_usage: sys.global_cpu_usage(),
+        processors: processors.into_values().collect(),
+        total_physical_cores: num_cpus::get_physical(),
+        total_logical_cores: num_cpus::get(),
     }
 }
 
-pub async fn run_system_loop(app: tauri::AppHandle, subscribers: Arc<AtomicUsize>, poll_interval: Duration) {
-    const TARGET: &str = "system";
-    tracing::info!(target: TARGET, "system loop started");
-    let mut interval = tokio::time::interval(poll_interval);
-    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-    let mut last_had_subs = false;
-    loop {
-        interval.tick().await;
-        let sub_count = subscribers.load(Ordering::Relaxed);
-        if sub_count == 0 {
-            if last_had_subs {
-                tracing::info!(target: TARGET, "no subscribers — pausing system updates");
-                last_had_subs = false;
+fn collect_memory_stats(sys: &sysinfo::System) -> MemoryStats {
+    MemoryStats {
+        used: sys.used_memory(),
+        total: sys.total_memory(),
+        swap_used: sys.used_swap(),
+        swap_total: sys.total_swap(),
+    }
+}
+
+fn collect_disk_stats(disks: &sysinfo::Disks) -> Vec<DiskInfo> {
+    disks
+        .iter()
+        .map(|disk| DiskInfo {
+            name: disk.name().to_string_lossy().to_string(),
+            mount_point: disk.mount_point().to_string_lossy().to_string(),
+            file_system: disk.file_system().to_string_lossy().to_string(),
+            kind: format!("{:?}", disk.kind()),
+            total_space: disk.total_space(),
+            available_space: disk.available_space(),
+        })
+        .collect()
+}
+
+fn collect_network_stats(networks: &sysinfo::Networks) -> Vec<NetworkInterfaceInfo> {
+    networks
+        .iter()
+        .filter_map(|(name, data)| {
+            let mac = data.mac_address();
+            if mac.is_unspecified() {
+                return None;
             }
-            continue;
+            Some(NetworkInterfaceInfo {
+                name: name.clone(),
+                received: data.received(),
+                transmitted: data.transmitted(),
+                total_received: data.total_received(),
+                total_transmitted: data.total_transmitted(),
+                mac_address: mac.to_string(),
+            })
+        })
+        .collect()
+}
+
+/// `sysinfo` handles for the cpu/memory/disks/networks metrics, owned entirely by
+/// `run_resource_loop`'s task — confirmed (full-crate grep) that nothing outside this module
+/// ever touches them, so unlike the rest of `AppStateInner` they need no shared mutex at all.
+struct ResourceState {
+    system: sysinfo::System,
+    disks: sysinfo::Disks,
+    networks: sysinfo::Networks,
+}
+
+impl ResourceState {
+    fn new() -> Self {
+        Self {
+            system: sysinfo::System::new_with_specifics(
+                sysinfo::RefreshKind::nothing()
+                    .with_cpu(sysinfo::CpuRefreshKind::everything())
+                    .with_memory(sysinfo::MemoryRefreshKind::everything()),
+            ),
+            disks: sysinfo::Disks::new_with_refreshed_list(),
+            networks: sysinfo::Networks::new_with_refreshed_list(),
         }
-        if !last_had_subs {
-            tracing::info!(target: TARGET, sub_count, "subscriber(s) active — resuming system updates");
-            last_had_subs = true;
-        }
-        let stats = {
-            let state = app.state::<AppState>();
-            let mut state = state.lock().await;
-            state.system_info.refresh_cpu_all();
-            state.system_info.refresh_memory();
-            collect_system_stats(&state.system_info)
-        };
-        if let Ok(value) = serde_json::to_value(&stats) {
-            app.state::<crate::ChannelCache>().set("system", value);
-        }
-        let _ = app.emit(crate::events::STREAM_SYSTEM, stats);
     }
 }
 
-fn collect_hardware_stats(
-    disks: &sysinfo::Disks,
-    networks: &sysinfo::Networks,
-) -> HardwareStats {
-    HardwareStats {
-        disks: disks
-            .iter()
-            .map(|disk| DiskInfo {
-                name: disk.name().to_string_lossy().to_string(),
-                mount_point: disk.mount_point().to_string_lossy().to_string(),
-                file_system: disk.file_system().to_string_lossy().to_string(),
-                kind: format!("{:?}", disk.kind()),
-                total_space: disk.total_space(),
-                available_space: disk.available_space(),
-            })
-            .collect(),
-        networks: networks
-            .iter()
-            .filter_map(|(name, data)| {
-                let mac = data.mac_address();
-                if mac.is_unspecified() {
-                    return None;
+/// Consolidates what used to be `run_system_loop` (cpu+memory) and `run_hardware_loop`
+/// (disks+networks) into one task: a `tokio::select!` over 4 independent per-metric intervals,
+/// so cadences can diverge later without another refactor, while cutting 2 tokio tasks down to
+/// 1. Only one `select!` arm's body ever executes per loop iteration, so plain field access on
+/// the task-owned `ResourceState` needs no interior mutability.
+pub async fn run_resource_loop(
+    app: tauri::AppHandle,
+    cpu_subs: Arc<AtomicUsize>,
+    memory_subs: Arc<AtomicUsize>,
+    disks_subs: Arc<AtomicUsize>,
+    networks_subs: Arc<AtomicUsize>,
+    poll_interval: Duration,
+) {
+    tracing::info!(target: "resource", "resource loop started");
+
+    let mut state = ResourceState::new();
+
+    let mut cpu_interval = tokio::time::interval(poll_interval);
+    let mut memory_interval = tokio::time::interval(poll_interval);
+    let mut disks_interval = tokio::time::interval(poll_interval);
+    let mut networks_interval = tokio::time::interval(poll_interval);
+    for iv in [
+        &mut cpu_interval,
+        &mut memory_interval,
+        &mut disks_interval,
+        &mut networks_interval,
+    ] {
+        iv.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    }
+
+    let mut cpu_gate = SubscriberGate::new(cpu_subs, StreamName::Cpu);
+    let mut memory_gate = SubscriberGate::new(memory_subs, StreamName::Memory);
+    let mut disks_gate = SubscriberGate::new(disks_subs, StreamName::Disks);
+    let mut networks_gate = SubscriberGate::new(networks_subs, StreamName::Networks);
+
+    loop {
+        tokio::select! {
+            _ = cpu_interval.tick() => {
+                if cpu_gate.should_run() {
+                    state.system.refresh_cpu_all();
+                    emit_stream(&app, StreamName::Cpu, collect_cpu_stats(&state.system));
                 }
-                Some(NetworkInterfaceInfo {
-                    name: name.clone(),
-                    received: data.received(),
-                    transmitted: data.transmitted(),
-                    total_received: data.total_received(),
-                    total_transmitted: data.total_transmitted(),
-                    mac_address: mac.to_string(),
-                })
-            })
-            .collect(),
-    }
-}
-
-pub async fn run_hardware_loop(app: tauri::AppHandle, subscribers: Arc<AtomicUsize>, poll_interval: Duration) {
-    const TARGET: &str = "hardware";
-    tracing::info!(target: TARGET, "hardware loop started");
-    let mut interval = tokio::time::interval(poll_interval);
-    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-    let mut last_had_subs = false;
-    loop {
-        interval.tick().await;
-        let sub_count = subscribers.load(Ordering::Relaxed);
-        if sub_count == 0 {
-            if last_had_subs {
-                tracing::info!(target: TARGET, "no subscribers — pausing hardware updates");
-                last_had_subs = false;
             }
-            continue;
+            _ = memory_interval.tick() => {
+                if memory_gate.should_run() {
+                    state.system.refresh_memory();
+                    emit_stream(&app, StreamName::Memory, collect_memory_stats(&state.system));
+                }
+            }
+            _ = disks_interval.tick() => {
+                if disks_gate.should_run() {
+                    state.disks.refresh(false);
+                    emit_stream(&app, StreamName::Disks, collect_disk_stats(&state.disks));
+                }
+            }
+            _ = networks_interval.tick() => {
+                if networks_gate.should_run() {
+                    state.networks.refresh(false);
+                    emit_stream(&app, StreamName::Networks, collect_network_stats(&state.networks));
+                }
+            }
         }
-        if !last_had_subs {
-            tracing::info!(target: TARGET, sub_count, "subscriber(s) active — resuming hardware updates");
-            last_had_subs = true;
-        }
-        let stats = {
-            let state = app.state::<AppState>();
-            let mut state = state.lock().await;
-            state.disks.refresh(false);
-            state.networks.refresh(false);
-            collect_hardware_stats(&state.disks, &state.networks)
-        };
-        if let Ok(value) = serde_json::to_value(&stats) {
-            app.state::<crate::ChannelCache>().set("hardware", value);
-        }
-        let _ = app.emit(crate::events::STREAM_HARDWARE, stats);
     }
 }

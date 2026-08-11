@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { BackendEvents, ChannelName } from "../ipc";
+import type { BackendEvents, StreamName } from "../ipc";
 import { ipcListen, subscribeChannel, unsubscribeChannel } from "../ipc";
 
-export function useSubscription<T extends ChannelName>(channelName: T): {
+export function useSubscription<T extends StreamName>(channelName: T): {
   data: BackendEvents[`stream::${T}`] | null;
   loading: boolean;
 } {

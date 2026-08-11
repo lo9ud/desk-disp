@@ -30,12 +30,14 @@
  * Windows-only (shells out to PowerShell / Win32_Process). Ctrl+C to stop.
  */
 
-import { mkdirSync, appendFileSync, writeFileSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { mkdirSync, appendFileSync, writeFileSync, readdirSync, statSync, unlinkSync, rmdir } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
+import { promisify } from "node:util";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const rm = promisify(rmdir);
 
 function parseArgs(argv) {
   const args = {
@@ -45,6 +47,7 @@ function parseArgs(argv) {
     once: false,
     keep: 50,
     help: false,
+    clear: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -54,6 +57,7 @@ function parseArgs(argv) {
     else if (a === "--once") args.once = true;
     else if (a === "--keep") args.keep = Number(argv[++i]);
     else if (a === "--help" || a === "-h") args.help = true;
+    else if (a === "--clear") args.clear = true;
   }
   return args;
 }
@@ -66,7 +70,8 @@ function printHelp() {
   --out <dir>      output directory (default ./mem-dumps)
   --once           capture a single round and exit
   --keep <n>       max .heapsnapshot files to retain, oldest pruned first (default 50)
-  --help           show this message`);
+  --help           show this message
+  --clear          clear the output directory before starting`);
 }
 
 function sleep(ms) {
@@ -259,14 +264,17 @@ async function main() {
   }
 
   mkdirSync(args.out, { recursive: true });
+  for (const f of readdirSync(args.out)) {
+    if (args.clear || f.endsWith(".heapsnapshot")) {
+      const full = join(args.out, f);
+      unlinkSync(full);
+      console.log(`[mem-snapshot] cleared ${full}`);
+    }
+  }
   const logFile = join(args.out, "process-memory.jsonl");
 
   console.log(`[mem-snapshot] watching desk-disp + msedgewebview2 every ${args.intervalMin} min`);
   console.log(`[mem-snapshot] output dir: ${args.out}`);
-  console.log(
-    `[mem-snapshot] heap snapshots need WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=${args.port}" ` +
-      `set before launching the app — without it you still get the process-memory log`
-  );
 
   let stopping = false;
   process.on("SIGINT", () => {

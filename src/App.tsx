@@ -21,10 +21,12 @@ import { DevModeProvider, useDevMode } from "./context/DevModeContext";
 import DevModeToolbox from "./components/DevModeToolbox";
 
 const ALL_EVENTS: (keyof BackendEvents)[] = [
-  "stream::system",
+  "stream::cpu",
+  "stream::memory",
+  "stream::disks",
+  "stream::networks",
   "stream::media",
   "stream::visualizer",
-  "stream::hardware",
   "config::changed",
   "theme::changed",
   "layout::changed",

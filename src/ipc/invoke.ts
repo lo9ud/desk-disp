@@ -9,20 +9,20 @@ import type {
   ThemeInfo,
   WidgetConfig,
 } from "../ffi_types";
-import type { BackendEvents, ChannelName } from "./events";
+import type { BackendEvents, StreamName } from "./events";
 
-export interface SubscribeResult<T extends ChannelName> {
+export interface SubscribeResult<T extends StreamName> {
   is_first_subscriber: boolean;
   last_value: BackendEvents[`stream::${T}`] | null;
 }
 
-export async function subscribeChannel<T extends ChannelName>(
+export async function subscribeChannel<T extends StreamName>(
   channel: T,
 ): Promise<SubscribeResult<T>> {
   return invoke<SubscribeResult<T>>("subscribe_channel", { channel });
 }
 
-export async function unsubscribeChannel(channel: ChannelName): Promise<void> {
+export async function unsubscribeChannel(channel: StreamName): Promise<void> {
   return invoke("unsubscribe_channel", { channel });
 }
 

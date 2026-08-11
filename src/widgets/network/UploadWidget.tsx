@@ -4,9 +4,9 @@ import { registerWidget } from "../../registry/defRegistry";
 import { formatBps } from "../../utils/format";
 
 export function Upload() {
-  const { data } = useSubscription("hardware");
+  const { data } = useSubscription("networks");
   const tx =
-    data?.networks.reduce((sum, iface) => sum + Number(iface.transmitted), 0) ??
+    data?.reduce((sum, iface) => sum + Number(iface.transmitted), 0) ??
     0;
   const txHistory = useHistory(tx);
 

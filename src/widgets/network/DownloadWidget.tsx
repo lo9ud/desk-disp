@@ -4,9 +4,9 @@ import { registerWidget } from "../../registry/defRegistry";
 import { formatBps } from "../../utils/format";
 
 export function Download() {
-  const { data } = useSubscription("hardware");
+  const { data } = useSubscription("networks");
   const rx =
-    data?.networks.reduce((sum, iface) => sum + Number(iface.received), 0) ?? 0;
+    data?.reduce((sum, iface) => sum + Number(iface.received), 0) ?? 0;
   const rxHistory = useHistory(rx);
 
   const peak = Math.max(...rxHistory, 1);

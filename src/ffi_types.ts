@@ -14,8 +14,6 @@ export type GridPadding = { top: number, right: number, bottom: number, left: nu
 
 export type GridSettings = { grid_rows: number, grid_cols: number, gap: number, padding: GridPadding, };
 
-export type HardwareStats = { disks: Array<DiskInfo>, networks: Array<NetworkInterfaceInfo>, };
-
 export type LayoutFile = { id: string, name: string, widgets: Array<WidgetConfig>, grid_rows: number, grid_cols: number, gap: number, padding: GridPadding, };
 
 /**
@@ -43,7 +41,15 @@ export type Processor = { brand: string, cores: Array<Core>, };
 
 export type Scope = { "Widget": string } | { "Group": string };
 
-export type SystemStats = { cpu: CpuStats, memory: MemoryStats, };
+/**
+ * Single source of truth for stream/subscription channel names, on both sides of the IPC
+ * boundary — ts-rs-exported and imported directly by the frontend (`src/ipc/events.ts`)
+ * instead of hand-mirrored, the same pattern `file.rs`'s `Scope` enum already uses. `cpu`/
+ * `memory`/`disks`/`networks` share one task (`system::run_resource_loop`); `media`/
+ * `visualizer` keep their own dedicated task/thread — see CLAUDE.md's "Subscription channels"
+ * section.
+ */
+export type StreamName = "cpu" | "memory" | "disks" | "networks" | "media" | "visualizer";
 
 export type ThemeData = { id: string, name: string, vars: Array<ThemeVar>, color_scheme: string, };
 
