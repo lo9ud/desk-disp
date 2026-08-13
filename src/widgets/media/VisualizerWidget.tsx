@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useSubscription } from "../../hooks";
 import {
   registerWidget,
@@ -197,7 +197,7 @@ export function Visualizer({
     } // no else needed, direction is validated by settingsDef
   } else if (style === "waveform") {
     return (
-      <Waveform // FIXME: Waveform component is not implemented yet, this is just a placeholder
+      <Waveform
         data={data}
         smoothing={0.5}
         showWhenIdle={showWhenIdle}

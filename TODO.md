@@ -25,6 +25,8 @@
     - needs provider
     - options include stock photo feeds, user-paid api's, APOD (NASA) (Also satelite imagery, weather maps, etc.)
     - additional options
+  - word of the day
+    - merriam-webster, thesaurus.com, urban dictionary, etc.
   - searchbar widget (google, duckduckgo, bing, etc.)
   - tracker widget (e.g. numeric input, either a sparkline or a progress bar, or both, or something else)
     - possibly a ETA or projected completion date based on current/average/historical rate of change
@@ -224,6 +226,7 @@
 
 ## Bugfixes - issues with existing features or code
 
+- input labels after a input grous are right justified (erroneous CSS rule rule targeting nth-child(2n))
 - if licenses file is missing, dev build wont run, and the gen-licenses wont run without cargo-about
   - in dev mode specifically, this can be ignored, but in production mode it should be a hard error and the app should not run without a valid licenses file
 - some widget wrapper styles reach into the widget and override its styles (setting width and height specifically). should not do that (some fixes however: box-sizing: border-box etc global styles already applied, should this be removed from the global styles and applied per-widget instead? probably yes, but needs a careful review of all widgets to ensure they don't break, and documentation for widget authors on how to handle sizing and layouting)

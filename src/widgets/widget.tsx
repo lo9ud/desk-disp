@@ -8,9 +8,7 @@ import {
 } from "react";
 import { widgetPlacementToProps } from "../utils/config";
 import styles from "./styles/widget.module.css";
-import {
-  getWidgetDefinition,
-} from "../registry/defRegistry";
+import { getWidgetDefinition } from "../registry/defRegistry";
 import {
   canonicalRegistry,
   InstanceRegistry,
@@ -79,47 +77,46 @@ export default function Widget({
     position: "relative",
   };
 
-  const devStyles = devMode.active? [
-    devMode.toolboxSettings.displayWidgetCells && styles.widgetDevCells
-  ]:[]
-    
+  const devStyles = devMode.active
+    ? [devMode.toolboxSettings.displayWidgetCells && styles.widgetDevCells]
+    : [];
 
   return (
     <div
       ref={containerRef}
-      className={combineClassNames(
-        styles.widget,
-        className,
-        ...devStyles,
-      )}
+      className={combineClassNames(styles.widget, className, ...devStyles)}
       style={style}
       data-widget-id={instanceId}
     >
-      {devMode.active && devMode.toolboxSettings.showMissingBackground && bgRect && (
-        <div
-          className={styles.widgetDevMissingBackground}
-          style={{
-            position: "absolute",
-            left: bgRect.left,
-            top: bgRect.top,
-            width: bgRect.width,
-            height: bgRect.height,
-          }}
-        />
-      )}
+      {devMode.active &&
+        devMode.toolboxSettings.showMissingBackground &&
+        bgRect && (
+          <div
+            className={styles.widgetDevMissingBackground}
+            style={{
+              position: "absolute",
+              left: bgRect.left,
+              top: bgRect.top,
+              width: bgRect.width,
+              height: bgRect.height,
+            }}
+          />
+        )}
       {children}
-      {devMode.active && devMode.toolboxSettings.displayWidgetUsedSpace && bgRect && (
-        <div
-          className={styles.widgetDevUsedSpace}
-          style={{
-            position: "absolute",
-            left: bgRect.left,
-            top: bgRect.top,
-            width: bgRect.width,
-            height: bgRect.height,
-          }}
-        />
-      )}
+      {devMode.active &&
+        devMode.toolboxSettings.displayWidgetUsedSpace &&
+        bgRect && (
+          <div
+            className={styles.widgetDevUsedSpace}
+            style={{
+              position: "absolute",
+              left: bgRect.left,
+              top: bgRect.top,
+              width: bgRect.width,
+              height: bgRect.height,
+            }}
+          />
+        )}
     </div>
   );
 }
@@ -132,7 +129,7 @@ function WidgetErrorWidget({
   return (
     <Widget {...placement}>
       <div className={styles.error}>
-        {error.message}
+        {(error as Error).message}
         <Button onClick={resetErrorBoundary}>Reset Widget</Button>
       </div>
     </Widget>
@@ -174,7 +171,7 @@ export function RenderWidget({
   }
 
   function FallbackErrorWidget(props: FallbackProps) {
-    return <WidgetErrorWidget {...placementProps} {...props} />
+    return <WidgetErrorWidget {...placementProps} {...props} />;
   }
 
   const WidgetComponent = widgetDef.component;
@@ -200,7 +197,10 @@ export function Widgets() {
     <ErrorBoundary
       FallbackComponent={({ error }) => (
         <div className={styles.error}>
-          Error loading widgets: {error.message}
+          Error loading widgets:{" "}
+          {typeof error === "object" && error !== null
+            ? ((error as Error).message ?? JSON.stringify(error))
+            : String(error)}
         </div>
       )}
       onReset={retryAfterReset}

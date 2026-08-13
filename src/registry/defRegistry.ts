@@ -2,6 +2,33 @@ import React from "react";
 import Widget, { WidgetPlacementProps } from "../widgets/widget";
 import { DelayedLoading } from "../components/Loading";
 import { logger } from "../utils/logger";
+import type {
+  ResolvedWidgetSettingsEntry,
+  WidgetSettingsDefinition,
+  WidgetSettingsProps,
+} from "./settingsSchema";
+
+// Re-exported explicitly (not `export *`) so a forgotten name fails loudly at
+// the one import site that needs it (e.g. AddWidgetModal.tsx's direct
+// SelectOptionDef import) instead of silently resolving to `any`. Split in
+// two: the three below aren't referenced locally in this file, so they're
+// pure re-exports; ResolvedWidgetSettingsEntry/WidgetSettingsDefinition/
+// WidgetSettingsProps are also used locally (registerWidget's own
+// MAX_GROUP_DEPTH check, WidgetDefinition, WidgetFallbacks), so those stay as
+// a regular import above plus a re-export here.
+export type {
+  LocalValues,
+  SchemaError,
+  SelectOptionDef,
+  SettingCondition,
+  SettingType,
+  VerifyStatus,
+} from "./settingsSchema";
+export type {
+  ResolvedWidgetSettingsEntry,
+  WidgetSettingsDefinition,
+  WidgetSettingsProps,
+};
 
 export const TAGS = {
   interactive: "#b84d8c",
@@ -34,124 +61,48 @@ export interface WidgetDefinition {
   settingsDef: WidgetSettingsDefinition;
 }
 
-export interface WidgetSettingsDefinition {
-  [settingKey: string]: WidgetSetting<any>;
-}
-
-export type SettingType = {
-  string: string;
-  number: number;
-  boolean: boolean;
-  select: string;
-};
-
-export type SettingCondition =
-  | {
-      key: string;
-      is: SettingType[keyof SettingType] | SettingType[keyof SettingType][];
-    }
-  | { when: (settings: Record<string, unknown>) => boolean };
-
-export type SelectOptionDef = {
-  label: string;
-  settings?: WidgetSettingsDefinition;
-};
-
-export type WidgetSetting<T extends keyof SettingType> = {
-  label: string;
-  showWhen?: SettingCondition;
-  enableWhen?: SettingCondition;
-} & (
-  | {
-      default: SettingType[T]; // default value, setting optional
-    }
-  | {
-      required: true; // no default value, setting required manually
-    }
-) &
-  (
-    | { type: T extends "string" ? "string" : never }
-    | ({
-        type: T extends "number" ? "number" : never;
-        unit?: string;
-      } & (
-        | {
-            min: number;
-            max: number;
-            step: number;
-          }
-        | {
-            steps: number[];
-          }
-      ))
-    | { type: T extends "boolean" ? "boolean" : never }
-    | {
-        type: T extends "select" ? "select" : never;
-        options: Record<string, string | SelectOptionDef>;
-      }
-  );
-
-type ExtractSettingValue<S> = S extends { type: "select"; options: infer O }
-  ? keyof O
-  : S extends { type: "number" }
-    ? number
-    : S extends { type: "boolean" }
-      ? boolean
-      : S extends { type: "string" }
-        ? string
-        : never;
-
-type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
-  x: infer I,
-) => void
-  ? I
-  : never;
-
-type SubordinateSettingProps<S extends WidgetSettingsDefinition> = {
-  [K in keyof S as S[K] extends { default: any }
-    ? K
-    : never]: ExtractSettingValue<S[K]>;
-} & {
-  [K in keyof S as S[K] extends { default: any } ? never : K]:
-    | ExtractSettingValue<S[K]>
-    | undefined;
-};
-
-type OptionSubordinateProps<
-  O extends Record<string, string | SelectOptionDef>,
-> = UnionToIntersection<
-  {
-    [K in keyof O]: O[K] extends {
-      settings: infer S extends WidgetSettingsDefinition;
-    }
-      ? SubordinateSettingProps<S>
-      : {};
-  }[keyof O]
->;
-
-type FlattenDef<TDef extends WidgetSettingsDefinition> = {
-  [K in keyof TDef as TDef[K] extends { default: any }
-    ? K
-    : never]: ExtractSettingValue<TDef[K]>;
-} & {
-  [K in keyof TDef as TDef[K] extends { default: any } ? never : K]:
-    | ExtractSettingValue<TDef[K]>
-    | undefined;
-} & UnionToIntersection<
-    {
-      [K in keyof TDef]: TDef[K] extends {
-        type: "select";
-        options: infer O extends Record<string, string | SelectOptionDef>;
-      }
-        ? OptionSubordinateProps<O>
-        : {};
-    }[keyof TDef]
-  >;
-
-export type WidgetSettingsProps<T extends WidgetSettingsDefinition> =
-  FlattenDef<T>;
-
 const widgetRegistry = new Map<string, WidgetDefinition>();
+
+// Someone nesting `group` cases absurdly deep is a UX/authoring concern (a
+// settings panel too many <strong> headings deep is unusable), not a
+// type-soundness one -- WidgetSettingsCaseMap's group.settings is unbounded
+// self-reference on purpose (see settingsSchema.ts). Guarded here at
+// registration time instead of at the type level; loosen by bumping this
+// constant if a legitimate widget ever needs more.
+const MAX_GROUP_DEPTH = 3;
+
+// Cheap recursive walk over a settingsDef, tracking how many `group`s deep
+// the current position is. Also descends into select options' subordinate
+// settings (groups can appear there too) without incrementing depth itself
+// -- a select layer isn't a group layer, only nested groups count.
+function checkGroupDepth(
+  def: WidgetSettingsDefinition,
+  widgetId: string,
+  depth: number,
+): void {
+  for (const setting of Object.values(def)) {
+    if (setting.type === "group") {
+      if (depth >= MAX_GROUP_DEPTH) {
+        throw new Error(
+          `Widget '${widgetId}': settings groups nested past MAX_GROUP_DEPTH (${MAX_GROUP_DEPTH})`,
+        );
+      }
+      checkGroupDepth(setting.settings, widgetId, depth + 1);
+    } else if (setting.type === "select") {
+      // options is optional on the authoring type, but a select entry
+      // reachable from a widget's own settingsDef at registerWidget time
+      // already has it -- a genuine omission would have collapsed that
+      // widget's WidgetSettingsProps to a SchemaError and failed to compile
+      // before this ever ran.
+      const resolved = setting as ResolvedWidgetSettingsEntry<typeof setting>;
+      for (const opt of Object.values(resolved.options)) {
+        if (typeof opt === "object" && opt.settings) {
+          checkGroupDepth(opt.settings, widgetId, depth);
+        }
+      }
+    }
+  }
+}
 
 // What to render in exceptional states, distinct from both the widget's own
 // component and its catalog metadata - extensible later (e.g. a custom error
@@ -169,6 +120,7 @@ export function registerWidget<S extends WidgetSettingsDefinition>(
   fallbacks?: WidgetFallbacks<S>,
 ): React.FC<WidgetPlacementProps & WidgetSettingsProps<S>> {
   debug(`Registering widget: ${definition.id}`);
+  checkGroupDepth(definition.settingsDef, definition.id, 1);
 
   function DefaultLoading(_settings: Record<string, unknown>) {
     return React.createElement(DelayedLoading, { what: definition.name, delay: 300 });

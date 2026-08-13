@@ -20,6 +20,7 @@ import "./network/DownloadWidget";
 // General
 import "./general/QuoteWidget";
 import "./general/ErrorTestWidget";
+import "./general/SettingsTestWidget";
 
 // Productivity
 import "./applets/register";

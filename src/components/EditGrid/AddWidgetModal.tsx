@@ -6,6 +6,7 @@ import { Modal } from "../../primitives/Modal";
 import {
   CATEGORIES,
   getAllWidgetDefinitions,
+  ResolvedWidgetSettingsEntry,
   SelectOptionDef,
   TAGS,
   WidgetDefinition,
@@ -30,7 +31,11 @@ function SettingDescription({
   setting: WidgetSettingsDefinition[string];
 }) {
   if (setting.type === "select") {
-    const opts = setting.options;
+    // options is optional on the authoring type (so a genuine omission
+    // becomes a SchemaError rather than a rejected literal), but this
+    // setting belongs to an already-registered widget, so it's safe to
+    // resolve it back to required for display purposes here.
+    const opts = (setting as ResolvedWidgetSettingsEntry<typeof setting>).options;
     const labels = Object.values(opts).map(optionLabel).join(" | ");
     const defaultOpt =
       "default" in setting ? opts[setting.default as string] : undefined;
@@ -66,6 +71,27 @@ function SettingDescription({
     );
   }
 
+  if (setting.type === "group") {
+    // Same nested-list shape as select's optionsWithSubs above, just
+    // unconditional -- a group always has settings, there's no "when" gate
+    // to a specific option to label first.
+    return (
+      <li className={styles.settingItem}>
+        {setting.label}:
+        <ul className={styles.settingsSubItems}>
+          {Object.values(setting.settings).map((sub) => (
+            <SettingDescription key={sub.label} setting={sub} />
+          ))}
+        </ul>
+      </li>
+    );
+  }
+
+  // trigger/marker/indicator fall through to here -- "default" in setting is
+  // structurally false for all three (see WidgetSettingsCaseMap, they're not
+  // value-bearing), so this already renders a correct, if minimal,
+  // "Label: type" line without a dedicated branch. Matches phase 2's "no new
+  // UI investment" stance.
   const defaultStr =
     "default" in setting ? primitiveDefault(setting.default) : undefined;
   return (
