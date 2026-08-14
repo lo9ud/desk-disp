@@ -60,25 +60,74 @@ export type VerifyStatus =
   | { state: "ok"; detail?: string }
   | { state: "error"; detail?: string };
 
+// A select's `options`, either the static form (phase 1/2) or a dynamic,
+// deps-driven generator (phase 3) -- read by WidgetSettingsPanel.tsx's
+// SelectRow to decide which of StaticSelectRow/DynamicSelectRow to render
+// (see the "stable branch per component instance" reasoning already used for
+// SettingRow's own case dispatch: which shape a given select IS never
+// changes across that select's own lifetime, so branching BEFORE any hook is
+// called, in a component that itself calls none, is safe).
+export type SelectOptionsSource =
+  | Record<string, string | SelectOptionDef>
+  | ((
+      local: LocalValues,
+    ) =>
+      | Record<string, string | SelectOptionDef>
+      | Promise<Record<string, string | SelectOptionDef>>);
+
 // ---------------------------------------------------------------------------
 // Case map -> entry union
 //
 // Each case's own shape lives here, self-contained, instead of one big
 // `&`-of-`|` alternation growing a new branch per capability (the old
 // WidgetSetting<T> shape this replaced). group/trigger/marker/indicator
-// (phase 2) sit alongside the original 4 value-bearing cases -- dynamic
-// generate/suggestions (phase 3) add function-valued alternatives to
-// string/select's own fields, without touching the assembly logic below.
+// (phase 2) sit alongside the original 4 value-bearing cases; phase 3 adds
+// function-valued alternatives to string's `suggestions` and select's
+// `options`, plus `deps` alongside each, without touching the assembly logic
+// below -- ValueOf/ExtractSettingValue's select branch is the one place that
+// needed a genuinely new rule (see below): a dynamic select's value type
+// widens to plain `string`, since its actual keys aren't known until runtime.
 // ---------------------------------------------------------------------------
 
 export interface WidgetSettingsCaseMap {
-  string: {};
+  string: {
+    // Presentation-only, like `unit` on number -- never affects the value
+    // type (still plain `string` either way). Fed into TextInput's existing
+    // `auto` prop (a <datalist>, not an enforced constraint) by StringRow.
+    suggestions?: string[] | ((local: LocalValues) => string[] | Promise<string[]>);
+    // Only meaningful when `suggestions` is function-valued -- same
+    // "omitted means mount-once, not depends-on-everything" rule as
+    // marker/indicator/group.verify below (see useDebouncedAsyncValue).
+    deps?: string[];
+    // Sync, own-value-only validation (a straight value add regardless of
+    // groups -- regex hostname matching, format checks, etc.) -- scoped to
+    // string/number specifically. select/boolean don't get one: a select's
+    // legal values are already exactly its declared options, and a boolean
+    // has nothing narrower than true/false to validate. Deliberately NOT
+    // async/deps-driven like group.verify -- this is meant for cheap,
+    // synchronous shape checks on the field's own value, not I/O; a
+    // connection-test-style check belongs on a trigger/group.verify instead.
+    validate?: (value: string, local: LocalValues) => true | string;
+  };
   number: { unit?: string } & MergeExclusive<
     { min: number; max: number; step: number },
     { steps: number[] }
-  >;
+  > & {
+    // See string.validate's comment -- same reasoning, own-value-only sync
+    // check. Deliberately independent of min/max/step/steps: those gate the
+    // RangeInput widget itself (what's draggable), this covers constraints a
+    // single range can't express (e.g. "1-1023 or 49152-65535, not the gap
+    // between").
+    validate?: (value: number, local: LocalValues) => true | string;
+  };
   boolean: {};
-  select: { options: Record<string, string | SelectOptionDef> };
+  select: {
+    options: SelectOptionsSource;
+    // Only meaningful when `options` is function-valued. A static select
+    // has nothing to recompute, so a `deps` on one is simply inert -- not
+    // worth a type-level ban for what's already a no-op.
+    deps?: string[];
+  };
   // Administrative: grouping + visibility + cross-field operations, not a
   // value-bearing case (excluded from ValueCaseKind below, so it never gets
   // default/required and never contributes its own key to WidgetSettingsProps
@@ -98,10 +147,28 @@ export interface WidgetSettingsCaseMap {
       deps?: string[];
     };
   };
-  // One-shot action button. Not value-bearing.
+  // One-shot action button. Not value-bearing itself in WidgetSettingsProps
+  // (see the ValueCaseKind gate in FlattenDef below), but `run` may return a
+  // VerifyStatus -- if it does, WidgetSettingsPanel.tsx stores it ephemerally
+  // (session-only, never persisted) under this trigger's OWN key, exactly
+  // like `indicator`'s deps-driven result except pulled by a manual click
+  // instead of pushed by a deps change. That's what lets e.g. a group's own
+  // `validate` (or a sibling's `showWhen`) read "did the last run of this
+  // trigger succeed" -- a pull, not trigger.run writing anywhere itself.
+  //
+  // `deps` here means something different than everywhere else it appears
+  // in this file: it does NOT re-fire `run` (a trigger only ever fires on a
+  // click -- auto-firing it on a deps change would just make it a
+  // deps-driven `indicator` with extra steps, undoing the whole point of
+  // the manual/automatic split). It marks which settings the LAST result
+  // was actually about -- if any of them change afterward, that result no
+  // longer describes the current settings and TriggerRow resets it to
+  // `{state: "idle"}` rather than continuing to show a claim that's gone
+  // stale. A stale "ok" is actively misleading, not just out of date.
   trigger: {
-    run: (local: LocalValues) => void | Promise<void>;
+    run: (local: LocalValues) => void | VerifyStatus | Promise<void | VerifyStatus>;
     confirm?: boolean;
+    deps?: string[];
   };
   // Standalone derived read-only text. Not value-bearing. Kept separate from
   // `indicator` rather than having one case return `string | VerifyStatus`
@@ -137,12 +204,20 @@ type ValueCaseKind = keyof SettingType;
 // shape -- unlike the old ExtractSettingValue, which had to structurally
 // pattern-match an entire entry object each time, this only ever branches on
 // the single literal K, because the case map already did the sorting.
+//
+// select's own O extends Function check (added phase 3): a dynamic
+// (function-valued) `options` can't contribute known literal keys at compile
+// time -- there's no set of options to take `keyof` of until the function
+// actually runs -- so the value type widens to plain `string` instead. A
+// static options object goes on exactly as before (keyof O).
 export type ValueOf<
   K extends keyof WidgetSettingsCaseMap,
   Extra,
 > = K extends "select"
   ? Extra extends { options: infer O }
-    ? keyof O
+    ? O extends (...args: any[]) => any
+      ? string
+      : keyof O
     : never
   : K extends ValueCaseKind
     ? SettingType[K]
@@ -199,7 +274,7 @@ export interface WidgetSettingsDefinition {
 export type ResolvedWidgetSettingsEntry<E = WidgetSettingsEntry> = E extends {
   type: "select";
 }
-  ? E & { options: Record<string, string | SelectOptionDef> }
+  ? E & { options: SelectOptionsSource }
   : E;
 
 // Given a concrete entry (not a case-map lookup, an actual `{type, ...}`
@@ -237,7 +312,9 @@ type ExtractSettingValue<S, Key extends PropertyKey = PropertyKey> = S extends {
 }
   ? K extends "select"
     ? S extends { options: infer O }
-      ? keyof O
+      ? O extends (...args: any[]) => any
+        ? string
+        : keyof O
       : SchemaError<`Setting '${Key & string}' is missing 'options', required for type: "select"`>
     : ValueOf<K, S>
   : never;
@@ -337,14 +414,37 @@ type FlattenDef<TDef extends WidgetSettingsDefinition> = MergeContributors<{
     // below and leak `{[key]: undefined}` into WidgetSettingsProps, a real
     // (if harmless-looking) key nothing actually meant to put there.
     (TDef[K] extends { type: ValueCaseKind }
-      ? TDef[K] extends { default: any; required: true }
+      ? // Checked before the generic default/required branches below: a
+        // dynamic select's `default` can't be verified against anything --
+        // there's no keyof-able options object until the generator actually
+        // runs, so a `default` here isn't a narrower "which key" guarantee
+        // the way it is for a static select, it's just an unchecked guess.
+        // Rather than leave that hidden constraint in place, force the
+        // author to use `required: true` instead (matches how the runtime
+        // side already treats "no selection yet" -- see DynamicSelectRow's
+        // reconciliation, which resets to no-selection, never to `default`).
+        TDef[K] extends {
+          type: "select";
+          options: (...args: any[]) => any;
+          default: any;
+        }
         ? {
-            [P in K]: SchemaError<`Setting '${K & string}' declares both a default and required`>;
+            [P in K]: SchemaError<`Setting '${K & string}' declares a default for a dynamic select; its option set isn't known until runtime -- use required: true instead`>;
           }
-        : TDef[K] extends { default: any }
-          ? { [P in K]: ExtractSettingValue<TDef[K], K> }
-          : { [P in K]: ExtractSettingValue<TDef[K], K> | undefined }
+        : TDef[K] extends { default: any; required: true }
+          ? {
+              [P in K]: SchemaError<`Setting '${K & string}' declares both a default and required`>;
+            }
+          : TDef[K] extends { default: any }
+            ? { [P in K]: ExtractSettingValue<TDef[K], K> }
+            : { [P in K]: ExtractSettingValue<TDef[K], K> | undefined }
       : {}) &
+    // The `infer O extends Record<...>` constraint is also what excludes a
+    // dynamic (function-valued) select here, with no extra branch needed: a
+    // function type doesn't satisfy that constraint, so this falls straight
+    // to `{}` -- a dynamic select's options aren't known until runtime, so
+    // there's no way to know what (if any) subordinate settings a specific
+    // option would contribute at compile time.
     (TDef[K] extends {
       type: "select";
       options: infer O extends Record<string, string | SelectOptionDef>;

@@ -20,6 +20,7 @@ export type {
   LocalValues,
   SchemaError,
   SelectOptionDef,
+  SelectOptionsSource,
   SettingCondition,
   SettingType,
   VerifyStatus,

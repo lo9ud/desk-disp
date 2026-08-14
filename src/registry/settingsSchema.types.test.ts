@@ -948,6 +948,163 @@ export type test_structural_cases_end_to_end = Expect<
 >;
 
 // ---------------------------------------------------------------------------
+// Phase 3: dynamic (function-valued) select.options / string.suggestions --
+// the value type must widen appropriately (plain `string`, not a literal key
+// union) since the actual option set isn't known until runtime; `deps` and
+// `suggestions` themselves never affect the value type either way, static
+// or dynamic.
+// ---------------------------------------------------------------------------
+
+// A dynamic select's value type widens to plain `string` -- there's no
+// `keyof O` to take when O is a function, not an object of known keys.
+// `required: true`, not `default` -- a dynamic select can't declare one (see
+// the SchemaError test further down); this fixture uses the only form that
+// actually compiles.
+const DYNAMIC_SELECT = {
+  a: {
+    type: "select",
+    label: "A",
+    required: true,
+    options: async () => ({ x: "X", y: "Y" }),
+    deps: [],
+  },
+} satisfies WidgetSettingsDefinition;
+export type test_dynamic_select_widens_to_string = Expect<
+  Equal<WidgetSettingsProps<typeof DYNAMIC_SELECT>, { a: string | undefined }>
+>;
+
+// Contrast: the otherwise-identical STATIC form keeps its narrow literal
+// union -- confirms the widening above is really about function-valued
+// options specifically, not some accidental widening of select in general
+// (already covered by test_select_plain_strings above; restated here
+// side-by-side with its dynamic counterpart so the contrast is visible in
+// one place).
+const STATIC_SELECT_FOR_CONTRAST = {
+  a: { type: "select", label: "A", default: "x", options: { x: "X", y: "Y" } },
+} satisfies WidgetSettingsDefinition;
+export type test_static_select_stays_narrow_for_contrast = Expect<
+  Equal<
+    WidgetSettingsProps<typeof STATIC_SELECT_FOR_CONTRAST>,
+    { a: "x" | "y" }
+  >
+>;
+
+// A dynamic select alongside an ordinary sibling key -- proves the widening
+// is scoped to the dynamic select's own key, not contagious to the rest of
+// the flattened props.
+const DYNAMIC_SELECT_WITH_SIBLING = {
+  a: { type: "select", label: "A", required: true, options: () => ({ x: "X" }) },
+  b: { type: "boolean", label: "B", default: false },
+} satisfies WidgetSettingsDefinition;
+export type test_dynamic_select_sibling_unaffected = Expect<
+  Equal<
+    WidgetSettingsProps<typeof DYNAMIC_SELECT_WITH_SIBLING>,
+    { a: string | undefined; b: boolean }
+  >
+>;
+
+// A dynamic select's `default` can't be verified against anything -- there's
+// no options object to be a key of until the generator runs -- so it becomes
+// a named SchemaError instead of an unchecked guess, same taxonomy as
+// test_both_default_and_required_becomes_schema_error above.
+const DYNAMIC_SELECT_WITH_DEFAULT = {
+  a: {
+    type: "select",
+    label: "A",
+    default: "x",
+    options: async () => ({ x: "X", y: "Y" }),
+  },
+} satisfies WidgetSettingsDefinition;
+export type test_dynamic_select_default_becomes_schema_error = Expect<
+  Equal<
+    WidgetSettingsProps<typeof DYNAMIC_SELECT_WITH_DEFAULT>,
+    SchemaError<"Setting 'a' declares a default for a dynamic select; its option set isn't known until runtime -- use required: true instead">
+  >
+>;
+
+// A string with function-valued suggestions -- the value type stays plain
+// `string` either way; `suggestions` is presentation-only (feeds a
+// <datalist>), same as `unit` on number.
+const STRING_WITH_DYNAMIC_SUGGESTIONS = {
+  a: {
+    type: "string",
+    label: "A",
+    default: "",
+    suggestions: async () => ["x", "y"],
+    deps: [],
+  },
+} satisfies WidgetSettingsDefinition;
+export type test_string_dynamic_suggestions_stays_plain_string = Expect<
+  Equal<
+    WidgetSettingsProps<typeof STRING_WITH_DYNAMIC_SUGGESTIONS>,
+    { a: string }
+  >
+>;
+
+// trigger.run returning a VerifyStatus (added post-phase-3, so a trigger's
+// own result can be read ephemerally by e.g. a group's validate -- see
+// settingsSchema.ts's trigger case) doesn't change trigger's own
+// leak-checking result -- still contributes nothing to WidgetSettingsProps,
+// same as test_trigger_does_not_leak_own_key above. The ephemeral result is
+// a WidgetSettingsPanel.tsx runtime concept (LocalValues), never part of the
+// typed props a widget's own component receives.
+const TRIGGER_RETURNING_STATUS = {
+  a: {
+    type: "trigger",
+    label: "A",
+    run: async () => ({ state: "ok" as const }),
+  },
+} satisfies WidgetSettingsDefinition;
+export type test_trigger_returning_status_still_leaks_nothing = Expect<
+  Equal<WidgetSettingsProps<typeof TRIGGER_RETURNING_STATUS>, {}>
+>;
+
+// trigger's own `deps` (invalidates a stale result -- see settingsSchema.ts,
+// it does NOT re-fire `run`) is a WidgetSettingsPanel.tsx runtime-only
+// concept, same as marker/indicator's `deps` -- doesn't affect the value
+// type or leak its own key either, alongside an ordinary sibling to prove
+// it's not contagious.
+const TRIGGER_WITH_DEPS = {
+  a: {
+    type: "trigger",
+    label: "A",
+    run: () => {},
+    deps: ["b"],
+  },
+  b: { type: "number", label: "B", default: 0, min: 0, max: 10, step: 1 },
+} satisfies WidgetSettingsDefinition;
+export type test_trigger_deps_leaks_nothing = Expect<
+  Equal<WidgetSettingsProps<typeof TRIGGER_WITH_DEPS>, { b: number }>
+>;
+
+// string/number's own `validate` (added post-phase-3) doesn't affect the
+// value type either -- same reasoning as `unit`/`suggestions`: a runtime/
+// rendering concern only, invisible to FlattenDef.
+const STRING_AND_NUMBER_WITH_VALIDATE = {
+  a: {
+    type: "string",
+    label: "A",
+    default: "",
+    validate: (value) => (value.length > 0 ? true : "required"),
+  },
+  b: {
+    type: "number",
+    label: "B",
+    default: 0,
+    min: 0,
+    max: 10,
+    step: 1,
+    validate: (value) => (value % 2 === 0 ? true : "must be even"),
+  },
+} satisfies WidgetSettingsDefinition;
+export type test_string_and_number_validate_do_not_affect_value_type = Expect<
+  Equal<
+    WidgetSettingsProps<typeof STRING_AND_NUMBER_WITH_VALIDATE>,
+    { a: string; b: number }
+  >
+>;
+
+// ---------------------------------------------------------------------------
 // Negative tests: settingsDef literals that must NOT typecheck. Positive tests
 // above only prove the transform computes the right shape for valid input --
 // they say nothing about whether the discriminated union actually rejects
@@ -1106,6 +1263,30 @@ export const BAD_INDICATOR_COMPUTE_WRONG_RETURN_TYPE = {
     label: "A",
     // @ts-expect-error -- indicator.compute must return VerifyStatus, not string
     compute: () => "ok",
+  },
+} satisfies WidgetSettingsDefinition;
+
+// dynamic select.options returning the wrong shape (an array, not a
+// Record<string, string | SelectOptionDef>).
+export const BAD_DYNAMIC_SELECT_OPTIONS_WRONG_RETURN_TYPE = {
+  a: {
+    type: "select",
+    label: "A",
+    default: "x",
+    // @ts-expect-error -- options must resolve to a Record, not an array
+    options: async () => ["x", "y"],
+  },
+} satisfies WidgetSettingsDefinition;
+
+// dynamic string.suggestions returning the wrong element type (numbers, not
+// strings).
+export const BAD_DYNAMIC_STRING_SUGGESTIONS_WRONG_RETURN_TYPE = {
+  a: {
+    type: "string",
+    label: "A",
+    default: "",
+    // @ts-expect-error -- suggestions must resolve to string[], not number[]
+    suggestions: async () => [1, 2, 3],
   },
 } satisfies WidgetSettingsDefinition;
 

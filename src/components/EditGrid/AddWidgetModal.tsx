@@ -36,6 +36,15 @@ function SettingDescription({
     // setting belongs to an already-registered widget, so it's safe to
     // resolve it back to required for display purposes here.
     const opts = (setting as ResolvedWidgetSettingsEntry<typeof setting>).options;
+    // A dynamic (function-valued) options source has nothing to list here --
+    // its actual option set isn't known until runtime, let alone at
+    // add-widget-modal render time. Same minimal, no-enumeration treatment
+    // the generic fallback below already gives trigger/marker/indicator.
+    if (typeof opts === "function") {
+      return (
+        <li className={styles.settingItem}>{setting.label}: select (dynamic options)</li>
+      );
+    }
     const labels = Object.values(opts).map(optionLabel).join(" | ");
     const defaultOpt =
       "default" in setting ? opts[setting.default as string] : undefined;

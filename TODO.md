@@ -149,6 +149,9 @@
   - not clear to users that this is how you do it, and it's a bit clunky; ideally there should be a "New Layout" button in the UI somewhere that creates a new blank layout and switches to it immediately for editing
 - Inputs should be further genericized to reduce boilerplate and enforce consistency; additional props for common patterns like "allow empty" (for text inputs) or "allow custom" (for selects) would be helpful to reduce the need for custom components for these cases
   - hover/detail text (seeting def description above) and error display for validation issues
+  - number setting only ever renders as RangeInput (a slider) - no precise text-entry variant, bad fit for anything where an exact value matters more than a visual range (found via a port field in SettingsTestWidget)
+  - SelectInput/SelectBase render a plain native select with no blank/placeholder option for "nothing selected" - setting a select's value to "" (e.g. a dynamic select un-setting itself on dep change) has no matching `<option>`, so the browser just keeps showing whatever it last had selected even though the underlying state genuinely is empty. state and rendering disagree with no way to reconcile them without touching the component. found chasing what looked like a logic bug in DynamicSelectRow's dep-change un-set (settingsSchema/WidgetSettingsPanel side is fine, confirmed by reading SelectInput/SelectBase - it's the missing empty option)
+    - fix: add `<option hidden disabled value="" />` as the first option in SelectBase - unselectable by the user, but gives the browser something to match an externally-set empty value against so it renders correctly
 - builtin layouts should be more targeted, i.e. a "media" layout with a few different media widgets, a "system" layout with CPU/GPU/RAM widgets, etc.
   - media
   - system
