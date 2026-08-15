@@ -5,6 +5,7 @@ import {
   WidgetSettingsProps,
   WidgetSettingsDefinition,
 } from "../../registry/defRegistry";
+import styles from "./styles/performance.module.css";
 
 const CPU_SETTINGS_DEF = {
   style: {
@@ -29,17 +30,19 @@ export function CPU({
 }: WidgetSettingsProps<typeof CPU_SETTINGS_DEF>) {
   const { data } = useSubscription("cpu");
   return (
-    <Readout
-      title={showDetail ? "CPU Usage" : "CPU"}
-      value={showDetail ? `${data?.global_usage.toFixed(1)}%` : undefined}
-      subtitle={showDetail && data?.processors?.[0]?.brand}
-    >
-      {style === "bar" ? (
-        <Bar value={data?.global_usage || 0} />
-      ) : (
-        <PieChart value={data?.global_usage || 0} label={!showDetail} />
-      )}
-    </Readout>
+    <div className={styles.readoutContainer}>
+      <Readout
+        title={showDetail ? "CPU Usage" : "CPU"}
+        value={showDetail ? `${data?.global_usage.toFixed(1)}%` : undefined}
+        subtitle={showDetail && data?.processors?.[0]?.brand}
+      >
+        {style === "bar" ? (
+          <Bar value={data?.global_usage || 0} />
+        ) : (
+          <PieChart value={data?.global_usage || 0} label={!showDetail} />
+        )}
+      </Readout>
+    </div>
   );
 }
 

@@ -29,6 +29,32 @@ struct AppStateInner {
 
 type AppState = Mutex<AppStateInner>;
 
+/// Extra WebView2 browser args used in dev mode. First arg is Tauri's default
+/// (disables Edge context menus and SmartScreen); second enables the Chrome
+/// DevTools Protocol.
+const DEV_BROWSER_ARGS: &str =
+    "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=9222";
+
+static DEV_MODE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+
+/// Apply the process-wide WebView2 environment options to a window builder.
+///
+/// **Every** webview in the process must be created with identical environment
+/// options: they share one user-data folder, and WebView2 refuses to create a
+/// second webview whose options differ from the already-running browser
+/// process, failing with `ERROR_INVALID_STATE` (0x8007139F, surfaced as
+/// "failed to create webview"). So dev-only browser args cannot be applied to
+/// just the main window — every window builder must go through here.
+pub fn apply_webview_env<'a, R: tauri::Runtime, M: Manager<R>>(
+    builder: tauri::WebviewWindowBuilder<'a, R, M>,
+) -> tauri::WebviewWindowBuilder<'a, R, M> {
+    if *DEV_MODE.get().unwrap_or(&false) {
+        builder.additional_browser_args(DEV_BROWSER_ARGS)
+    } else {
+        builder
+    }
+}
+
 struct ChannelSubscribers {
     channels: HashMap<events::StreamName, Arc<AtomicUsize>>,
 }
@@ -269,6 +295,7 @@ pub fn run(args: cli::Args) {
             // to load within it. Monitor lookups use the AppHandle instead of the (not yet
             // built) window so this ordering is possible at all — see build_monitor_cache.
             let dev = args.dev;
+            let _ = DEV_MODE.set(dev);
             let target_monitor = get_monitor(app.handle(), &config).expect("Failed to get target monitor");
             let monitor_cache =
                 config::build_monitor_cache(app.handle(), target_monitor.name().map(|s| s.as_str()));
@@ -335,14 +362,13 @@ pub fn run(args: cli::Args) {
                     .devtools(true)
                     // Allow  zoom hotkeys to test different zoom levels
                     .zoom_hotkeys_enabled(true)
-                    // Allow the remote debugging protocol to debug the window
-                    // Only applicable on Windows
-                    // First arg is Tauri default (disable Edge builtin context menus and Microsoft SmartScreen - checks URL's and downloaded files against reputation db)
-                    // Second arg enables remote debugging on port 9222 (Chrome DevTools Protocol)
-                    .additional_browser_args("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=9222")
             } else {
                 win_builder
             };
+
+            // Browser args live here, not in the dev branch above: they are a
+            // process-wide WebView2 setting that every window must match.
+            let win_builder = apply_webview_env(win_builder);
 
             let win = win_builder.build().expect("Failed to create main window");
             place_window(&win, target_monitor);

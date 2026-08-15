@@ -5,6 +5,13 @@ import { WidgetInstanceIdContext } from "../widgets/widget";
 import { TodoList } from "../widgets/applets/todolist/TodoListWidget";
 import { logger } from "../utils/logger";
 import {
+  isPreviewScope,
+  previewDelete,
+  previewGet,
+  previewList,
+  previewSet,
+} from "../preview/previewPersistence";
+import {
   clearError,
   peekError,
   readCache,
@@ -38,6 +45,9 @@ class KeyValueHandle<T extends KeyValueType> {
   }
 
   async fetch(): Promise<T | null> {
+    if (isPreviewScope(this._scope)) {
+      return previewGet<T>(this._scope, undefined, this._key);
+    }
     const value = await ipc.getKeyValue(this._key, this._scope);
     if (value === null) return null;
     switch (this._kind) {
@@ -57,10 +67,18 @@ class KeyValueHandle<T extends KeyValueType> {
   }
 
   persist(value: T): Promise<void> {
+    if (isPreviewScope(this._scope)) {
+      previewSet(this._scope, undefined, this._key, value);
+      return Promise.resolve();
+    }
     return ipc.setKeyValue(this._key, String(value), this._scope);
   }
 
   delete(): Promise<void> {
+    if (isPreviewScope(this._scope)) {
+      previewDelete(this._scope, undefined, this._key);
+      return Promise.resolve();
+    }
     return ipc.deleteKeyValue(this._key, this._scope);
   }
 }
@@ -77,14 +95,27 @@ class ObjectHandle<T extends object> {
   }
 
   fetch(): Promise<T | null> {
+    if (isPreviewScope(this._scope)) {
+      return Promise.resolve(
+        previewGet<T>(this._scope, this._collection, this._key),
+      );
+    }
     return ipc.getObject<T>(this._key, this._scope, this._collection);
   }
 
   persist(value: T): Promise<void> {
+    if (isPreviewScope(this._scope)) {
+      previewSet(this._scope, this._collection, this._key, value);
+      return Promise.resolve();
+    }
     return ipc.setObject<T>(this._key, value, this._scope, this._collection);
   }
 
   delete(): Promise<void> {
+    if (isPreviewScope(this._scope)) {
+      previewDelete(this._scope, this._collection, this._key);
+      return Promise.resolve();
+    }
     return ipc.deleteObject(this._key, this._scope, this._collection);
   }
 }
@@ -100,6 +131,9 @@ class CollectionHandle<T extends object> {
   }
 
   fetch(): Promise<string[]> {
+    if (isPreviewScope(this._scope)) {
+      return Promise.resolve(previewList(this._scope, this._collection));
+    }
     return ipc.listObjects(this._scope, this._collection);
   }
 
@@ -108,6 +142,10 @@ class CollectionHandle<T extends object> {
   }
 
   delete(key: string): Promise<void> {
+    if (isPreviewScope(this._scope)) {
+      previewDelete(this._scope, this._collection, key);
+      return Promise.resolve();
+    }
     return ipc.deleteObject(key, this._scope, this._collection);
   }
 }

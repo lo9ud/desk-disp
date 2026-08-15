@@ -15,6 +15,8 @@ export function ConfirmSaveModal({
   return (
     <Modal
       title="Save with warnings?"
+      // Clicking away backs out of the save rather than committing it.
+      onClose={onCancel}
       actions={[
         <Button key="cancel" variant="ghost_danger" onClick={onCancel}>
           Cancel

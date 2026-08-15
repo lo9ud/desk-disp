@@ -1,0 +1,51 @@
+.error {
+  width: 100%;
+  height: 100%;
+  padding: 0.5em;
+  background: rgb(87, 0, 0);
+  border: 1px solid rgb(255, 0, 0);
+  color: white;
+  display: flex;
+  flex-direction: column;
+}
+
+.errorMessage {
+  margin-bottom: 1em;
+  flex-grow: 1;
+}
+
+.errorButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1em;
+}
+
+.errorDetails {
+  width: 100%;
+  & h3 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+  }
+}
+
+.errorDetailsTable {
+  width: 100%;
+  border-collapse: collapse;
+  & * {
+    border: 1px solid white;
+    padding: 0.5em;
+  }
+}
+
+.stackTrace {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.stackTraceLine {
+  display: block;
+  padding-left: 1em;
+  text-indent: -1em;
+  margin-top: 0.5em;
+}
+

@@ -34,8 +34,3 @@ export interface PaddingDragState {
   startXY: number;
   startPadding: GridPadding;
 }
-
-export interface AddTarget {
-  col: number;
-  row: number;
-}

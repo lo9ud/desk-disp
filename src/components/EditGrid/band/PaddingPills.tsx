@@ -2,16 +2,19 @@ import {
   ArrowsRightLeftIcon,
   ArrowsUpDownIcon,
 } from "@heroicons/react/16/solid";
-import type { GridPadding } from "../../utils/validation";
-import styles from "./styles/grid.module.css";
-import { PaddingEdge } from "./types";
+import { combineClassNames } from "../../../utils/format";
+import type { GridPadding } from "../../../utils/validation";
+import styles from "../styles/band.module.css";
+import { PaddingEdge } from "../types";
 
-export function PaddingHandles({
+export function PaddingPills({
   padding,
   onDragStart,
+  onGuide,
 }: {
   padding: GridPadding;
   onDragStart: (e: React.PointerEvent, edge: PaddingEdge) => void;
+  onGuide: (edge: PaddingEdge | null) => void;
 }) {
   return (
     <>
@@ -21,13 +24,13 @@ export function PaddingHandles({
         return (
           <div
             key={`padding-${edge}`}
-            className={`${styles.paddingHandle} ${styles[edge]}`}
+            className={combineClassNames(styles.paddingPill, styles[edge])}
+            title={`Drag to adjust ${edge} padding`}
             onPointerDown={(e) => onDragStart(e, edge)}
+            onPointerEnter={() => onGuide(edge)}
+            onPointerLeave={() => onGuide(null)}
           >
-            <GripIcon className={styles.paddingHandleGrip} />
-            <span className={styles.paddingHandleLabel}>
-              {padding[edge]}px
-            </span>
+            <GripIcon /> {padding[edge]}px
           </div>
         );
       })}

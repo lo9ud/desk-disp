@@ -1,6 +1,5 @@
 import { CSSProperties } from "react";
 import { WidgetPlacement } from "../../ffi_types";
-import { getWidgetDefinition } from "../../registry/defRegistry";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
 import { boxesOverlap, GridDims } from "../../utils/validation";
 import { errorSeverity, TooSmallError, WidgetError } from "../../utils/widgetErrors";
@@ -28,21 +27,40 @@ export function getBlockedWidgetIds(
     .map(({ id }) => id);
 }
 
+/**
+ * Convert a client-space point into the element's layout-pixel space, undoing
+ * any ancestor CSS transform. Assumes uniform scale (no rotation/skew), which
+ * is all the edit stage ever applies.
+ */
+export function clientToLayout(
+  el: HTMLElement,
+  clientX: number,
+  clientY: number,
+): { x: number; y: number; w: number; h: number } {
+  const rect = el.getBoundingClientRect();
+  const s = el.offsetWidth > 0 ? rect.width / el.offsetWidth : 1;
+  return {
+    x: (clientX - rect.left) / s,
+    y: (clientY - rect.top) / s,
+    w: el.offsetWidth,
+    h: el.offsetHeight,
+  };
+}
+
 export function posToCellCoord(
   clientX: number,
   clientY: number,
-  rect: DOMRect,
+  el: HTMLElement,
   dims: GridDims,
 ): { col: number; row: number } {
   const { padding } = dims;
-  const x = clientX - rect.left - padding.left;
-  const y = clientY - rect.top - padding.top;
+  const { x: lx, y: ly, w, h } = clientToLayout(el, clientX, clientY);
+  const x = lx - padding.left;
+  const y = ly - padding.top;
   const cellW =
-    (rect.width - padding.left - padding.right - dims.gap * (dims.cols - 1)) /
-    dims.cols;
+    (w - padding.left - padding.right - dims.gap * (dims.cols - 1)) / dims.cols;
   const cellH =
-    (rect.height - padding.top - padding.bottom - dims.gap * (dims.rows - 1)) /
-    dims.rows;
+    (h - padding.top - padding.bottom - dims.gap * (dims.rows - 1)) / dims.rows;
   return {
     col: Math.max(
       1,
@@ -198,14 +216,18 @@ export function gridContainerStyle(dims: GridDims): CSSProperties {
   } as CSSProperties;
 }
 
-export function defaultSettings(defId: string): Record<string, unknown> {
-  const def = getWidgetDefinition(defId);
-  if (!def?.settingsDef) return {};
-  const s: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(def.settingsDef)) {
-    if ("default" in v) s[k] = v.default;
+/** First empty cell in reading order (row-major); computeEmptyCells is
+ *  col-major, so it can't be reused for this. */
+export function firstFitCell(
+  occupied: Set<string>,
+  dims: GridDims,
+): { col: number; row: number } | null {
+  for (let r = 1; r <= dims.rows; r++) {
+    for (let c = 1; c <= dims.cols; c++) {
+      if (!occupied.has(`${c},${r}`)) return { col: c, row: r };
+    }
   }
-  return s;
+  return null;
 }
 
 export function checkWidgetSize(

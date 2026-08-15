@@ -1,0 +1,256 @@
+/* Chrome living in the edit-mode buffer band. All of it fades in only once
+   the band has opened (data-entered on .editViewport in grid.module.css). */
+
+/* ===== Notch (top-left: save/cancel/add + error indicator + expansion) ===== */
+
+.notch {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  height: var(--band-top);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity var(--dur-med) var(--ease-out);
+}
+
+:global([data-entered]) .notch {
+  opacity: 1;
+}
+
+/* Add-widget entry point, top-right: same side as the rail it opens. */
+.addButton {
+  position: absolute;
+  top: 0;
+  right: 12px;
+  height: var(--band-top);
+  display: flex;
+  align-items: center;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity var(--dur-med) var(--ease-out);
+}
+
+:global([data-entered]) .addButton {
+  opacity: 1;
+}
+
+.notchBadge {
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+.notchBadge.error {
+  color: var(--ui-danger-text);
+}
+.notchBadge.warning {
+  color: var(--ui-warning-text);
+}
+
+/* Inline disclosure: expands horizontally into the top band next to the
+   chevron, matching the original edit-bar pattern. */
+.gapControl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85em;
+  color: var(--ui-text);
+  transition: max-width var(--dur-slow) ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.gapControlOpen {
+  max-width: 200px;
+}
+.gapControlClosed {
+  max-width: 0;
+}
+
+.gapScrubber {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  height: 24px;
+  font-size: 0.85em;
+  color: var(--ui-text-muted);
+  background: color-mix(in srgb, var(--ui-panel) 80%, transparent);
+  border: 1px solid var(--ui-border);
+  border-radius: 4px;
+  cursor: ew-resize;
+  white-space: nowrap;
+  & > svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+}
+/* px-space interaction: unavailable while the stage is scaled (add mode) */
+.gapScrubberDisabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ===== Row/col chips (mid-edge, in the band) ===== */
+
+/* The wide gap is the docking slot: the padding pill sits at mid-edge on the
+   padding line and slides into this slot when padding reaches 0. */
+.edgeChips {
+  position: absolute;
+  display: flex;
+  gap: 64px;
+  z-index: 150;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+  /* The 64px gap is a hole for the padding pill to sit in, so the container
+     must not swallow clicks that land in it. */
+  pointer-events: none;
+}
+
+:global([data-entered]) .edgeChips {
+  opacity: 0.65;
+}
+:global([data-entered]) .edgeChips:hover {
+  opacity: 1;
+}
+
+.edgeChips.top {
+  top: 0;
+  height: var(--band-top);
+  left: 50%;
+  transform: translateX(-50%);
+  flex-direction: row;
+  align-items: center;
+}
+.edgeChips.bottom {
+  bottom: 0;
+  height: var(--band-bottom);
+  left: 50%;
+  transform: translateX(-50%);
+  flex-direction: row;
+  align-items: center;
+}
+/* Vertical centering is relative to the grid view, not the stage: the top
+   band is taller than the bottom one, so the stage's 50% sits above the
+   container's true midpoint. */
+.edgeChips.left {
+  left: 0;
+  width: var(--band-left);
+  top: calc(var(--band-top) + (100% - var(--band-top) - var(--band-bottom)) / 2);
+  transform: translateY(-50%);
+  flex-direction: column;
+  align-items: center;
+}
+.edgeChips.right {
+  right: 0;
+  width: var(--band-right);
+  top: calc(var(--band-top) + (100% - var(--band-top) - var(--band-bottom)) / 2);
+  transform: translateY(-50%);
+  flex-direction: column;
+  align-items: center;
+}
+
+.edgeChipButton {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--ui-panel);
+  border: var(--ui-selection-border) 1px solid;
+  border-radius: 4px;
+  color: var(--ui-text);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--dur-fast) var(--ease-out);
+  & > svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+.edgeChipButton:hover {
+  background: var(--ui-control-hover);
+}
+
+/* ===== Padding pills (ride the padding line at mid-edge; dock into the
+   chips' slot at padding 0). Dragging from the line always has the full
+   padding distance of travel available, unlike a handle parked at the
+   screen edge where the cursor clamps after ~15px. ===== */
+
+.paddingPill {
+  position: absolute;
+  /* Above the edge chips, whose container spans the pill's resting slot. */
+  z-index: 160;
+  /* Height of the pill along its drag axis; the clearance below is derived
+     from it so the pill lands centred in the band at zero padding. */
+  --pill-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  height: 20px;
+  font-size: 11px;
+  color: var(--ui-text-muted);
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-border);
+  border-radius: 4px;
+  white-space: nowrap;
+  /* opacity: 0.65; */
+  transition: opacity var(--dur-fast) var(--ease-out);
+  & > svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+  }
+}
+.paddingPill:hover {
+  opacity: 1;
+}
+
+/* Pills track the padding line but sit fully on its outer side, clear of the
+   line itself: a widget in an outer row/column has its edge exactly there, and
+   its resize handles straddle that edge by ±5px. The dashed guide (shown on
+   hover/drag) is what ties the offset pill back to the line it moves.
+   Clearance is half the leftover band, so at zero padding the pill comes to
+   rest centred in the band (and so in the gap between the +/- chips). Bands
+   are sized to keep that >= the handles' 5px overhang. */
+.paddingPill.top,
+.paddingPill.bottom {
+  left: 50%;
+  cursor: ns-resize;
+}
+.paddingPill.top {
+  --pill-clearance: calc((var(--band-top) - var(--pill-size)) / 2);
+  top: var(--grid-padding-top);
+  transform: translate(-50%, calc(-100% - var(--pill-clearance)));
+}
+.paddingPill.bottom {
+  --pill-clearance: calc((var(--band-bottom) - var(--pill-size)) / 2);
+  bottom: var(--grid-padding-bottom);
+  transform: translate(-50%, calc(100% + var(--pill-clearance)));
+}
+
+/* Vertical edges: rotate the pill to run along the edge. The writing mode
+   flips the flex axis and text; the SVG arrows stay unrotated, which is
+   correct - the drag axis for left/right padding really is horizontal. */
+.paddingPill.left,
+.paddingPill.right {
+  writing-mode: vertical-rl;
+  height: auto;
+  width: 20px;
+  padding: 8px 2px;
+  top: 50%;
+  cursor: ew-resize;
+}
+.paddingPill.left {
+  --pill-clearance: calc((var(--band-left) - var(--pill-size)) / 2);
+  left: var(--grid-padding-left);
+  transform: translate(calc(-100% - var(--pill-clearance)), -50%);
+}
+.paddingPill.right {
+  --pill-clearance: calc((var(--band-right) - var(--pill-size)) / 2);
+  right: var(--grid-padding-right);
+  transform: translate(calc(100% + var(--pill-clearance)), -50%);
+}

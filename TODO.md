@@ -67,7 +67,7 @@
   - management of plugin dependencies and versions
   - security considerations for running untrusted code in plugins
   - internal API exposure, needs to be well-defined and stable, with clear documentation for plugin authors
-  - see also: [widget plugins](gitignore/plugin-system-design-summary.md) and [native plugins](gitignore/native-abi-plugin-design-summary.md.md) planning docs
+  - see also: [widget plugins](gitignore/plugin-system-design-summary.md) and [native plugins](gitignore/native-abi-plugin-design-summary.md) planning docs
 - synthetic layouts
   - function-generated widgets
   - for debug/development reasons
@@ -75,15 +75,16 @@
 
 ## Refinements - improvements to existing features or code quality
 
+- look into <https://github.com/tauri-apps/window-vibrancy> for more interesting background effects
 - forward state of `dev` cli arg to frontend for dev-only features (e.g. dev-only debug panel, config and storage purge/management, etc.)
   - extra settings page?
   - maybe compile-time flag as well/instead, to keep dev-only code out of production builds
 - file.rs atomic writes all use the same tmp.json extension, which means concurrent writes to different files can collide and corrupt each other; need to use a unique tmp file per target file
   - linked, probably needs a mutex for files to keep contention explicit rather than relying on the filesystem to handle it
   - while at it, cache directory/file handles, maybe make them singleton (keyed on path) so that only one handle exists for any given filesystem path
-- add widget modal needs better search/sort/filtering, and maybe a "recently used" section
-  - even with only a handful of widgets, the list is already long enough to be unwieldy; with more widgets it will be worse
-  - maybe a "favourites" section for widgets you use often, or a way to pin widgets to the top of the list
+- ~~add widget modal needs better search/sort/filtering~~ done - replaced by the add-mode rail (search + collapsible category/tag filters, live previews)
+  - still want a "recently used" or "favourites" section - the card's top-right corner is reserved for a star/pin button
+  - maybe a way to pin widgets to the top of the list
   - more thought needed on how to work with tags, categories etc.
     - hierarchial categories? e.g. "media" -> "music" etc.
     - concurrent 'vibe' tags? e.g. "aesthetic" or "minimalist" or "retro" etc.
@@ -116,8 +117,9 @@
   - multiple layout/sizing options? small confirmation dialog vs full-page overlay for critical errors or onboarding etc.
   - should help the temptation to constantly special-case everything, rather have a consistent API for actions across the app
   - standardise certain actions like "Cancel"/"Close" that are used across the app, so they look and behave the same everywhere (or just a cross (X) close icon? needs explicit close handler for all windows regardless of other actions however, to prevent malformed/inconsistent data)
-  - the "raised surface" recipe (bg/border/radius/shadow) is currently hand-copied independently across Panel, Modal, EditGrid's edit bar, and Onboarding's card - should consolidate into one shared base once this gets tackled
-- EditGrid's icon/edge buttons still hand-roll their own CSS instead of using the Button primitive's ghost/ghost_danger variants - left alone for now since EditGrid needs a proper overhaul anyway
+    - Modal now takes an optional `onClose` (backdrop click dismisses when given); that's the handler to build the standard X button on. Still no Esc handling in the primitive - edit mode's key ladder covers its own modals, but the settings window's modals have none
+  - the "raised surface" recipe (bg/border/radius/shadow) is currently hand-copied independently across Panel, Modal, EditGrid's notch/rail, the settings popout window, and Onboarding's card - should consolidate into one shared base once this gets tackled
+- EditGrid's icon/edge buttons (edge chips, padding pills, widget icon buttons) still hand-roll their own CSS instead of using the Button primitive's variants - the edit mode overhaul is done now, so this no longer has an excuse
 - the widget harness (suspense, error boundary, placement, etc.) is split between the `Widget` component and the registerWidget wrapper
   - this should ideally be consolidated, possibly into a single file, so that ordering is clear and consistent
   - needed for custom error components to be used in the error boundary (via same mechanism as the loading component is currently passed in)
@@ -138,8 +140,8 @@
 - widget backgrounds should properly border the actual widget content, to maximise legibility over transparent backgrounds + complex wallpapers
   - flat background on widget class results in unintuitive background shapes and sizes, especially with padding and gaps
   - separate background layer? (allwos for backdrop effects and such in the future maybe) that is sized to the widget content (+ padding?), and respects border radius settings if/when those are added
-- Widget settings panel needs better placement, currently covering the entire widget and making it impossible to see the changes as you make them; ideally it should be anchored to the widget but not obscure it, maybe a sidebar or a floating panel that tries to position itself intelligently around the widget
-- cursor doesn't show `cursor: grabbing` during drag/resize in edit mode despite `.widgetOverlay:active` having the rule - something about the z-index stacking during drag means it doesn't actually take effect, needs a proper look. applys currently while hovering over a widget, but not while dragging it
+- ~~Widget settings panel needs better placement~~ done - during edit mode it's an anchored in-canvas panel placed beside the widget (right/left/below/above, first side with room), draggable if that doesn't suit. Form layout inside it is still the 600px-modal design though, needs tightening for ~360px
+- ~~cursor doesn't show `cursor: grabbing` during drag/resize~~ done - `:active` doesn't survive pointer capture; now a `body.dragging` class with a `--drag-cursor` var, set per drag kind (grabbing/resize direction)
 - visualiser needs fixing for the new settings system, currently broken for lots of settigns combinations
   - overlapping/missing bars in certain mirroring/flip combinations specifically - needs a careful review of the bar drawing logic to ensure all bars are drawn and correctly positioned in all configurations
 - onboarding should use the demo layout, to point out different configurations of the same widget etc.
@@ -158,7 +160,7 @@
   - mixed/dashboard
   - aesthetic?
     - waiting on APOD/quote widgets to be added to have enough for this
-- "Confirm discard changes?" popup in edit mode when trying to navigate away with unsaved changes
+- ~~"Confirm discard changes?" popup in edit mode~~ done - cancel with a dirty draft confirms first (`dirty` flag on EditModeContext)
 - Free-placement mode as an option?
   - just set an arbitrary number of rows and columns (note some collisions are O(n\*m) in rows/columns)
   - secondary renderer?
@@ -180,7 +182,8 @@
   - `generate_theme`'s `color_scheme` is still computed with the old literal comparison (`if 0.12_f64 < 0.5`) instead of the `dark` param, so both variants save `color_scheme: "dark"`
   - generated themes do something seriously weird when setting colours, seems like events stack up then fire all at once
 - edit mode placement ghosts are very saturated, need higher transparency (maybe stronger border to make them more visible on light backgrounds)
-- Edit mode needs significant updates, see [planning doc](gitignore/edit_layout_overhaul.md)
+  - the selected-widget background wash was removed for this reason (it stacked with the ghost); the ghost itself is untouched so far
+- ~~Edit mode needs significant updates~~ done - buffer band + chrome, selection model, Esc ladder, add-mode rail with live previews, settings popout. [planning doc](gitignore/edit_layout_overhaul.md) rewritten as the record of what was built
 - editing layouts should have a name field, so the user can rename the layout without having to go into settings
 - visualiser "No audio data" message is extremely ugly and not very legible, needs a better design
 - per-widget error handling
@@ -197,6 +200,7 @@
   - set better alignment and spacing for these
     - left align input? better to associate label with input
     - maybe right align label for same reason, and maybe error to put it at edge of modal/panel instead of next to input? (needs hover for error details)
+- add a button to widgets in edit mode to allow replacing the widget with a different one
 - visualiser idle animation does not exist despite setting existing for it, needs to be implemented
   - maybe a simple "pulse" animation on the bars when no audio data is present, to indicate that the visualiser is still active and waiting for audio data
   - configurable in the settings?

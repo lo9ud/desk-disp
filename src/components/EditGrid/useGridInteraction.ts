@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { WidgetPlacement } from "../../ffi_types";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
 import { GridDims } from "../../utils/validation";
+import { beginDragCursor, endDragCursor } from "./dragCursor";
 import { checkGhostValid, computeGhostPlacement, posToCellCoord } from "./gridMath";
 import {
   DragInteraction,
@@ -13,16 +14,31 @@ import {
   ResizeInteraction,
 } from "./types";
 
-const PADDING_MIN = 30;
 const PADDING_STEP = 10;
 const GAP_MIN = 10;
 const GAP_STEP = 5;
+
+/** Pointer travel below this is a click, not a drag. */
+const DRAG_THRESHOLD_PX = 4;
+
+const RESIZE_CURSORS: Record<ResizeDir, string> = {
+  tl: "nwse-resize",
+  br: "nwse-resize",
+  tr: "nesw-resize",
+  bl: "nesw-resize",
+  t: "ns-resize",
+  b: "ns-resize",
+  l: "ew-resize",
+  r: "ew-resize",
+};
 
 export function useGridInteraction(
   dims: GridDims,
   editRegistry: InstanceRegistry | null,
   moveWidget: (id: string, placement: WidgetPlacement) => void,
   updateGridDims: (dims: Partial<GridDims>) => void,
+  onTrueClick?: (instanceId: string) => void,
+  onDragBegin?: (instanceId: string) => void,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [interaction, setInteraction] = useState<Interaction | null>(null);
@@ -30,6 +46,11 @@ export function useGridInteraction(
   const interactionRef = useRef<Interaction | null>(null);
   const paddingDragRef = useRef<PaddingDragState | null>(null);
   const gapDragRef = useRef<{ startX: number; startGap: number } | null>(null);
+  const pendingDragRef = useRef<{
+    startX: number;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
 
   useEffect(() => {
     interactionRef.current = interaction;
@@ -43,7 +64,7 @@ export function useGridInteraction(
         const delta = (isVertical ? e.clientY : e.clientX) - startXY;
         const sign = edge === "top" || edge === "left" ? 1 : -1;
         const newVal = Math.max(
-          PADDING_MIN,
+          0,
           Math.round((startPadding[edge] + sign * delta) / PADDING_STEP) *
             PADDING_STEP,
         );
@@ -52,8 +73,19 @@ export function useGridInteraction(
       }
       const ia = interactionRef.current;
       if (!ia || !containerRef.current || !editRegistry) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const cell = posToCellCoord(e.clientX, e.clientY, rect, dims);
+      if (ia.kind === "move" && pendingDragRef.current && !pendingDragRef.current.moved) {
+        const { startX, startY } = pendingDragRef.current;
+        if (
+          Math.hypot(e.clientX - startX, e.clientY - startY) <
+          DRAG_THRESHOLD_PX
+        ) {
+          return;
+        }
+        pendingDragRef.current.moved = true;
+        beginDragCursor("grabbing");
+        onDragBegin?.(ia.instanceId);
+      }
+      const cell = posToCellCoord(e.clientX, e.clientY, containerRef.current, dims);
       const placement = computeGhostPlacement(ia, cell, dims);
       const valid = checkGhostValid(
         placement,
@@ -63,7 +95,7 @@ export function useGridInteraction(
       );
       setGhost({ placement, valid });
     },
-    [dims, editRegistry, updateGridDims],
+    [dims, editRegistry, updateGridDims, onDragBegin],
   );
 
   const handlePointerUp = useCallback(
@@ -71,30 +103,53 @@ export function useGridInteraction(
       if (paddingDragRef.current) {
         containerRef.current?.releasePointerCapture(e.pointerId);
         paddingDragRef.current = null;
+        endDragCursor();
         return;
       }
       const ia = interactionRef.current;
       if (!ia) return;
       containerRef.current?.releasePointerCapture(e.pointerId);
-      if (ghost?.valid) {
+      const wasTrueClick =
+        ia.kind === "move" &&
+        pendingDragRef.current !== null &&
+        !pendingDragRef.current.moved;
+      pendingDragRef.current = null;
+      endDragCursor();
+      if (wasTrueClick) {
+        onTrueClick?.(ia.instanceId);
+      } else if (ghost?.valid) {
         moveWidget(ia.instanceId, ghost.placement);
       }
       setInteraction(null);
       setGhost(null);
     },
-    [ghost, moveWidget],
+    [ghost, moveWidget, onTrueClick],
   );
+
+  const handlePointerCancel = useCallback(() => {
+    paddingDragRef.current = null;
+    pendingDragRef.current = null;
+    gapDragRef.current = null;
+    endDragCursor();
+    setInteraction(null);
+    setGhost(null);
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     el.addEventListener("pointermove", handlePointerMove);
     el.addEventListener("pointerup", handlePointerUp);
+    el.addEventListener("pointercancel", handlePointerCancel);
     return () => {
       el.removeEventListener("pointermove", handlePointerMove);
       el.removeEventListener("pointerup", handlePointerUp);
+      el.removeEventListener("pointercancel", handlePointerCancel);
     };
-  }, [handlePointerMove, handlePointerUp]);
+  }, [handlePointerMove, handlePointerUp, handlePointerCancel]);
+
+  // If the component unmounts mid-drag, don't strand the forced cursor.
+  useEffect(() => endDragCursor, []);
 
   function startPaddingDrag(e: React.PointerEvent, edge: PaddingEdge) {
     e.stopPropagation();
@@ -104,11 +159,15 @@ export function useGridInteraction(
       startXY: edge === "top" || edge === "bottom" ? e.clientY : e.clientX,
       startPadding: dims.padding,
     };
+    beginDragCursor(
+      edge === "top" || edge === "bottom" ? "ns-resize" : "ew-resize",
+    );
   }
 
   function handleGapPointerDown(e: React.PointerEvent) {
     e.currentTarget.setPointerCapture(e.pointerId);
     gapDragRef.current = { startX: e.clientX, startGap: dims.gap };
+    beginDragCursor("ew-resize");
   }
 
   function handleGapPointerMove(e: React.PointerEvent) {
@@ -125,6 +184,7 @@ export function useGridInteraction(
 
   function handleGapPointerUp() {
     gapDragRef.current = null;
+    endDragCursor();
   }
 
   function startDrag(e: React.PointerEvent, instanceId: string) {
@@ -132,8 +192,7 @@ export function useGridInteraction(
     const inst = editRegistry.get(instanceId);
     if (!inst) return;
     const p = inst.placement;
-    const rect = containerRef.current.getBoundingClientRect();
-    const cell = posToCellCoord(e.clientX, e.clientY, rect, dims);
+    const cell = posToCellCoord(e.clientX, e.clientY, containerRef.current, dims);
     const ia: DragInteraction = {
       kind: "move",
       instanceId,
@@ -142,8 +201,10 @@ export function useGridInteraction(
       grabOffsetRow: cell.row - p.row,
     };
     containerRef.current.setPointerCapture(e.pointerId);
+    pendingDragRef.current = { startX: e.clientX, startY: e.clientY, moved: false };
     setInteraction(ia);
-    setGhost({ placement: p, valid: true });
+    // Ghost is deferred until the drag threshold is crossed, so a plain
+    // click never flashes one.
   }
 
   function startResize(e: React.PointerEvent, instanceId: string, dir: ResizeDir) {
@@ -159,6 +220,7 @@ export function useGridInteraction(
     containerRef.current.setPointerCapture(e.pointerId);
     setInteraction(ia);
     setGhost({ placement: inst.placement, valid: true });
+    beginDragCursor(RESIZE_CURSORS[dir]);
   }
 
   return {

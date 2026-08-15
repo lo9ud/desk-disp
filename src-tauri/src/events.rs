@@ -126,6 +126,7 @@ struct WidgetUpdatedPayload<'a> {
     config: &'a WidgetConfig,
 }
 
+
 pub fn emit_config_changed(app: &AppHandle, config: &Config) {
     tracing::trace!(target: "events", event = CONFIG_CHANGED, "emit");
     app.emit(CONFIG_CHANGED, config).ok();
@@ -155,3 +156,4 @@ pub fn emit_preferences_preview(app: &AppHandle, prefs: &Preferences) {
     tracing::trace!(target: "events", event = PREFERENCES_PREVIEW, "emit");
     app.emit_to("main", PREFERENCES_PREVIEW, prefs).ok();
 }
+

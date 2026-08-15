@@ -5,6 +5,7 @@ import {
   WidgetSettingsDefinition,
   WidgetSettingsProps,
 } from "../../registry/defRegistry";
+import styles from "./styles/performance.module.css";
 
 const SWAP_WIDGET_SETTINGS_DEF = {
   style: {
@@ -29,37 +30,37 @@ export function Swap({
 }: WidgetSettingsProps<typeof SWAP_WIDGET_SETTINGS_DEF>) {
   const { data } = useSubscription("memory");
   return (
-    <Readout
-      title={showDetail ? "Swap Usage" : "Swap"}
-      value={
-        showDetail
-          ? `${((Number(data?.swap_used ?? 0n) / Number(data?.swap_total ?? 1n)) * 100).toFixed(1)}%`
-          : undefined
-      }
-      subtitle={
-        showDetail &&
-        `${(Number(data?.swap_used ?? 0n) / 1024 ** 3).toFixed(1)} used of ${(Number(data?.swap_total ?? 0n) / 1024 ** 3).toFixed(1)} GB total`
-      }
-    >
-      {style === "bar" ? (
-        <Bar
-          value={
-            (Number(data?.swap_used ?? 0n) /
-              Number(data?.swap_total ?? 1n)) *
-            100
-          }
-        />
-      ) : (
-        <PieChart
-          value={
-            (Number(data?.swap_used ?? 0n) /
-              Number(data?.swap_total ?? 1n)) *
-            100
-          }
-          label={!showDetail}
-        />
-      )}
-    </Readout>
+    <div className={styles.readoutContainer}>
+      <Readout
+        title={showDetail ? "Swap Usage" : "Swap"}
+        value={
+          showDetail
+            ? `${((Number(data?.swap_used ?? 0n) / Number(data?.swap_total ?? 1n)) * 100).toFixed(1)}%`
+            : undefined
+        }
+        subtitle={
+          showDetail &&
+          `${(Number(data?.swap_used ?? 0n) / 1024 ** 3).toFixed(1)} used of ${(Number(data?.swap_total ?? 0n) / 1024 ** 3).toFixed(1)} GB total`
+        }
+      >
+        {style === "bar" ? (
+          <Bar
+            value={
+              (Number(data?.swap_used ?? 0n) / Number(data?.swap_total ?? 1n)) *
+              100
+            }
+          />
+        ) : (
+          <PieChart
+            value={
+              (Number(data?.swap_used ?? 0n) / Number(data?.swap_total ?? 1n)) *
+              100
+            }
+            label={!showDetail}
+          />
+        )}
+      </Readout>
+    </div>
   );
 }
 

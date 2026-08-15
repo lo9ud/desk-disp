@@ -299,7 +299,7 @@ export type ResolvedWidgetSettingsEntry<E = WidgetSettingsEntry> = E extends {
 // permissive catch-all needed to tolerate arbitrary extra fields (`default`,
 // `options`, etc., since which ones apply depends on the very `type` being
 // typo'd) collapsed everything to `unknown` throughout WidgetSettingsPanel.tsx
-// and AddWidgetModal.tsx (worse than options' narrow "possibly undefined"
+// and its consumers (worse than options' narrow "possibly undefined"
 // ripple), broke `typeof v === "object"` narrowing since `unknown` admits
 // `null` too, AND accidentally swallowed all 7 of the unrelated "mixing up
 // cases" negative tests as collateral damage, since the catch-all can't

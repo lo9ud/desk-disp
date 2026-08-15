@@ -48,6 +48,7 @@ function LicenseRow({ entry }: { entry: LicenseEntry }) {
       </tr>
       {expanded && entry.licenseText && (
         <Modal
+          onClose={() => setExpanded(false)}
           actions={[
             <Button key="close" variant="ghost" onClick={() => setExpanded(false)}>
               Close

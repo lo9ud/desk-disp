@@ -6,12 +6,14 @@ type ButtonSize = "sm" | "md";
 
 const variantClass = {
   default: undefined,
-  ghost: styles.ghost,
-  ghost_danger: styles.ghostDanger,
-  accent: styles.accent,
-  danger: styles.danger,
-  warning: styles.warning,
-  icon: styles.icon,
+  ghost: [styles.ghost],
+  ghost_danger: [styles.ghostDanger],
+  accent: [styles.accent],
+  danger: [styles.danger],
+  warning: [styles.warning],
+  icon: [styles.icon],
+  icon_danger: [styles.icon, styles.danger],
+  icon_accent: [styles.icon, styles.accent],
 };
 export type ButtonVariant = keyof typeof variantClass;
 
@@ -96,11 +98,13 @@ export function Button({
       window.removeEventListener("keydown", handler);
     };
   }, [keybind]);
+  const classes = variantClass[variant] ?? [];
   return (
     <button
+      type="button"
       className={combineClassNames(
         styles.button,
-        variantClass[variant],
+        ...classes,
         size === "sm" ? styles.sm : undefined,
         className,
       )}

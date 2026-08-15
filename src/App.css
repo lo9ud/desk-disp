@@ -10,6 +10,13 @@
 }
 
 :root {
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-med: 200ms;
+  --dur-slow: 300ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
   /* Applied */
   font-family: var(--ui-font);
   font-weight: 400;
@@ -33,6 +40,13 @@ html,
 /* #root > * > .widget {
   outline: 1px magenta dashed;
 } */
+
+/* Forced during pointer drags; per-element cursor styling is unreliable
+   under pointer capture. Cursor kind is set via --drag-cursor. */
+body.dragging,
+body.dragging * {
+  cursor: var(--drag-cursor, grabbing) !important;
+}
 
 * {
   box-sizing: border-box;

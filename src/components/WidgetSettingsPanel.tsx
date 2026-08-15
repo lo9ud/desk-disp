@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   getWidgetDefinition,
   LocalValues,
   ResolvedWidgetSettingsEntry,
   SelectOptionDef,
-  SelectOptionsSource,
   SettingCondition,
   VerifyStatus,
   WidgetSettingsDefinition,
@@ -13,6 +12,7 @@ import {
   canonicalRegistry,
   useWidgetInstance,
 } from "../registry/instanceRegistry";
+import { collectDefaults } from "../registry/settingsDefaults";
 import { useEditMode } from "../context/EditModeContext";
 import { useDebouncedAsyncValue } from "../hooks/useDebouncedAsyncValue";
 import ToggleInput from "./inputs/ToggleInput";
@@ -30,66 +30,6 @@ function evalCondition(
   return Array.isArray(cond.is)
     ? (cond.is as unknown[]).includes(val)
     : val === cond.is;
-}
-
-// Defaults contributed by a select's subordinate options -- pulled out of
-// collectDefaults so that function stays flat (one thing per case) rather
-// than nesting a second loop inside it. A dynamic (function-valued) options
-// source has nothing to contribute here: its actual option set, and
-// whatever per-option subordinate settings it might carry, aren't knowable
-// until runtime -- same reasoning FlattenDef's own select branch already
-// applies at the type level (see settingsSchema.ts).
-function collectSelectSubordinateDefaults(
-  options: SelectOptionsSource,
-): Record<string, unknown> {
-  if (typeof options === "function") return {};
-  const defaults: Record<string, unknown> = {};
-  for (const opt of Object.values(options)) {
-    if (typeof opt === "object" && opt.settings) {
-      Object.assign(defaults, collectDefaults(opt.settings));
-    }
-  }
-  return defaults;
-}
-
-function collectDefaults(
-  def: WidgetSettingsDefinition,
-): Record<string, unknown> {
-  const defaults: Record<string, unknown> = {};
-  for (const [key, setting] of Object.entries(def)) {
-    // group/trigger/marker/indicator aren't value-bearing (no default/required
-    // at all) -- a group's own settings still need collecting recursively,
-    // same as a select's subordinate settings below; the other three store
-    // nothing and are skipped entirely.
-    if (setting.type === "group") {
-      Object.assign(defaults, collectDefaults(setting.settings));
-      continue;
-    }
-    if (
-      setting.type === "trigger" ||
-      setting.type === "marker" ||
-      setting.type === "indicator"
-    ) {
-      continue;
-    }
-    if (!setting.required) {
-      defaults[key] = setting.default;
-    }
-    if (setting.type === "select") {
-      // `options` is optional on the authoring-facing WidgetSettingsEntry
-      // (so a missing one becomes a SchemaError instead of a rejected
-      // literal) but this settingsDef came from an already-registered
-      // widget -- a genuinely missing `options` would have failed to
-      // compile at that widget's own registerWidget call, so it's safe to
-      // resolve it back to required here.
-      const resolved = setting as ResolvedWidgetSettingsEntry<typeof setting>;
-      Object.assign(
-        defaults,
-        collectSelectSubordinateDefaults(resolved.options),
-      );
-    }
-  }
-  return defaults;
 }
 
 // Deliberately plain text, no styling -- phase 2 is "prove the machinery
@@ -741,6 +681,62 @@ interface WidgetSettingsPanelProps {
   onClose?: () => void;
 }
 
+/**
+ * The schema-driven form itself, with no opinion about where its values live.
+ * Hosted two ways: by the modal WidgetSettingsPanel below, and by edit mode's
+ * anchored SettingsPanel. Keep it free of registry/edit-mode imports.
+ */
+export function SettingsForm({
+  title,
+  schema,
+  values,
+  ephemeral,
+  onChange,
+  onSetEphemeral,
+}: {
+  title: string;
+  schema: WidgetSettingsDefinition;
+  values: Record<string, unknown>;
+  ephemeral: Record<string, unknown>;
+  onChange: (key: string, val: unknown) => void;
+  onSetEphemeral: (key: string, val: unknown) => void;
+}) {
+  const allValues = { ...values, ...ephemeral };
+  return (
+    <InputGroup label={title}>
+      {Object.entries(schema).map(([key, setting]) => (
+        <SettingRow
+          key={key}
+          label={setting.label}
+          settingKey={key}
+          def={setting}
+          value={values[key]}
+          allValues={allValues}
+          onChange={onChange}
+          onSetEphemeral={onSetEphemeral}
+        />
+      ))}
+    </InputGroup>
+  );
+}
+
+/**
+ * Session-only trigger results (see TriggerRow), keyed by the trigger's own
+ * settingKey. Merged into what compute functions read, but never persisted --
+ * and reset on every mount, which is correct for "last connection test
+ * result"-style data.
+ */
+export function useEphemeralValues() {
+  const [ephemeral, setEphemeral] = useState<Record<string, unknown>>({});
+  const set = useCallback((key: string, val: unknown) => {
+    setEphemeral((prev) => ({ ...prev, [key]: val }));
+  }, []);
+  // Needed where the form is reused across widgets without remounting, which
+  // would otherwise carry one widget's trigger results over to the next.
+  const reset = useCallback(() => setEphemeral({}), []);
+  return { ephemeral, setEphemeral: set, resetEphemeral: reset };
+}
+
 export default function WidgetSettingsPanel({
   instanceId,
   onClose,
@@ -755,16 +751,7 @@ export default function WidgetSettingsPanel({
       ...inst?.settings,
     }),
   );
-  // Session-only: a trigger's own result (see TriggerRow), keyed by that
-  // trigger's own settingKey. Merged into what every compute function reads
-  // (allValues below) but NEVER what gets persisted -- handleChange only
-  // ever touches localSettings, updateWidgetSettings never sees this.
-  // Resets to empty on every panel mount, which is correct for "last
-  // connection test result"-style data: it isn't supposed to survive
-  // closing the panel.
-  const [ephemeralValues, setEphemeralValues] = useState<
-    Record<string, unknown>
-  >({});
+  const { ephemeral, setEphemeral } = useEphemeralValues();
 
   if (!inst || !def?.settingsDef || Object.keys(def.settingsDef).length === 0) {
     throw new Error(
@@ -772,41 +759,29 @@ export default function WidgetSettingsPanel({
     );
   }
 
-  const allValues = { ...localSettings, ...ephemeralValues };
-
   function handleChange(key: string, val: unknown) {
     const next = { ...localSettings, [key]: val };
     setLocalSettings(next);
     updateWidgetSettings(instanceId, next);
   }
 
-  function handleSetEphemeral(key: string, val: unknown) {
-    setEphemeralValues((prev) => ({ ...prev, [key]: val }));
-  }
-
   return (
     <Modal
-      data-no-drag
+      onClose={onClose}
       actions={
         <Button variant="ghost_danger" onClick={() => onClose?.()}>
           Close
         </Button>
       }
     >
-      <InputGroup label={`${def.name} settings`}>
-        {Object.entries(def.settingsDef).map(([key, setting]) => (
-          <SettingRow
-            key={key}
-            label={setting.label}
-            settingKey={key}
-            def={setting}
-            value={localSettings[key]}
-            allValues={allValues}
-            onChange={handleChange}
-            onSetEphemeral={handleSetEphemeral}
-          />
-        ))}
-      </InputGroup>
+      <SettingsForm
+        title={`${def.name} settings`}
+        schema={def.settingsDef}
+        values={localSettings}
+        ephemeral={ephemeral}
+        onChange={handleChange}
+        onSetEphemeral={setEphemeral}
+      />
     </Modal>
   );
 }

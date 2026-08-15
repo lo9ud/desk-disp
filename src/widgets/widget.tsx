@@ -20,6 +20,7 @@ import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 import { retryAfterReset } from "../ipc/persistence_store";
 import { useDevMode } from "../context/DevModeContext";
 import { Button } from "../primitives/Button";
+import WidgetError from "../components/WidgetError";
 
 export const WidgetInstanceIdContext = createContext<string | undefined>(
   undefined,
@@ -121,20 +122,7 @@ export default function Widget({
   );
 }
 
-function WidgetErrorWidget({
-  error,
-  resetErrorBoundary,
-  ...placement
-}: FallbackProps & WidgetPlacementProps) {
-  return (
-    <Widget {...placement}>
-      <div className={styles.error}>
-        {(error as Error).message}
-        <Button onClick={resetErrorBoundary}>Reset Widget</Button>
-      </div>
-    </Widget>
-  );
-}
+
 
 /**
  * Renders a single widget instance by ID. Subscribes only to that
@@ -157,7 +145,7 @@ export function RenderWidget({
   if (!widgetDef) {
     return (
       <WidgetInstanceIdContext.Provider value={instanceId}>
-        <WidgetErrorWidget
+        <WidgetError
           {...placementProps}
           error={
             new Error(
@@ -165,13 +153,15 @@ export function RenderWidget({
             )
           }
           resetErrorBoundary={() => {}}
+          instanceId={instanceId}
+          widgetDef={undefined}
         />
       </WidgetInstanceIdContext.Provider>
     );
   }
 
   function FallbackErrorWidget(props: FallbackProps) {
-    return <WidgetErrorWidget {...placementProps} {...props} />;
+    return <WidgetError {...placementProps} {...props} instanceId={instanceId} widgetDef={widgetDef} />;
   }
 
   const WidgetComponent = widgetDef.component;

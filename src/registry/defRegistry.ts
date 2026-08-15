@@ -9,7 +9,7 @@ import type {
 } from "./settingsSchema";
 
 // Re-exported explicitly (not `export *`) so a forgotten name fails loudly at
-// the one import site that needs it (e.g. AddWidgetModal.tsx's direct
+// the one import site that needs it (e.g. WidgetSettingsPanel.tsx's direct
 // SelectOptionDef import) instead of silently resolving to `any`. Split in
 // two: the three below aren't referenced locally in this file, so they're
 // pure re-exports; ResolvedWidgetSettingsEntry/WidgetSettingsDefinition/

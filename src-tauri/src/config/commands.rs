@@ -136,13 +136,15 @@ pub fn get_or_create_settings_window(app: &tauri::AppHandle) -> Result<WebviewWi
     }
 
     tracing::info!(target: TARGET, "creating settings window");
-    let win = WebviewWindowBuilder::new(app, "settings", tauri::WebviewUrl::App("".into()))
-        .title("desk-disp - Settings")
-        .inner_size(1200.0, 800.0)
-        .resizable(true)
-        .visible(false)
-        .build()
-        .map_err(|e| format!("{:?}", e))?;
+    let win = crate::apply_webview_env(
+        WebviewWindowBuilder::new(app, "settings", tauri::WebviewUrl::App("".into()))
+            .title("desk-disp - Settings")
+            .inner_size(1200.0, 800.0)
+            .resizable(true)
+            .visible(false),
+    )
+    .build()
+    .map_err(|e| format!("{:?}", e))?;
 
     let win_clone = win.clone();
     win.on_window_event(move |event| {

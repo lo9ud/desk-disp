@@ -138,7 +138,8 @@
 
 .icon {
   padding: 0;
-
+  aspect-ratio: 1;
+  height: 1.5rem;
   & > svg {
     width: 90%;
     height: 90%;

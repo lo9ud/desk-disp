@@ -1,7 +1,8 @@
 import { MinusIcon, PlusIcon } from "@heroicons/react/16/solid";
-import { GridDims } from "../../utils/validation";
-import styles from "./styles/grid.module.css";
-import { RemoveEdge } from "./types";
+import { combineClassNames } from "../../../utils/format";
+import { GridDims } from "../../../utils/validation";
+import styles from "../styles/band.module.css";
+import { RemoveEdge } from "../types";
 
 const EDGE_CONFIG: {
   edge: RemoveEdge;
@@ -35,7 +36,7 @@ const EDGE_CONFIG: {
   },
 ];
 
-export function GridEdgeControls({
+export function EdgeChips({
   dims,
   shiftWidgets,
   updateGridDims,
@@ -70,9 +71,13 @@ export function GridEdgeControls({
   return (
     <>
       {EDGE_CONFIG.map(({ edge, addLabel, removeLabel, axis }) => (
-        <div key={edge} className={`${styles.edgeControls} ${styles[edge]}`}>
+        <div
+          key={edge}
+          className={combineClassNames(styles.edgeChips, styles[edge])}
+        >
           <button
-            className={styles.edgeButton}
+            type="button"
+            className={styles.edgeChipButton}
             title={addLabel}
             onClick={() => handleAdd(edge)}
           >
@@ -80,7 +85,8 @@ export function GridEdgeControls({
           </button>
           {dims[axis] > 1 && (
             <button
-              className={styles.edgeButton}
+              type="button"
+              className={styles.edgeChipButton}
               title={removeLabel}
               onClick={() => tryRemoveEdge(edge)}
             >

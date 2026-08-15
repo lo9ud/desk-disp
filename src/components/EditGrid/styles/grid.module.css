@@ -1,26 +1,75 @@
+/* Fullscreen edit-mode chrome. The viewport paints the buffer band; the
+   container (the "true screen") insets into it when the band is entered. */
+.editViewport {
+  position: fixed;
+  inset: 0;
+  background: var(--ui-bg-subtle);
+  /* Band depth doubles as the padding pills' resting slot: each pill offsets
+     outward by (band - 20px) / 2, so these must stay >= 30px for that offset
+     to clear a resize handle's 5px overhang. */
+  --band-top: 40px;
+  --band-right: 32px;
+  --band-bottom: 32px;
+  --band-left: 32px;
+}
+
+/* Add-mode transform target: band + grid scale together toward the left,
+   opening the rail strip on the right. Scale/translate values are computed
+   at runtime (rail width depends on viewport) and applied inline. */
+.editStage {
+  position: absolute;
+  inset: 0;
+  transform-origin: top left;
+  transition: transform var(--dur-med) var(--ease-out);
+}
+
 .container {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: grid;
   grid-template-rows: repeat(var(--grid-rows), minmax(0, 1fr));
   grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr));
-  width: 100%;
-  height: 100%;
   gap: var(--grid-gap);
   padding: var(--grid-padding-top) var(--grid-padding-right)
     var(--grid-padding-bottom) var(--grid-padding-left);
   background: var(--ui-bg);
   box-sizing: border-box;
+  transition: inset var(--dur-med) var(--ease-out);
 }
 
-/* Overlay for each widget cell */
+.editViewport[data-entered] .container {
+  inset: var(--band-top) var(--band-right) var(--band-bottom) var(--band-left);
+  outline: 1px solid var(--ui-border-subtle);
+}
+
+/* Overlay for each widget cell. Unselected tiles outline on hover only;
+   the selected tile carries handles/buttons and a solid outline. */
 .widgetOverlay {
   position: relative;
-  cursor: grab;
+  /* Clicking selects; grab is for the selected (manipulable) tile below, and
+     grabbing only once a drag is actually underway (body.dragging, App.css). */
+  cursor: pointer;
   border-radius: var(--radius-widget, 0px);
-  outline: 1.5px dashed color-mix(in srgb, var(--ui-selection-border) 60%, transparent);
+  outline: 1.5px solid transparent;
+  transition: outline-color var(--dur-fast) var(--ease-out);
 }
-.widgetOverlay:active {
-  cursor: grabbing;
+.widgetOverlay:hover {
+  outline-color: color-mix(in srgb, var(--ui-selection-border) 60%, transparent);
+}
+/* Selection is the solid outline + handles/buttons; no background wash, so
+it can't stack with the ghost overlay into visual noise during drags. */
+.widgetOverlay.widgetSelected {
+  outline-style: solid;
+  outline-color: var(--ui-selection-border);
+  background: color-mix(in srgb, var(--ui-selection) 20%, transparent);
+  cursor: grab;
+}
+
+/* Recede while another widget's settings are open, so the edited widget reads
+   as the subject and the panel covering these looks deliberate. */
+.widgetOverlay.widgetDimmed {
+  opacity: 0.4;
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
 @keyframes flashDanger {
@@ -61,7 +110,7 @@
   box-sizing: border-box;
 }
 
-/* Affordance buttons on widget cells */
+/* Affordance buttons on widget cells: shown on hover or selection */
 .widgetButtons {
   position: absolute;
   top: 4px;
@@ -69,6 +118,14 @@
   display: flex;
   gap: 4px;
   z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.widgetOverlay:hover .widgetButtons,
+.widgetOverlay.widgetSelected .widgetButtons {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .iconButton {
@@ -184,6 +241,44 @@
   color: var(--ui-text-muted);
 }
 
+/* The cell a rail click will place into (add mode's pending target) */
+.emptyCellPending {
+  outline: 1.5px solid var(--ui-accent-border);
+  color: var(--ui-accent-text);
+  background: color-mix(in srgb, var(--ui-accent-fill) 30%, transparent);
+}
+
+/* Padding boundary guide, shown while a padding scrubber is hovered/dragged */
+.paddingGuide {
+  position: absolute;
+  pointer-events: none;
+  z-index: 8;
+}
+.paddingGuide[data-edge="top"] {
+  top: var(--grid-padding-top);
+  left: 0;
+  right: 0;
+  border-top: 1.5px dashed var(--ui-selection-border);
+}
+.paddingGuide[data-edge="bottom"] {
+  bottom: var(--grid-padding-bottom);
+  left: 0;
+  right: 0;
+  border-bottom: 1.5px dashed var(--ui-selection-border);
+}
+.paddingGuide[data-edge="left"] {
+  left: var(--grid-padding-left);
+  top: 0;
+  bottom: 0;
+  border-left: 1.5px dashed var(--ui-selection-border);
+}
+.paddingGuide[data-edge="right"] {
+  right: var(--grid-padding-right);
+  top: 0;
+  bottom: 0;
+  border-right: 1.5px dashed var(--ui-selection-border);
+}
+
 /* Ghost during drag/resize */
 .ghost {
   border-radius: var(--radius-widget, 0px);
@@ -199,77 +294,6 @@
   outline: 2px solid var(--ui-danger-border);
 }
 
-/* Grid edge controls */
-.edgeControls {
-  position: absolute;
-  display: flex;
-  gap: 4px;
-  z-index: 20;
-}
-.edgeControls.top {
-  top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  flex-direction: row;
-}
-.edgeControls.bottom {
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  flex-direction: row;
-}
-.edgeControls.left {
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  flex-direction: column;
-}
-.edgeControls.right {
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  flex-direction: column;
-}
-
-.edgeButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  background: color-mix(in srgb, var(--ui-panel) 80%, transparent);
-  border: var(--ui-selection-border) 1px solid;
-  border-radius: 4px;
-  color: var(--ui-text-muted);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 0;
-  opacity: 0.5;
-  transition: all 0.15s ease;
-}
-.edgeButton:hover {
-  opacity: 1;
-  background: var(--ui-panel);
-}
-
-/* Save/cancel bar */
-.editBar {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--ui-panel);
-  border: 1px solid var(--ui-border-subtle);
-  border-radius: 8px;
-  padding: 8px 12px;
-  z-index: 200;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  font-size: 0.85em;
-  color: var(--ui-text);
-}
-
 .errorBadge {
   color: var(--ui-danger-text);
   font-size: 0.85em;
@@ -280,11 +304,13 @@
   font-size: 0.85em;
 }
 
-.widgetError {
+/* Error/warning outlines are always visible (independent of hover/selection)
+   and win the outline color over both. */
+.widgetOverlay.widgetError {
   outline-color: var(--ui-danger-border);
 }
 
-.widgetWarning {
+.widgetOverlay.widgetWarning {
   outline-color: var(--ui-warning-border);
 }
 
@@ -296,123 +322,3 @@
   gap: 4px;
 }
 
-/* Per-edge padding drag handles */
-.paddingHandle {
-  position: absolute;
-  z-index: 9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.35;
-  transition: opacity 0.15s;
-  pointer-events: all;
-}
-.paddingHandle:hover {
-  opacity: 1;
-}
-
-.paddingHandle.top,
-.paddingHandle.bottom {
-  left: 0;
-  right: 0;
-  height: 8px;
-  cursor: ns-resize;
-  background: linear-gradient(
-    transparent 3px,
-    color-mix(in srgb, var(--ui-selection-border) 35%, transparent) 3px,
-    color-mix(in srgb, var(--ui-selection-border) 35%, transparent) 5px,
-    transparent 5px
-  );
-}
-.paddingHandle.top {
-  top: var(--grid-padding-top);
-  transform: translateY(-50%);
-}
-.paddingHandle.bottom {
-  bottom: var(--grid-padding-bottom);
-  transform: translateY(50%);
-}
-
-.paddingHandle.left,
-.paddingHandle.right {
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
-  background: linear-gradient(
-    to right,
-    transparent 3px,
-    color-mix(in srgb, var(--ui-selection-border) 35%, transparent) 3px,
-    color-mix(in srgb, var(--ui-selection-border) 35%, transparent) 5px,
-    transparent 5px
-  );
-}
-.paddingHandle.left {
-  left: var(--grid-padding-left);
-  transform: translateX(-50%);
-}
-.paddingHandle.right {
-  right: var(--grid-padding-right);
-  transform: translateX(50%);
-}
-
-.paddingHandleGrip {
-  width: 12px;
-  height: 12px;
-  color: var(--ui-selection-border);
-  flex-shrink: 0;
-}
-
-.paddingHandleLabel {
-  position: absolute;
-  font-size: 10px;
-  color: var(--ui-selection-border);
-  background: color-mix(in srgb, var(--ui-panel) 85%, transparent);
-  padding: 1px 4px;
-  border-radius: 3px;
-  pointer-events: none;
-  white-space: nowrap;
-  /* offset label so it doesn't sit directly on the line */
-  top: 10px;
-}
-.paddingHandle.bottom .paddingHandleLabel,
-.paddingHandle.right .paddingHandleLabel {
-  top: auto;
-  bottom: 10px;
-}
-
-/* Gap scrubber in edit bar */
-.gapControl {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: max-width 0.3s ease;
-  overflow: hidden;
-}
-.gapControlOpen {
-  max-width: 200px;
-}
-.gapControlClosed {
-  max-width: 0;
-}
-
-.gapScrubber {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  height: 24px;
-  font-size: 0.85em;
-  color: var(--ui-text-muted);
-  background: color-mix(in srgb, var(--ui-panel) 80%, transparent);
-  border: 1px solid var(--ui-border);
-  border-radius: 4px;
-  cursor: ew-resize;
-  user-select: none;
-  white-space: nowrap;
-  & > svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-  }
-}

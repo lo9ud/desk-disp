@@ -18,6 +18,7 @@ import { errorSeverity, WidgetError } from "../utils/widgetErrors";
 
 interface EditModeContextValue {
   active: boolean;
+  dirty: boolean;
   draftGridDims: GridDims;
   widgetErrors: WidgetError[];
   editRegistry: InstanceRegistry | null;
@@ -30,7 +31,7 @@ interface EditModeContextValue {
     definitionId: string,
     placement: WidgetPlacement,
     settings?: Record<string, any>,
-  ) => void;
+  ) => string | null;
   removeWidget: (id: string) => void;
   updateGridDims: (dims: Partial<GridDims>) => void;
   shiftWidgets: (
@@ -64,6 +65,7 @@ export function EditModeProvider({
   onGridDimsChange,
 }: EditModeProviderProps) {
   const [active, setActive] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [draftGridDims, setDraftGridDims] = useState<GridDims>(gridDims);
   const [widgetErrors, setWidgetErrors] = useState<WidgetError[]>([]);
   const [editRegistryVersion, setEditRegistryVersion] = useState(0);
@@ -83,16 +85,19 @@ export function EditModeProvider({
     setDraftGridDims(gridDims);
     setWidgetErrors(validateLayout(editRegistryRef.current.getAll(), gridDims));
     setEditRegistryVersion((v) => v + 1);
+    setDirty(false);
     setActive(true);
   }, [gridDims]);
 
   const moveWidget = useCallback((id: string, placement: WidgetPlacement) => {
     editRegistryRef.current?.updatePlacement(id, placement);
+    setDirty(true);
     setDraftGridDims((dims) => { revalidate(dims); return dims; });
   }, [revalidate]);
 
   const updateWidgetSettings = useCallback((id: string, settings: Record<string, any>) => {
     editRegistryRef.current?.updateSettings(id, settings);
+    setDirty(true);
     setDraftGridDims((dims) => { revalidate(dims); return dims; });
   }, [revalidate]);
 
@@ -100,19 +105,28 @@ export function EditModeProvider({
     definitionId: string,
     placement: WidgetPlacement,
     settings: Record<string, any> = {},
-  ) => {
-    editRegistryRef.current?.add(genWidgetId(definitionId), definitionId, placement, settings);
+  ): string | null => {
+    const inst = editRegistryRef.current?.add(
+      genWidgetId(definitionId),
+      definitionId,
+      placement,
+      settings,
+    );
+    setDirty(true);
     setDraftGridDims((dims) => { revalidate(dims); return dims; });
+    return inst?.id ?? null;
   }, [revalidate]);
 
   const removeWidget = useCallback((id: string) => {
     const inst = editRegistryRef.current?.get(id);
     if (!inst) return;
     editRegistryRef.current!.remove(id);
+    setDirty(true);
     setDraftGridDims((dims) => { revalidate(dims); return dims; });
   }, [revalidate]);
 
   const updateGridDims = useCallback((dims: Partial<GridDims>) => {
+    setDirty(true);
     setDraftGridDims((prev) => {
       const next = { ...prev, ...dims };
       revalidate(next);
@@ -126,6 +140,7 @@ export function EditModeProvider({
     dimsDelta: Partial<GridDims>,
   ) => {
     editRegistryRef.current?.shiftPlacements(colOffset, rowOffset);
+    setDirty(true);
     setDraftGridDims((prev) => {
       const next = { ...prev, ...dimsDelta };
       revalidate(next);
@@ -152,6 +167,7 @@ export function EditModeProvider({
     onGridDimsChange(draftGridDims);
     editRegistryRef.current = null;
     setActive(false);
+    setDirty(false);
     setWidgetErrors([]);
     setEditRegistryVersion((v) => v + 1);
   }, [draftGridDims, activeLayoutId, buildLayout, onGridDimsChange]);
@@ -162,12 +178,14 @@ export function EditModeProvider({
     setDraftGridDims(preEditGridDims.current);
     setWidgetErrors([]);
     setActive(false);
+    setDirty(false);
     setEditRegistryVersion((v) => v + 1);
   }, []);
 
   const value: EditModeContextValue = useMemo(
     () => ({
       active,
+      dirty,
       draftGridDims,
       widgetErrors,
       editRegistry: editRegistryRef.current,
@@ -185,6 +203,7 @@ export function EditModeProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       active,
+      dirty,
       draftGridDims,
       widgetErrors,
       editRegistryVersion,

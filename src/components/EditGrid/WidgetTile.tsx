@@ -2,7 +2,6 @@ import { Cog6ToothIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import { getWidgetDefinition } from "../../registry/defRegistry";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
 import { RenderWidget } from "../../widgets/widget";
-import WidgetSettingsPanel from "../WidgetSettingsPanel";
 import { gridItemStyle } from "./gridMath";
 import { ResizeHandles } from "./ResizeHandles";
 import styles from "./styles/grid.module.css";
@@ -11,9 +10,11 @@ import { ResizeDir } from "./types";
 export function WidgetTile({
   instanceId,
   registry,
+  isSelected,
   isFlashing,
   errorClass,
-  isSettingsOpen,
+  isDimmed,
+  tileRef,
   onToggleSettings,
   onRemove,
   onDragStart,
@@ -21,9 +22,14 @@ export function WidgetTile({
 }: {
   instanceId: string;
   registry: InstanceRegistry;
+  isSelected: boolean;
   isFlashing: boolean;
   errorClass: string;
-  isSettingsOpen: boolean;
+  /** Another widget's settings are open; recede so the edited one stands out
+   *  and covering this tile with the panel reads as intentional. */
+  isDimmed: boolean;
+  /** Reports the tile element, used to anchor the settings panel. */
+  tileRef?: (el: HTMLElement | null) => void;
   onToggleSettings: () => void;
   onRemove: () => void;
   onDragStart: (e: React.PointerEvent) => void;
@@ -35,7 +41,8 @@ export function WidgetTile({
 
   return (
     <div
-      className={`${styles.widgetOverlay} ${isFlashing ? styles.widgetFlash : ""} ${errorClass}`}
+      ref={tileRef}
+      className={`${styles.widgetOverlay} ${isSelected ? styles.widgetSelected : ""} ${isDimmed ? styles.widgetDimmed : ""} ${isFlashing ? styles.widgetFlash : ""} ${errorClass}`}
       style={gridItemStyle(inst.placement)}
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
@@ -46,6 +53,7 @@ export function WidgetTile({
       <div className={styles.widgetButtons} data-no-drag>
         {def?.settingsDef && Object.keys(def.settingsDef).length > 0 && (
           <button
+            type="button"
             className={styles.iconButton}
             title="Widget settings"
             onClick={onToggleSettings}
@@ -54,6 +62,7 @@ export function WidgetTile({
           </button>
         )}
         <button
+          type="button"
           className={`${styles.iconButton} ${styles.danger}`}
           title="Remove widget"
           onClick={onRemove}
@@ -64,10 +73,7 @@ export function WidgetTile({
       <div className={styles.widgetPreview}>
         <RenderWidget instanceId={instanceId} registry={registry} />
       </div>
-      {isSettingsOpen && (
-        <WidgetSettingsPanel instanceId={instanceId} onClose={onToggleSettings} />
-      )}
-      <ResizeHandles onResizeStart={onResizeStart} />
+      {isSelected && <ResizeHandles onResizeStart={onResizeStart} />}
     </div>
   );
 }
