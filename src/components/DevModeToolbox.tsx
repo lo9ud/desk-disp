@@ -3,9 +3,8 @@ import styles from "./styles/DevModeToolbox.module.css";
 import { ArrowsPointingOutIcon } from "@heroicons/react/24/solid";
 import { useDevMode } from "../context/DevModeContext";
 import { QuestionMarkCircleIcon } from "@heroicons/react/16/solid";
-import { BackendEvents } from "../ipc";
-import { EVENT_NAMES } from "../ipc/events";
-import { listen } from "@tauri-apps/api/event";
+import { BackendEvents, EVENT_NAMES } from "../runtime/events";
+import { useRuntime } from "../runtime/context";
 
 function Grabber({
   setPosition,
@@ -56,31 +55,45 @@ function Grabber({
 
 type EventStats = Record<keyof BackendEvents, { count: number }>;
 
-const unlistens: Awaited<ReturnType<typeof listen>>[] = [];
-const eventStatsInitial: EventStats = Object.fromEntries(
-  EVENT_NAMES.map((name) => [name, { count: 0 }]),
-) as EventStats;
-const startTime = new Date();
-const eventStats = eventStatsInitial;
-let rerender = () => {
-  return;
-};
-(async () => {
-  for (const eventName of EVENT_NAMES) {
-    const unlisten = await listen(eventName, () => {
-      eventStats[eventName].count++;
-      rerender();
-    });
-    unlistens.push(unlisten);
-  }
-})();
+function emptyStats(): EventStats {
+  return Object.fromEntries(
+    EVENT_NAMES.map((name) => [name, { count: 0 }]),
+  ) as EventStats;
+}
+
+/**
+ * Counts every backend event while the toolbox is open.
+ *
+ * This used to be a module-level IIFE that registered twelve raw Tauri listeners
+ * at import time, in every window, whether or not dev mode was on. Counting now
+ * starts when the toolbox opens, which is also what the elapsed-time denominator
+ * measures — so the rates are honest rather than divided by process uptime.
+ */
+function useEventStats(): { stats: EventStats; since: number } {
+  const { events } = useRuntime();
+  const statsRef = useRef<EventStats>(emptyStats());
+  const sinceRef = useRef(Date.now());
+  const [, bump] = useState(0);
+
+  useEffect(() => {
+    statsRef.current = emptyStats();
+    sinceRef.current = Date.now();
+    const offs = EVENT_NAMES.map((name) =>
+      events.on(name, () => {
+        statsRef.current[name].count++;
+        bump((n) => n + 1);
+      }),
+    );
+    return () => offs.forEach((off) => off());
+  }, [events]);
+
+  return { stats: statsRef.current, since: sinceRef.current };
+}
 
 export default function DevModeToolbox() {
   const { toolboxSettings, setToolboxSettings } = useDevMode();
   const [position, setPosition] = useState({ x: 30, y: 30 });
-  const [, setRerender] = useState(0);
-
-  rerender = () => setRerender((prev) => prev + 1);
+  const { stats: eventStats, since } = useEventStats();
 
   function toggle(setting: keyof typeof toolboxSettings) {
     setToolboxSettings((prev) => ({
@@ -139,13 +152,19 @@ export default function DevModeToolbox() {
             .slice(0, -1) /* remove last <hr> */
         }
       </div>
-      <EventStatsDisplay eventStats={eventStats} />
+      <EventStatsDisplay eventStats={eventStats} since={since} />
     </div>
   );
 }
 
-function EventStatsDisplay({ eventStats }: { eventStats: EventStats }) {
-  const elapsed = (Date.now() - startTime.getTime()) / 1000;
+function EventStatsDisplay({
+  eventStats,
+  since,
+}: {
+  eventStats: EventStats;
+  since: number;
+}) {
+  const elapsed = (Date.now() - since) / 1000;
   const sum = Object.values(eventStats).reduce(
     (acc, stats) => acc + stats.count,
     0,

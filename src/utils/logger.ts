@@ -1,6 +1,27 @@
-import { invoke } from "@tauri-apps/api/core";
-
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error";
+
+/**
+ * Log sink, installed by the runtime at construction.
+ *
+ * The `logger(module)` factory below stays module-level on purpose: it is a
+ * diagnostic sink rather than data access, and ~10 modules call it at import time
+ * where no runtime exists yet. What DI buys here is only that this file no longer
+ * reaches for `invoke` itself — lines emitted before the runtime exists go to the
+ * console and are dropped from the backend log, which is the same behaviour the
+ * old "backend not ready yet" catch produced.
+ */
+type LogSink = (cmd: string, args: Record<string, unknown>) => Promise<unknown>;
+
+let sink: LogSink | null = null;
+
+export function setLogTransport(transport: {
+  invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T>;
+}) {
+  sink = (cmd, args) => transport.invoke(cmd, args);
+  // Deferred until there is something to ask: the backend's level is what decides
+  // whether a line is worth shipping at all.
+  syncBackendLevel();
+}
 
 const LEVEL_ORDER: Record<LogLevel, number> = {
   trace: 0,
@@ -22,13 +43,15 @@ const CONSOLE_FN: Record<LogLevel, (...args: unknown[]) => void> = {
 };
 
 const { info, debug } = logger("logger");
-// Get the log level from the backend config on startup, and update `backendMinLevel`.
-if (!logLevelSynced) {
+
+/** Reads the backend's configured level once, so we don't ship lines it will drop. */
+function syncBackendLevel() {
+  if (logLevelSynced || !sink) return;
   logLevelSynced = true;
-  invoke<string>("get_log_level")
-    .then((level: string) => {
-      let _level = level.toLowerCase();
-      if (typeof _level === "string" && _level in LEVEL_ORDER) {
+  sink("get_log_level", {})
+    .then((level) => {
+      const _level = String(level).toLowerCase();
+      if (_level in LEVEL_ORDER) {
         info(`Backend log level: ${_level}`);
         setBackendMinLevel(_level as LogLevel);
       } else {
@@ -69,8 +92,8 @@ function emit(
 ): void {
   CONSOLE_FN[level](formatLine(level, module, message, hint));
 
-  if (LEVEL_ORDER[level] >= LEVEL_ORDER[backendMinLevel]) {
-    invoke("log_from_frontend", { level, module, message, hint }).catch(() => {
+  if (sink && LEVEL_ORDER[level] >= LEVEL_ORDER[backendMinLevel]) {
+    sink("log_from_frontend", { level, module, message, hint }).catch(() => {
       // Backend not ready yet (e.g. very early startup) — silently drop.
       console.warn(
         `Failed to send log to backend, level=${level}, module=${module}, message=${message}`,

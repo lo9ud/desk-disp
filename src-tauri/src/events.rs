@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
 use ts_rs::TS;
 
@@ -58,32 +58,85 @@ impl std::fmt::Display for StreamName {
     }
 }
 
-/// Tracks whether a stream currently has ≥1 subscriber and logs the pause/resume transition
-/// exactly once when that state flips. Factors out the "no subscribers — pausing X updates" /
+/// Per-window "keep this stream running" hints, keyed by stream and holding the set of window
+/// labels currently asking for it. A stream runs while any window's label is present.
+///
+/// Subscriber *counting* lives entirely in the frontend now (`BackendStreamHub` in
+/// `src/runtime/streams/`), which is the only side that can observe mount/unmount ordering
+/// accurately. What crosses the IPC boundary is the coarse per-window bit instead of a
+/// running total, and set insert/remove are idempotent — a duplicate start or a dropped stop
+/// cannot corrupt the state the way the previous `+1`/`-1` `AtomicUsize` could.
+///
+/// Hints are **advisory**: nothing stops the backend keeping a stream alive past a stop for
+/// caching or reload smoothing. It currently honours them immediately.
+#[derive(Default)]
+pub struct StreamHints(Mutex<HashMap<StreamName, HashSet<String>>>);
+
+impl StreamHints {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// The map holds no invariant a mid-mutation panic could break, so a poisoned lock is
+    /// recovered rather than propagated — the alternative (treating poison as "inactive")
+    /// would silently freeze every stream for the rest of the process's life.
+    fn map(&self) -> std::sync::MutexGuard<'_, HashMap<StreamName, HashSet<String>>> {
+        self.0.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    pub fn start(&self, name: StreamName, window: &str) {
+        self.map().entry(name).or_default().insert(window.to_string());
+    }
+
+    pub fn stop(&self, name: StreamName, window: &str) {
+        if let Some(set) = self.map().get_mut(&name) {
+            set.remove(window);
+        }
+    }
+
+    /// Drops every hint held by one window. Called when that window's frontend (re)initialises,
+    /// so a reload cannot strand a stream running forever with nothing listening — the failure
+    /// mode the old process-wide counter had no way to clear.
+    pub fn clear_window(&self, window: &str) {
+        for set in self.map().values_mut() {
+            set.remove(window);
+        }
+    }
+
+    pub fn is_active(&self, name: StreamName) -> bool {
+        self.map().get(&name).is_some_and(|s| !s.is_empty())
+    }
+
+    pub fn window_count(&self, name: StreamName) -> usize {
+        self.map().get(&name).map_or(0, HashSet::len)
+    }
+}
+
+/// Tracks whether a stream is currently wanted and logs the pause/resume transition exactly
+/// once when that state flips. Factors out the "no subscribers — pausing X updates" /
 /// "subscriber(s) active — resuming X updates" shape that used to be copy-pasted per loop
 /// (`run_system_loop`, `run_hardware_loop`, and independently `spawn_visualizer_loop`'s
 /// `last_sub_nonzero`) — one instance per gated metric, held as ordinary mutable local state by
 /// the owning loop.
-pub struct SubscriberGate {
-    subscribers: Arc<AtomicUsize>,
+pub struct StreamGate {
+    hints: Arc<StreamHints>,
     name: StreamName,
     had_subs: bool,
 }
 
-impl SubscriberGate {
-    pub fn new(subscribers: Arc<AtomicUsize>, name: StreamName) -> Self {
+impl StreamGate {
+    pub fn new(hints: Arc<StreamHints>, name: StreamName) -> Self {
         Self {
-            subscribers,
+            hints,
             name,
             had_subs: false,
         }
     }
 
-    /// Loads the current subscriber count, logs a transition if the gate state flipped since
-    /// the last call, and returns whether the caller should do work this tick.
+    /// Reads the current hint state, logs a transition if the gate flipped since the last
+    /// call, and returns whether the caller should do work this tick.
     pub fn should_run(&mut self) -> bool {
-        let count = self.subscribers.load(Ordering::Relaxed);
-        if count == 0 {
+        if !self.hints.is_active(self.name) {
             if self.had_subs {
                 tracing::info!(target: "resource", stream = %self.name, "no subscribers — pausing updates");
                 self.had_subs = false;
@@ -91,7 +144,8 @@ impl SubscriberGate {
             return false;
         }
         if !self.had_subs {
-            tracing::info!(target: "resource", stream = %self.name, sub_count = count, "subscriber(s) active — resuming updates");
+            let windows = self.hints.window_count(self.name);
+            tracing::info!(target: "resource", stream = %self.name, windows, "subscriber(s) active — resuming updates");
             self.had_subs = true;
         }
         true

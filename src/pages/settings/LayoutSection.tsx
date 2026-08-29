@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ipc } from "../../ipc";
+import { useRuntime } from "../../runtime/context";
 import type { LayoutInfo } from "../../ffi_types";
 
 import styles from "./styles/LayoutSection.module.css";
@@ -16,6 +16,7 @@ import { logger } from "../../utils/logger";
 const {error} = logger("layout-section");
 
 export default function LayoutSection() {
+  const runtime = useRuntime();
   const [layouts, setLayouts] = useState<LayoutInfo[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -23,12 +24,12 @@ export default function LayoutSection() {
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const loadLayouts = useCallback(async () => {
-    const list = await ipc.listLayouts();
+    const list = await runtime.layouts.list();
     setLayouts(list);
   }, []);
 
   useEffect(() => {
-    ipc.getConfig().then((cfg) => {
+    runtime.config.get().then((cfg) => {
       setActiveId(cfg.active_layout ?? null);
     });
     loadLayouts();
@@ -36,16 +37,16 @@ export default function LayoutSection() {
 
   async function handleSelect(id: string) {
     setActiveId(id);
-    await ipc.setActiveLayout(id);
+    await runtime.layouts.setActive(id);
   }
 
   async function handleDuplicate(id: string) {
     try {
-      const layout = await ipc.getLayout(id);
+      const layout = await runtime.layouts.get(id);
       const source = layouts.find((l) => l.id === id);
       const newId = crypto.randomUUID();
       const newName = `${source?.name ?? id} (Copy)`;
-      await ipc.saveLayout(newId, { ...layout, id: newId, name: newName });
+      await runtime.layouts.save(newId, { ...layout, id: newId, name: newName });
       await loadLayouts();
     } catch (e) {
       error("Duplicate failed:", e?.toString());
@@ -54,12 +55,12 @@ export default function LayoutSection() {
 
   async function handleDelete(id: string) {
     try {
-      await ipc.deleteLayout(id);
+      await runtime.layouts.delete(id);
       await loadLayouts();
       if (activeId === id) {
         const fallback = layouts.find((l) => l.id !== id)?.id ?? null;
         setActiveId(fallback);
-        await ipc.setActiveLayout(fallback);
+        await runtime.layouts.setActive(fallback);
       }
     } catch (e) {
       error("Delete failed:", e?.toString());
@@ -78,7 +79,7 @@ export default function LayoutSection() {
     const current = layouts.find((l) => l.id === id)?.name;
     if (trimmed && trimmed !== current) {
       try {
-        const newId = await ipc.renameLayout(id, trimmed);
+        const newId = await runtime.layouts.rename(id, trimmed);
         if (activeId === id) setActiveId(newId);
         await loadLayouts();
       } catch (e) {
@@ -90,7 +91,7 @@ export default function LayoutSection() {
 
   async function handleRestoreDefaults() {
     if (!confirm("Restore built-in layouts? Custom layouts will not be affected.")) return;
-    await ipc.restoreDefaults();
+    await runtime.themes.restoreDefaults();
     await loadLayouts();
   }
 
@@ -102,7 +103,7 @@ export default function LayoutSection() {
         <span className={styles.layoutListTitle}>Available Layouts</span>
         <div>
           <Button variant="ghost" onClick={loadLayouts} title="Refresh layout list">↺</Button>
-          <Button variant="ghost" onClick={() => ipc.openLayoutsFolder()}>Open Folder</Button>
+          <Button variant="ghost" onClick={() => runtime.layouts.openFolder()}>Open Folder</Button>
           <Button variant="ghost_danger" onClick={handleRestoreDefaults}>Restore Defaults</Button>
         </div>
       </div>

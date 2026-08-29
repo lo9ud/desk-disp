@@ -1,9 +1,6 @@
 use base64::Engine;
 use std::fmt;
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use std::sync::Arc;
 use std::time::Duration;
 use tauri::{Emitter, Manager};
 use tokio::sync::Mutex;
@@ -15,6 +12,7 @@ use windows::Media::Control::{
 };
 
 use super::{FFTStream, FrequencyReading, MediaState};
+use crate::events::{StreamGate, StreamHints, StreamName};
 
 fn emit_media(app: &tauri::AppHandle, state: MediaState) {
     if let Ok(value) = serde_json::to_value(&state) {
@@ -76,7 +74,7 @@ impl Drop for AttachedSession {
 
 pub async fn run_media_loop(
     app: tauri::AppHandle,
-    subscribers: Arc<AtomicUsize>,
+    hints: Arc<StreamHints>,
     poll_interval: Duration,
 ) {
     let session_manager = loop {
@@ -133,9 +131,10 @@ pub async fn run_media_loop(
     // Events cover play/pause/track changes; this catches continuous position drift.
     let mut interval = tokio::time::interval(poll_interval);
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    let mut gate = StreamGate::new(hints, StreamName::Media);
     loop {
         interval.tick().await;
-        if subscribers.load(Ordering::Relaxed) == 0 {
+        if !gate.should_run() {
             continue;
         }
         let Ok(session) = session_manager.GetCurrentSession() else {
@@ -478,7 +477,7 @@ async fn current_session(
 /// and re-creates automatically if the default output device changes.
 pub fn spawn_visualizer_loop(
     app: tauri::AppHandle,
-    subscribers: Arc<AtomicUsize>,
+    hints: Arc<StreamHints>,
     frame_interval: Duration,
 ) {
     use cpal::traits::{DeviceTrait, HostTrait};
@@ -523,24 +522,21 @@ pub fn spawn_visualizer_loop(
             let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 let frame = frame_interval;
                 let mut stream: Option<FFTStream> = None;
-                let mut last_sub_nonzero = false;
+                // Shares the resource loop's gate rather than re-implementing the
+                // flip-logging locally; the FFTStream teardown below is the one extra thing
+                // this loop does on a falling edge, hence the `had_stream` check.
+                let mut gate = StreamGate::new(hints, StreamName::Visualizer);
 
                 loop {
                     let tick = std::time::Instant::now();
-                    let sub_count = subscribers.load(Ordering::Relaxed);
 
-                    if sub_count == 0 {
-                        if last_sub_nonzero {
-                            tracing::info!(target: VIS_TARGET, "no subscribers — dropping FFTStream and pausing");
+                    if !gate.should_run() {
+                        if stream.is_some() {
+                            tracing::info!(target: VIS_TARGET, "dropping FFTStream");
                             stream = None;
-                            last_sub_nonzero = false;
                         }
                         std::thread::sleep(frame);
                         continue;
-                    }
-                    if !last_sub_nonzero {
-                        tracing::info!(target: VIS_TARGET, sub_count, "subscriber(s) active — initialising FFTStream");
-                        last_sub_nonzero = true;
                     }
 
                     // Check whether the default output device has changed.

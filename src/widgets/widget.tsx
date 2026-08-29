@@ -1,29 +1,21 @@
-import {
-  CSSProperties,
-  createContext,
-  useContext,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { CSSProperties, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { widgetPlacementToProps } from "../utils/config";
 import styles from "./styles/widget.module.css";
 import { getWidgetEntry } from "../registry/defRegistry";
 import {
-  canonicalRegistry,
   InstanceRegistry,
   useWidgetInstance,
-  useVisibleWidgetInstanceIds,
+  useWidgetInstanceIds,
 } from "../registry/instanceRegistry";
 import { combineClassNames } from "../utils/format";
 import { ErrorBoundary } from "react-error-boundary";
-import { retryAfterReset } from "../ipc/persistence_store";
 import { useDevMode } from "../context/DevModeContext";
 import WidgetError from "../components/WidgetError";
-
-export const WidgetInstanceIdContext = createContext<string | undefined>(
-  undefined,
-);
+import {
+  useRuntime,
+  useWidgetApi,
+  WidgetApiProvider,
+} from "../runtime/context";
 
 export type { GridSize } from "./Grid";
 export { useGridSize } from "./Grid";
@@ -46,29 +38,31 @@ export default function Widget({
   children,
 }: WidgetProps) {
   const devMode = useDevMode();
-  const instanceId = useContext(WidgetInstanceIdContext);
+  const { instanceId } = useWidgetApi();
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [bgRect, setBgRect] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
+  const [boundingInnerRect, setBoundingInnerRect] = useState<DOMRect | null>(null);
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
+
+    const rect = containerRef.current.getBoundingClientRect();
+    setContainerRect(rect);
+
     const childEls = Array.from(containerRef.current.children).filter(
       (el) => !el.classList.contains(styles.widgetBackground),
     );
+
     if (childEls.length === 0) return;
     const rects = childEls.map((el) => el.getBoundingClientRect());
-    const left = Math.min(...rects.map((r) => r.left)) - containerRect.left;
-    const top = Math.min(...rects.map((r) => r.top)) - containerRect.top;
-    const right = Math.max(...rects.map((r) => r.right)) - containerRect.left;
-    const bottom = Math.max(...rects.map((r) => r.bottom)) - containerRect.top;
-    setBgRect({ left, top, width: right - left, height: bottom - top });
+
+    const left = Math.min(...rects.map((r) => r.left)) - rect.left;
+    const top = Math.min(...rects.map((r) => r.top)) - rect.top;
+    const right = Math.max(...rects.map((r) => r.right)) - rect.left;
+    const bottom = Math.max(...rects.map((r) => r.bottom)) - rect.top;
+
+    setBoundingInnerRect(new DOMRect(left, top, right - left, bottom - top));
   }, [children]);
 
   const style: CSSProperties = {
@@ -85,15 +79,16 @@ export default function Widget({
     <>
       {devMode.active &&
         devMode.toolboxSettings.showMissingBackground &&
-        bgRect && (
+        boundingInnerRect &&
+        containerRect && (
           <div
             className={styles.widgetDevMissingBackground}
             style={{
               position: "absolute",
-              left: bgRect.left,
-              top: bgRect.top,
-              width: bgRect.width,
-              height: bgRect.height,
+              left: containerRect.left + boundingInnerRect.left,
+              top: containerRect.top + boundingInnerRect.top,
+              width: boundingInnerRect.width,
+              height: boundingInnerRect.height,
             }}
           />
         )}
@@ -107,15 +102,16 @@ export default function Widget({
       </div>
       {devMode.active &&
         devMode.toolboxSettings.displayWidgetUsedSpace &&
-        bgRect && (
+        boundingInnerRect && 
+        containerRect && (
           <div
             className={styles.widgetDevUsedSpace}
             style={{
               position: "absolute",
-              left: bgRect.left,
-              top: bgRect.top,
-              width: bgRect.width,
-              height: bgRect.height,
+              left: containerRect.left + boundingInnerRect.left,
+              top: containerRect.top + boundingInnerRect.top,
+              width: boundingInnerRect.width,
+              height: boundingInnerRect.height,
             }}
           />
         )}
@@ -130,12 +126,26 @@ export default function Widget({
  */
 export function RenderWidget({
   instanceId,
-  registry = canonicalRegistry,
+  registry,
 }: {
   instanceId: string;
+  /** Defaults to the runtime's canonical registry; edit-mode drafts and gallery
+   *  cards pass their own throwaway one. */
   registry?: InstanceRegistry;
 }) {
-  const widget = useWidgetInstance(instanceId, registry);
+  const runtime = useRuntime();
+  const reg = registry ?? runtime.instances;
+  const widget = useWidgetInstance(instanceId, reg);
+  const definitionId = widget?.definitionId ?? "";
+
+  // Keyed to the runtime and the instance, not to this component — so a
+  // StrictMode double-mount or an ErrorBoundary reset remounts the widget while
+  // it keeps the same api object.
+  const api = useMemo(
+    () => runtime.forWidget(instanceId, definitionId),
+    [runtime, instanceId, definitionId],
+  );
+
   if (!widget) return null;
 
   const placementProps = widgetPlacementToProps(widget.placement);
@@ -143,7 +153,7 @@ export function RenderWidget({
 
   if (!entry) {
     return (
-      <WidgetInstanceIdContext.Provider value={instanceId}>
+      <WidgetApiProvider api={api}>
         <Widget {...placementProps}>
           <WidgetError
             error={
@@ -156,15 +166,15 @@ export function RenderWidget({
             widgetDef={undefined}
           />
         </Widget>
-      </WidgetInstanceIdContext.Provider>
+      </WidgetApiProvider>
     );
   }
 
   const WidgetComponent = entry.component;
   return (
-    <WidgetInstanceIdContext.Provider value={instanceId}>
+    <WidgetApiProvider api={api}>
       <WidgetComponent {...placementProps} settings={widget.settings} />
-    </WidgetInstanceIdContext.Provider>
+    </WidgetApiProvider>
   );
 }
 
@@ -173,7 +183,8 @@ export function RenderWidget({
  * instance list changes (add/remove) — not when individual settings change.
  */
 export function Widgets() {
-  const ids = useVisibleWidgetInstanceIds();
+  const runtime = useRuntime();
+  const ids = useWidgetInstanceIds(runtime.instances);
   return (
     <ErrorBoundary
       FallbackComponent={({ error }) => (
@@ -184,7 +195,7 @@ export function Widgets() {
             : String(error)}
         </div>
       )}
-      onReset={retryAfterReset}
+      onReset={runtime.persistence.retryAfterReset}
     >
       {ids.map((id) => (
         <RenderWidget key={id} instanceId={id} />

@@ -5,7 +5,7 @@ import {
   LiveObject,
   useGroupCollection,
   useInstanceKeyValue,
-} from "../../../ipc/persistence";
+} from "../../../runtime/persistence/hooks";
 import styles from "./styles/TodoListWidget.module.css";
 import {
   ChevronDownIcon,

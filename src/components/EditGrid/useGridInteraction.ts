@@ -15,7 +15,6 @@ import {
 } from "./types";
 
 const PADDING_STEP = 10;
-const GAP_MIN = 10;
 const GAP_STEP = 5;
 
 /** Pointer travel below this is a click, not a drag. */
@@ -175,7 +174,7 @@ export function useGridInteraction(
     const delta = e.clientX - gapDragRef.current.startX;
     updateGridDims({
       gap: Math.max(
-        GAP_MIN,
+        0,
         Math.round((gapDragRef.current.startGap + delta / 2) / GAP_STEP) *
           GAP_STEP,
       ),

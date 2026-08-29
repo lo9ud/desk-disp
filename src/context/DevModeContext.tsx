@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { ipc } from "../ipc";
+import { useRuntime } from "../runtime/context";
 
 type DevModeToolboxSettings = {
   showToolbox: boolean;
@@ -30,12 +30,13 @@ const DEFAULT_DEV_MODE_CONTEXT: Omit<DevModeContextType, "setToolboxSettings"> =
 const DevModeContext = createContext<DevModeContextType>(DEFAULT_DEV_MODE_CONTEXT as DevModeContextType);
 
 export function DevModeProvider({ children }: { children: React.ReactNode }) {
+  const runtime = useRuntime();
   let [value, setValue] = useState<Omit<DevModeContextType, "setToolboxSettings">>(DEFAULT_DEV_MODE_CONTEXT);
   useEffect(() => {
-    ipc.isDevMode().then((isDev) => {
+    runtime.config.isDevMode().then((isDev) => {
       setValue((prev) => ({ ...prev, active: isDev }));
     });
-  }, []);
+  }, [runtime]);
   const contextValue = useMemo(() => {
     return {
       ...value,

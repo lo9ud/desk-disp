@@ -3,7 +3,7 @@ import InputGroup from "../../components/inputs/InputGroup";
 import pageStyles from "./styles/Settings.module.css";
 import ToggleInput from "../../components/inputs/ToggleInput";
 import { Button } from "../../primitives/Button";
-import { ipc } from "../../ipc";
+import { useRuntime } from "../../runtime/context";
 import type { Preferences } from "../../ffi_types";
 
 const DEFAULT_PREFS: Preferences = {
@@ -14,11 +14,12 @@ const DEFAULT_PREFS: Preferences = {
 };
 
 export default function GeneralSection() {
+  const runtime = useRuntime();
   const [draft, setDraft] = useState<Preferences>(DEFAULT_PREFS);
   const confirmedRef = useRef<Preferences>(DEFAULT_PREFS);
 
   useEffect(() => {
-    ipc.getConfig().then((cfg) => {
+    runtime.config.get().then((cfg) => {
       const prefs = cfg.preferences ?? DEFAULT_PREFS;
       setDraft(prefs);
       confirmedRef.current = prefs;
@@ -28,19 +29,19 @@ export default function GeneralSection() {
   function updateDraft(patch: Partial<Preferences>) {
     setDraft((prev) => {
       const next = { ...prev, ...patch };
-      ipc.previewPreferences(next);
+      runtime.config.previewPreferences(next);
       return next;
     });
   }
 
   async function handleSave() {
-    await ipc.setPreferences(draft);
+    await runtime.config.setPreferences(draft);
     confirmedRef.current = draft;
   }
 
   function handleCancel() {
     setDraft(confirmedRef.current);
-    ipc.previewPreferences(confirmedRef.current);
+    runtime.config.previewPreferences(confirmedRef.current);
   }
 
   return (

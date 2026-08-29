@@ -1,6 +1,5 @@
-use crate::events::{emit_stream, StreamName, SubscriberGate};
+use crate::events::{emit_stream, StreamGate, StreamHints, StreamName};
 use std::collections::HashMap;
-use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::Duration;
 use ts_rs::TS;
@@ -157,10 +156,7 @@ impl ResourceState {
 /// the task-owned `ResourceState` needs no interior mutability.
 pub async fn run_resource_loop(
     app: tauri::AppHandle,
-    cpu_subs: Arc<AtomicUsize>,
-    memory_subs: Arc<AtomicUsize>,
-    disks_subs: Arc<AtomicUsize>,
-    networks_subs: Arc<AtomicUsize>,
+    hints: Arc<StreamHints>,
     poll_interval: Duration,
 ) {
     tracing::info!(target: "resource", "resource loop started");
@@ -180,10 +176,10 @@ pub async fn run_resource_loop(
         iv.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     }
 
-    let mut cpu_gate = SubscriberGate::new(cpu_subs, StreamName::Cpu);
-    let mut memory_gate = SubscriberGate::new(memory_subs, StreamName::Memory);
-    let mut disks_gate = SubscriberGate::new(disks_subs, StreamName::Disks);
-    let mut networks_gate = SubscriberGate::new(networks_subs, StreamName::Networks);
+    let mut cpu_gate = StreamGate::new(Arc::clone(&hints), StreamName::Cpu);
+    let mut memory_gate = StreamGate::new(Arc::clone(&hints), StreamName::Memory);
+    let mut disks_gate = StreamGate::new(Arc::clone(&hints), StreamName::Disks);
+    let mut networks_gate = StreamGate::new(hints, StreamName::Networks);
 
     loop {
         tokio::select! {

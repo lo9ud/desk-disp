@@ -1,5 +1,5 @@
 import { StreamName } from "../ffi_types";
-import { StreamEvents } from "../ipc/events";
+import { StreamEvents } from "../runtime/events";
 
 export type MockStreamSpec<K extends StreamName> = {
   /** ms between frames, or "raf" for animation-frame cadence. */

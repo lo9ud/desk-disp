@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{
@@ -55,43 +54,6 @@ pub fn apply_webview_env<'a, R: tauri::Runtime, M: Manager<R>>(
     }
 }
 
-struct ChannelSubscribers {
-    channels: HashMap<events::StreamName, Arc<AtomicUsize>>,
-}
-
-impl ChannelSubscribers {
-    fn new() -> Self {
-        Self {
-            channels: HashMap::new(),
-        }
-    }
-
-    /// Registers a channel and returns the Arc that should be passed to its loop.
-    fn register(&mut self, channel: events::StreamName) -> Arc<AtomicUsize> {
-        let counter = Arc::new(AtomicUsize::new(0));
-        self.channels.insert(channel, Arc::clone(&counter));
-        counter
-    }
-
-    fn get_counter(&self, channel: events::StreamName) -> Option<&Arc<AtomicUsize>> {
-        self.channels.get(&channel)
-    }
-
-    pub fn increment(&self, channel: events::StreamName) -> usize {
-        self.get_counter(channel)
-            .map(|c| c.fetch_add(1, Ordering::Relaxed) + 1)
-            .unwrap_or(0)
-    }
-
-    pub fn decrement(&self, channel: events::StreamName) {
-        if let Some(c) = self.get_counter(channel) {
-            let _ = c.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
-                Some(v.saturating_sub(1))
-            });
-        }
-    }
-}
-
 /// Caches the last emitted value per stream channel so new subscribers can
 /// receive it immediately without waiting for the next poll tick.
 pub struct ChannelCache(std::sync::Mutex<HashMap<events::StreamName, serde_json::Value>>);
@@ -137,26 +99,45 @@ fn get_monitor(app: &tauri::AppHandle, config: &config::Config) -> Result<Monito
     Err("No monitors found".into())
 }
 
+/* Stream lifecycle hints
+ *
+ * The window label is taken from the `tauri::Window` command argument, never from the
+ * payload, so a caller cannot claim to be another window. See `events::StreamHints` for why
+ * these are per-window sets rather than a subscriber count.
+ */
+
+/// Marks this window as wanting `channel`, and returns the last cached frame (if any) so a
+/// first subscriber renders immediately instead of waiting a full poll interval.
 #[tauri::command]
-async fn subscribe_channel(
+async fn start_stream(
     channel: events::StreamName,
+    window: tauri::Window,
     app: tauri::AppHandle,
-) -> Result<serde_json::Value, String> {
-    let subs = app.state::<ChannelSubscribers>();
-    let count = subs.increment(channel);
-    let last_value = app.state::<ChannelCache>().get(channel);
-    Ok(serde_json::json!({
-        "is_first_subscriber": count == 1,
-        "last_value": last_value
-    }))
+) -> Result<Option<serde_json::Value>, String> {
+    app.state::<Arc<events::StreamHints>>()
+        .start(channel, window.label());
+    Ok(app.state::<ChannelCache>().get(channel))
 }
 
 #[tauri::command]
-async fn unsubscribe_channel(
+async fn stop_stream(
     channel: events::StreamName,
+    window: tauri::Window,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    app.state::<ChannelSubscribers>().decrement(channel);
+    app.state::<Arc<events::StreamHints>>()
+        .stop(channel, window.label());
+    Ok(())
+}
+
+/// Drops every hint this window holds. Invoked once when a window's frontend initialises, so
+/// a reload starts from a clean slate rather than leaving streams running for a page that no
+/// longer exists.
+#[tauri::command]
+async fn reset_streams(window: tauri::Window, app: tauri::AppHandle) -> Result<(), String> {
+    debug!(window = window.label(), "clearing stream hints");
+    app.state::<Arc<events::StreamHints>>()
+        .clear_window(window.label());
     Ok(())
 }
 
@@ -222,9 +203,10 @@ pub fn run(args: cli::Args) {
         .invoke_handler(tauri::generate_handler![
             exit_program,
             is_dev_mode,
-            // stream subscription
-            subscribe_channel,
-            unsubscribe_channel,
+            // stream lifecycle hints
+            start_stream,
+            stop_stream,
+            reset_streams,
             // config commands
             get_config_path,
             get_config,
@@ -309,16 +291,12 @@ pub fn run(args: cli::Args) {
                 file_manager,
             }));
 
-            /* Channel subscription counters and cache  */
+            /* Stream lifecycle hints and last-value cache  */
 
-            let mut channel_subs = ChannelSubscribers::new();
-            let cpu_subs = channel_subs.register(events::StreamName::Cpu);
-            let memory_subs = channel_subs.register(events::StreamName::Memory);
-            let disks_subs = channel_subs.register(events::StreamName::Disks);
-            let networks_subs = channel_subs.register(events::StreamName::Networks);
-            let media_subs = channel_subs.register(events::StreamName::Media);
-            let visualizer_subs = channel_subs.register(events::StreamName::Visualizer);
-            app.manage(channel_subs);
+            // One shared hint table: managed for the commands, cloned into each loop. Streams
+            // no longer need registering up front — an absent entry simply reads as inactive.
+            let stream_hints = Arc::new(events::StreamHints::new());
+            app.manage(Arc::clone(&stream_hints));
             app.manage(ChannelCache::new());
 
             /* Windows — only now, with all state already managed  */
@@ -383,22 +361,15 @@ pub fn run(args: cli::Args) {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(system::run_resource_loop(
                 handle.clone(),
-                Arc::clone(&cpu_subs),
-                Arc::clone(&memory_subs),
-                Arc::clone(&disks_subs),
-                Arc::clone(&networks_subs),
+                Arc::clone(&stream_hints),
                 Duration::from_millis(500),
             ));
             tauri::async_runtime::spawn(media::run_media_loop(
                 handle.clone(),
-                Arc::clone(&media_subs),
+                Arc::clone(&stream_hints),
                 Duration::from_secs(2),
             ));
-            media::spawn_visualizer_loop(
-                handle,
-                Arc::clone(&visualizer_subs),
-                Duration::from_millis(33),
-            );
+            media::spawn_visualizer_loop(handle, stream_hints, Duration::from_millis(33));
 
             Ok(())
         })

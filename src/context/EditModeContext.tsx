@@ -7,12 +7,8 @@ import React, {
   useState,
 } from "react";
 import { LayoutFile, WidgetPlacement } from "../ffi_types";
-import {
-  canonicalRegistry,
-  genWidgetId,
-  InstanceRegistry,
-} from "../registry/instanceRegistry";
-import { ipc } from "../ipc";
+import { genWidgetId, InstanceRegistry } from "../registry/instanceRegistry";
+import { useRuntime } from "../runtime/context";
 import { GridDims, validateLayout } from "../utils/validation";
 import { errorSeverity, WidgetError } from "../utils/widgetErrors";
 
@@ -64,6 +60,7 @@ export function EditModeProvider({
   buildLayout,
   onGridDimsChange,
 }: EditModeProviderProps) {
+  const runtime = useRuntime();
   const [active, setActive] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [draftGridDims, setDraftGridDims] = useState<GridDims>(gridDims);
@@ -81,13 +78,15 @@ export function EditModeProvider({
   const enterEditMode = useCallback((opts?: { newLayout?: { id: string; name: string } }) => {
     preEditGridDims.current = gridDims;
     pendingNewLayoutRef.current = opts?.newLayout ?? null;
-    editRegistryRef.current = opts?.newLayout ? new InstanceRegistry() : canonicalRegistry.clone();
+    editRegistryRef.current = opts?.newLayout
+      ? new InstanceRegistry()
+      : runtime.instances.clone();
     setDraftGridDims(gridDims);
     setWidgetErrors(validateLayout(editRegistryRef.current.getAll(), gridDims));
     setEditRegistryVersion((v) => v + 1);
     setDirty(false);
     setActive(true);
-  }, [gridDims]);
+  }, [runtime, gridDims]);
 
   const moveWidget = useCallback((id: string, placement: WidgetPlacement) => {
     editRegistryRef.current?.updatePlacement(id, placement);
@@ -154,14 +153,14 @@ export function EditModeProvider({
     if (errors.some((e) => errorSeverity(e) === "error")) {
       throw new Error(`Layout has unresolved errors`);
     }
-    canonicalRegistry.replaceWith(editRegistryRef.current);
+    runtime.instances.replaceWith(editRegistryRef.current);
     const layout = buildLayout(draftGridDims);
     const pending = pendingNewLayoutRef.current;
     const targetId = pending?.id ?? activeLayoutId;
     const targetLayout = pending ? { ...layout, id: targetId, name: pending.name } : layout;
-    await ipc.saveLayout(targetId, targetLayout);
+    await runtime.layouts.save(targetId, targetLayout);
     if (pending) {
-      await ipc.setActiveLayout(targetId);
+      await runtime.layouts.setActive(targetId);
       pendingNewLayoutRef.current = null;
     }
     onGridDimsChange(draftGridDims);
@@ -170,7 +169,7 @@ export function EditModeProvider({
     setDirty(false);
     setWidgetErrors([]);
     setEditRegistryVersion((v) => v + 1);
-  }, [draftGridDims, activeLayoutId, buildLayout, onGridDimsChange]);
+  }, [runtime, draftGridDims, activeLayoutId, buildLayout, onGridDimsChange]);
 
   const cancel = useCallback(() => {
     pendingNewLayoutRef.current = null;

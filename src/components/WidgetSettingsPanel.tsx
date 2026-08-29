@@ -8,12 +8,10 @@ import {
   VerifyStatus,
   WidgetSettingsDefinition,
 } from "../registry/defRegistry";
-import {
-  canonicalRegistry,
-  useWidgetInstance,
-} from "../registry/instanceRegistry";
+import { useWidgetInstance } from "../registry/instanceRegistry";
 import { collectDefaults } from "../registry/settingsDefaults";
 import { useEditMode } from "../context/EditModeContext";
+import { useRuntime } from "../runtime/context";
 import { useDebouncedAsyncValue } from "../hooks/useDebouncedAsyncValue";
 import ToggleInput from "./inputs/ToggleInput";
 import { RangeInput, SelectInput, TextInput } from "./inputs";
@@ -741,8 +739,9 @@ export default function WidgetSettingsPanel({
   instanceId,
   onClose,
 }: WidgetSettingsPanelProps) {
+  const runtime = useRuntime();
   const { editRegistry, updateWidgetSettings } = useEditMode();
-  const inst = useWidgetInstance(instanceId, editRegistry ?? canonicalRegistry);
+  const inst = useWidgetInstance(instanceId, editRegistry ?? runtime.instances);
   const def = inst ? getWidgetDefinition(inst.definitionId) : undefined;
 
   const [localSettings, setLocalSettings] = useState<Record<string, unknown>>(

@@ -11,10 +11,11 @@ import { Widgets } from "./widgets/widget";
 import EditGrid from "./components/EditGrid";
 import WindowControls from "./components/WindowControls";
 import Onboarding from "./components/Onboarding";
-import { canonicalRegistry, genWidgetId } from "./registry/instanceRegistry";
 import { PersistenceProvider } from "./context/PersistenceContext";
-import { ipc, ipcListen } from "./ipc";
-import type { BackendEvents } from "./ipc";
+import type { AppRuntime } from "./runtime/AppRuntime";
+import { genWidgetId } from "./registry/instanceRegistry";
+import type { BackendEvents } from "./runtime/events";
+import { useRuntime } from "./runtime/context";
 import { useThemeCss } from "./hooks/useTheme";
 import { logger } from "./utils/logger";
 import { DevModeProvider, useDevMode } from "./context/DevModeContext";
@@ -43,30 +44,23 @@ function logEvent(
   event: keyof BackendEvents,
   payload: unknown,
 ) {
-  // eventLog.trace(event, JSON.stringify(objectToTypes(payload)).slice(0, 120));
   eventLog.trace(
     event,
     `${window ? `[${window}] ` : ""}${JSON.stringify(payload).slice(0, 120)}`,
   );
 }
 
-function detach(p: Promise<() => void>) {
-  p.then((fn) => fn());
-}
-
 function useEventDebugLog(
   window?: string,
   filter?: (event: keyof BackendEvents) => boolean,
 ) {
+  const { events } = useRuntime();
   useEffect(() => {
     const unlistens = (filter ? ALL_EVENTS.filter(filter) : ALL_EVENTS).map(
-      (event) =>
-        ipcListen(event, (payload) => logEvent(window, event, payload)),
+      (event) => events.on(event, (payload) => logEvent(window, event, payload)),
     );
-    return () => {
-      unlistens.forEach(detach);
-    };
-  }, [filter]);
+    return () => unlistens.forEach((off) => off());
+  }, [events, filter]);
 }
 
 const windowLabel = getCurrentWindow().label;
@@ -95,10 +89,14 @@ const DEMO_PLACEMENTS: WidgetPlacement[][] = [
   [{ col: 1, row: 1, col_span: 6, row_span: 5 }],
 ];
 
-export function registerDemoWidgets(type: string, props?: Record<string, any>) {
-  canonicalRegistry.clear();
+export function registerDemoWidgets(
+  runtime: AppRuntime,
+  type: string,
+  props?: Record<string, any>,
+) {
+  runtime.instances.clear();
   for (const placement of DEMO_PLACEMENTS[0]) {
-    canonicalRegistry.add(genWidgetId(type), type, placement, props);
+    runtime.instances.add(genWidgetId(type), type, placement, props);
   }
 }
 
@@ -151,21 +149,22 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
     padding: { top: 36, right: 36, bottom: 36, left: 36 },
   });
 
+  const runtime = useRuntime();
   const profileRef = useRef<LayoutFile | null>(null);
 
   useEffect(() => {
-    ipc.getConfig().then((config) => applyPreferences(config.preferences));
-    const p1 = ipcListen("preferences::changed", applyPreferences);
-    const p2 = ipcListen("preferences::preview", applyPreferences);
+    runtime.config.get().then((config) => applyPreferences(config.preferences));
+    const offChanged = runtime.events.on("preferences::changed", applyPreferences);
+    const offPreview = runtime.events.on("preferences::preview", applyPreferences);
     return () => {
-      p1.then((fn) => fn());
-      p2.then((fn) => fn());
+      offChanged();
+      offPreview();
     };
-  }, []);
+  }, [runtime]);
 
   useEffect(() => {
-    ipc
-      .getLayout(activeLayoutId)
+    runtime.layouts
+      .get(activeLayoutId)
       .then((layout) => {
         profileRef.current = layout;
         setGridDims({
@@ -174,23 +173,15 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
           gap: layout.gap,
           padding: layout.padding,
         });
-        canonicalRegistry.clear();
+        runtime.instances.clear();
         for (const wc of layout.widgets) {
-          canonicalRegistry.add(wc.id, wc.type, wc.placement, wc.options ?? {});
+          runtime.instances.add(wc.id, wc.type, wc.placement, wc.options ?? {});
         }
       })
       .catch((_) => {
         error("Failed to load layout:", activeLayoutId);
       });
-  }, [activeLayoutId]);
-
-  // let i = 0;
-  // for (const def of getAllWidgetDefinitions()) {
-  //   let row = Math.floor(i / 3) + 1;
-  //   let col = (i % 3) + 1;
-  //   registerWidgetInstance(hexRandom(12), def.id, { col, row, col_span: 1, row_span: 1 });
-  //   i++;
-  // }
+  }, [runtime, activeLayoutId]);
 
   const buildLayout = useCallback(
     (dims: GridDims): LayoutFile => {
@@ -210,7 +201,7 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
         grid_cols: dims.cols,
         gap: dims.gap,
         padding: dims.padding,
-        widgets: canonicalRegistry.getAll().map((inst) => ({
+        widgets: runtime.instances.getAll().map((inst) => ({
           id: inst.id,
           type: inst.definitionId,
           placement: inst.placement,
@@ -218,7 +209,7 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
         })),
       };
     },
-    [activeLayoutId],
+    [runtime, activeLayoutId],
   );
 
   const getLayout = useCallback(
@@ -246,25 +237,19 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
 /* App root  */
 
 export default function App() {
+  const runtime = useRuntime();
   const [activeLayoutId, setActiveLayoutId] = useState<string | null>(null);
   useThemeCss();
   useEventDebugLog(windowLabel, (event) => !event.startsWith("stream"));
 
   useEffect(() => {
-    ipc.getConfig().then((config) => {
+    runtime.config.get().then((config) => {
       setActiveLayoutId(config.active_layout ?? "default");
     });
-
-    let unlisten: (() => void) | null = null;
-    ipcListen("layout::changed", ({ id }) => setActiveLayoutId(id)).then(
-      (fn) => {
-        unlisten = fn;
-      },
+    return runtime.events.on("layout::changed", ({ id }) =>
+      setActiveLayoutId(id),
     );
-    return () => {
-      unlisten?.();
-    };
-  }, []);
+  }, [runtime]);
 
   if (windowLabel === "settings") return <SettingsPage />;
   if (!activeLayoutId) return null;

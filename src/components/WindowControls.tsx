@@ -7,7 +7,7 @@ import {
   BugAntIcon,
 } from "@heroicons/react/16/solid";
 import { useState, useEffect } from "react";
-import { ipc, ipcListen } from "../ipc";
+import { useRuntime } from "../runtime/context";
 import type { LayoutInfo, ThemeInfo } from "../ffi_types";
 import styles from "./styles/WindowControls.module.css";
 import { useEditMode } from "../context/EditModeContext";
@@ -17,22 +17,8 @@ import { useDevMode } from "../context/DevModeContext";
 
 const { warn } = logger("window-controls");
 
-async function toggleSettings() {
-  ipc.toggleSettingsVisibility();
-}
-
-async function handleThemeChange(e: React.ChangeEvent<HTMLSelectElement>) {
-  if (e.target.value === "__unsaved__") return;
-  const id = e.target.value || null;
-  await ipc.setActiveTheme(id);
-}
-
-async function handleLayoutChange(e: React.ChangeEvent<HTMLSelectElement>) {
-  const id = e.target.value || null;
-  await ipc.setActiveLayout(id);
-}
-
 export default function WindowControls() {
+  const runtime = useRuntime();
   const devMode = useDevMode();
   const { enterEditMode } = useEditMode();
   const [themes, setThemes] = useState<ThemeInfo[]>([]);
@@ -42,35 +28,40 @@ export default function WindowControls() {
   const [themeUnsaved, setThemeUnsaved] = useState(false);
   const [monitorCount, setMonitorCount] = useState<number>(0);
 
+  const handleThemeChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (e.target.value === "__unsaved__") return;
+    await runtime.themes.setActive(e.target.value || null);
+  };
+
+  const handleLayoutChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    await runtime.layouts.setActive(e.target.value || null);
+  };
+
   useEffect(() => {
-    ipc.listThemes().then(setThemes);
-    ipc.listLayouts().then(setLayouts);
-    ipc.getMonitorCount().then(setMonitorCount);
-    ipc.getConfig().then((c) => {
+    runtime.themes.list().then(setThemes);
+    runtime.layouts.list().then(setLayouts);
+    runtime.window.getMonitorCount().then(setMonitorCount);
+    runtime.config.get().then((c) => {
       setActiveTheme(c.active_theme ?? null);
       setActiveLayout(c.active_layout ?? null);
     });
 
-    let unlistenConfig: (() => void) | null = null;
-    let unlistenTheme: (() => void) | null = null;
-    ipcListen("config::changed", (config) => {
+    const offConfig = runtime.events.on("config::changed", (config) => {
       setActiveTheme(config.active_theme ?? null);
       setActiveLayout(config.active_layout ?? null);
       setThemeUnsaved(false);
-      ipc.listLayouts().then(setLayouts);
-    }).then((fn) => {
-      unlistenConfig = fn;
+      runtime.layouts.list().then(setLayouts);
     });
-    ipcListen("theme::changed", ({ id }) => {
+    const offTheme = runtime.events.on("theme::changed", ({ id }) => {
       if (id === "preview") setThemeUnsaved(true);
-    }).then((fn) => {
-      unlistenTheme = fn;
     });
     return () => {
-      unlistenConfig?.();
-      unlistenTheme?.();
+      offConfig();
+      offTheme();
     };
-  }, []);
+  }, [runtime]);
 
   return (
     <div className={styles.windowControls} data-onboarding="controls">
@@ -78,7 +69,7 @@ export default function WindowControls() {
         <HoverWrapper
           Element={Button}
           variant="icon"
-          onClick={() => ipc.exitProgram()}
+          onClick={() => runtime.window.exit()}
           hoverText="Exit"
           className={styles.exitButton}
           data-onboarding="exit"
@@ -88,7 +79,7 @@ export default function WindowControls() {
         <HoverWrapper
           Element={Button}
           variant="icon"
-          onClick={toggleSettings}
+          onClick={() => runtime.window.toggleSettingsVisibility()}
           hoverText="Settings"
           data-onboarding="settings"
         >
@@ -100,7 +91,7 @@ export default function WindowControls() {
             variant="icon"
             hoverText="Switch Monitors"
             onClick={() =>
-              ipc.switchMonitor().catch((e) => {
+              runtime.window.nextMonitor().catch((e) => {
                 warn("Failed to switch monitors", e);
               })
             }
@@ -189,7 +180,13 @@ export default function WindowControls() {
               Element={Button}
               variant="icon"
               hoverText="Show Dev Toolbox"
-              onClick={() => (devMode.setToolboxSettings((s) => ({ ...s, showToolbox: !s.showToolbox })), console.log("clicked", devMode.toolboxSettings))}
+              onClick={() => (
+                devMode.setToolboxSettings((s) => ({
+                  ...s,
+                  showToolbox: !s.showToolbox,
+                })),
+                console.log("clicked", devMode.toolboxSettings)
+              )}
             >
               <BugAntIcon />
             </HoverWrapper>

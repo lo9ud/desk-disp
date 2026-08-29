@@ -183,27 +183,23 @@ export class InstanceRegistry {
   };
 }
 
-export const canonicalRegistry = new InstanceRegistry();
-
 // --- Hooks ---
+//
+// The registry is always passed explicitly. There used to be a module-level
+// `canonicalRegistry` serving as the default, which meant any widget could import
+// it and rewrite the layout — remove other widgets, change their settings. The
+// canonical instance now lives on the AppRuntime (`runtime.instances`), reachable
+// only by host code.
 
 export function useWidgetInstanceIds(
-  registry: InstanceRegistry = canonicalRegistry,
+  registry: InstanceRegistry,
 ): readonly string[] {
   return useSyncExternalStore(registry.subscribe, registry.getSnapshot);
 }
 
-/** Always uses the canonical registry — for the main overlay window. */
-export function useVisibleWidgetInstanceIds(): readonly string[] {
-  return useSyncExternalStore(
-    canonicalRegistry.subscribe,
-    canonicalRegistry.getSnapshot,
-  );
-}
-
 export function useWidgetInstance(
   id: string,
-  registry: InstanceRegistry = canonicalRegistry,
+  registry: InstanceRegistry,
 ): WidgetInstance | undefined {
   return useSyncExternalStore(
     (cb) => registry.subscribeToInstance(id, cb),

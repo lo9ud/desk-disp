@@ -7,11 +7,13 @@ import {
 import { useState } from "react";
 import { Button } from "../../../primitives/Button";
 import { combineClassNames } from "../../../utils/format";
+import type { InstanceRegistry } from "../../../registry/instanceRegistry";
 import { WidgetError, widgetErrorText } from "../../../utils/widgetErrors";
 import styles from "../styles/band.module.css";
 
 export function Notch({
   errors,
+  registry,
   hasBlockingErrors,
   saving,
   onSave,
@@ -23,6 +25,7 @@ export function Notch({
   onGapPointerUp,
 }: {
   errors: WidgetError[];
+  registry: InstanceRegistry | null;
   hasBlockingErrors: boolean;
   saving: boolean;
   onSave: () => void;
@@ -53,7 +56,9 @@ export function Notch({
             styles.notchBadge,
             hasBlockingErrors ? styles.error : styles.warning,
           )}
-          title={errors.map((e) => widgetErrorText(e).message).join("\n")}
+          title={errors
+            .map((e) => widgetErrorText(e, registry).message)
+            .join("\n")}
         >
           {errors.length} {hasBlockingErrors ? "error" : "warning"}
           {errors.length > 1 ? "s" : ""}

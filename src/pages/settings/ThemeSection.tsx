@@ -1,5 +1,5 @@
 import { CSSProperties, useEffect, useRef, useState } from "react";
-import { ipc } from "../../ipc";
+import { useRuntime } from "../../runtime/context";
 import type { ThemeData, ThemeInfo } from "../../ffi_types";
 import pageStyles from "./styles/Settings.module.css";
 import styles from "./styles/ThemeSection.module.css";
@@ -32,6 +32,7 @@ interface ThemeSwatch {
 }
 
 export default function ThemeSection() {
+  const runtime = useRuntime();
   const [swatches, setSwatches] = useState<ThemeSwatch[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
@@ -39,14 +40,14 @@ export default function ThemeSection() {
   useEffect(() => {
     async function load() {
       const [infos, cfg] = await Promise.all([
-        ipc.listThemes(),
-        ipc.getConfig(),
+        runtime.themes.list(),
+        runtime.config.get(),
       ]);
       setActiveId(cfg.active_theme ?? null);
       const loaded = await Promise.all(
         infos.map(async (info) => {
           try {
-            const data = await ipc.getTheme(info.id);
+            const data = await runtime.themes.get(info.id);
             return {
               info,
               base: colorFromVars(data, "base"),
@@ -80,7 +81,7 @@ export default function ThemeSection() {
 
   async function handleSelect(id: string) {
     setActiveId(id);
-    await ipc.setActiveTheme(id);
+    await runtime.themes.setActive(id);
   }
 
   function handleGenerateClick() {
@@ -91,14 +92,14 @@ export default function ThemeSection() {
     const hex = e.target.value;
     if (!hex) return;
     try {
-      await ipc.generateTheme(hex);
-      const infos = await ipc.listThemes();
-      const cfg = await ipc.getConfig();
+      await runtime.themes.generate(hex);
+      const infos = await runtime.themes.list();
+      const cfg = await runtime.config.get();
       setActiveId(cfg.active_theme ?? null);
       const loaded = await Promise.all(
         infos.map(async (info) => {
           try {
-            const data = await ipc.getTheme(info.id);
+            const data = await runtime.themes.get(info.id);
             return {
               info,
               base: colorFromVars(data, "base"),

@@ -1,8 +1,5 @@
-import { useContext, Suspense, ComponentType, useMemo } from "react";
-import Widget, {
-  WidgetInstanceIdContext,
-  WidgetPlacementProps,
-} from "../widgets/widget";
+import { Suspense, ComponentType, useMemo } from "react";
+import Widget, { WidgetPlacementProps } from "../widgets/widget";
 import { DelayedLoading } from "../components/Loading";
 import { logger } from "../utils/logger";
 import {
@@ -12,7 +9,7 @@ import {
 } from "./settingsSchema";
 import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 import WidgetError from "../components/WidgetError";
-import { retryAfterReset } from "../ipc/persistence_store";
+import { useWidgetApi } from "../runtime/context";
 
 
 export type {
@@ -147,7 +144,7 @@ export function registerWidget<S extends WidgetSettingsDefinition>(
   }
 
   function DefaultError({ error, resetErrorBoundary }: FallbackProps) {
-    const instanceId = useContext(WidgetInstanceIdContext);
+    const { instanceId } = useWidgetApi();
     return (
       <WidgetError
         error={error}
@@ -175,6 +172,7 @@ export function registerWidget<S extends WidgetSettingsDefinition>(
     rowSpan,
     settings,
   }: ErasedWidgetProps) {
+    const api = useWidgetApi();
     const hasUnset = useMemo(
       () => hasUnsetRequired(metadata.settingsDef, settings),
       [metadata.settingsDef, settings],
@@ -183,7 +181,7 @@ export function registerWidget<S extends WidgetSettingsDefinition>(
       <Widget col={col} row={row} colSpan={colSpan} rowSpan={rowSpan}>
         <ErrorBoundary
           FallbackComponent={ErrorComponent}
-          onReset={retryAfterReset}
+          onReset={api.retryPersistence}
         >
           {hasUnset ? (
             <PreinitComponent {...settings} />

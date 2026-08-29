@@ -3,7 +3,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { WidgetDefinition } from "../../../registry/defRegistry";
 import { InstanceRegistry } from "../../../registry/instanceRegistry";
 import { defaultSettingsForWidget } from "../../../registry/settingsDefaults";
-import { previewInstanceId } from "../../../preview/previewPersistence";
+import { previewInstanceId } from "../../../preview/previewIds";
 import { RenderWidget } from "../../../widgets/widget";
 import styles from "../styles/rail.module.css";
 

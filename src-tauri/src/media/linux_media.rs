@@ -1,15 +1,14 @@
-use std::sync::{
-    atomic::{AtomicUsize},
-    Arc,
-};
+use std::sync::Arc;
+
+use crate::events::StreamHints;
 
 const TARGET: &str = "media::linux";
 
-pub async fn run_media_loop(_app: tauri::AppHandle, _subscribers: Arc<AtomicUsize>, _poll_interval: std::time::Duration) {
+pub async fn run_media_loop(_app: tauri::AppHandle, _hints: Arc<StreamHints>, _poll_interval: std::time::Duration) {
     tracing::warn!(target: TARGET, "media loop not implemented on Linux");
 }
 
-pub fn spawn_visualizer_loop(_app: tauri::AppHandle, _subscribers: Arc<AtomicUsize>, _frame_interval: std::time::Duration) {
+pub fn spawn_visualizer_loop(_app: tauri::AppHandle, _hints: Arc<StreamHints>, _frame_interval: std::time::Duration) {
     tracing::warn!(target: TARGET, "visualizer loop not implemented on Linux");
 }
 

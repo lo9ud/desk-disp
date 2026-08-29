@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
-use std::sync::{atomic::AtomicUsize, Arc};
+use std::sync::Arc;
+
+use crate::events::StreamHints;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
@@ -39,12 +41,12 @@ spawn_command!(
 
 // Event-loop entry points (called from lib.rs setup)
 
-pub async fn run_media_loop(app: tauri::AppHandle, subscribers: Arc<AtomicUsize>, poll_interval: std::time::Duration) {
-    imp::run_media_loop(app, subscribers, poll_interval).await
+pub async fn run_media_loop(app: tauri::AppHandle, hints: Arc<StreamHints>, poll_interval: std::time::Duration) {
+    imp::run_media_loop(app, hints, poll_interval).await
 }
 
-pub fn spawn_visualizer_loop(app: tauri::AppHandle, subscribers: Arc<AtomicUsize>, frame_interval: std::time::Duration) {
-    imp::spawn_visualizer_loop(app, subscribers, frame_interval)
+pub fn spawn_visualizer_loop(app: tauri::AppHandle, hints: Arc<StreamHints>, frame_interval: std::time::Duration) {
+    imp::spawn_visualizer_loop(app, hints, frame_interval)
 }
 
 /* Shared payload types  */

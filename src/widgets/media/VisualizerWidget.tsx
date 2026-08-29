@@ -1,10 +1,10 @@
-import { useEffect, useRef } from "react";
-import { useSubscription } from "../../hooks";
+import { useCallback, useEffect, useRef } from "react";
 import {
   registerWidget,
   WidgetSettingsDefinition,
   WidgetSettingsProps,
 } from "../../registry/defRegistry";
+import { useWidgetApi } from "../../runtime/context";
 import styles from "./styles/VisualizerWidget.module.css";
 import { FrequencyReading } from "../../ffi_types";
 
@@ -150,27 +150,18 @@ export function Visualizer({
   freqTrimBottom,
   freqTrimTop,
 }: WidgetSettingsProps<typeof VISUALIZER_SETTINGS_DEF>) {
-  const { data: dataRaw } = useSubscription("visualizer");
-  const color = globalThis
-    .getComputedStyle(document.documentElement)
-    .getPropertyValue("--color-accent")
-    .trim();
-
-  const data = dataRaw
-    ? dataRaw.slice(
-        Math.floor((dataRaw.length * freqTrimBottom) / 100),
-        Math.ceil(dataRaw.length * (1 - freqTrimTop / 100)),
-      )
-    : null;
+  // No stream subscription here. Frames go straight to the canvas via
+  // useStreamCanvas below, so this component re-renders only when a *setting*
+  // changes — not 30 times a second to hand React an array it never renders.
+  const trim = { bottom: freqTrimBottom, top: freqTrimTop };
 
   if (style === "bars") {
     if (["vertical", "horizontal"].includes(direction)) {
       return (
         <BarsVisualizer
-          frequencies={data}
+          trim={trim}
           barCount={barCount}
           showWhenIdle={showWhenIdle}
-          color={color}
           direction={direction}
           freqOrder={freqOrder}
           extentSource={extentSource}
@@ -182,11 +173,10 @@ export function Visualizer({
     } else if (direction === "circular") {
       return (
         <RadialBars
+          trim={trim}
           innerRadius={innerRadius}
-          frequencies={data}
           barCount={barCount}
           showWhenIdle={showWhenIdle}
-          color={color}
           mirror={mirror}
           freqOrder={freqOrder}
           barStyle={barStyle}
@@ -196,15 +186,101 @@ export function Visualizer({
       );
     } // no else needed, direction is validated by settingsDef
   } else if (style === "waveform") {
-    return (
-      <Waveform
-        data={data}
-        smoothing={0.5}
-        showWhenIdle={showWhenIdle}
-        color={color}
-      />
-    );
+    return <Waveform trim={trim} smoothing={0.5} showWhenIdle={showWhenIdle} />;
   } // no else needed, style is validated by settingsDef
+}
+
+/* Imperative draw path  */
+
+type FreqTrim = { bottom: number; top: number };
+
+/** Receives the trimmed frame and the accent colour; draws, returns nothing. */
+type DrawFn = (
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  frame: FrequencyReading[] | null,
+  color: string,
+) => void;
+
+/**
+ * Owns the canvas, the visualizer subscription and the repaint policy for all
+ * three renderers.
+ *
+ * The point of the imperative path: a frame lands here and is painted directly.
+ * React is not involved per frame at all, which is correct — it does not manage
+ * this canvas's contents, so routing 30 arrays a second through `setState` only
+ * bought a full settings destructure and subtree reconciliation per frame.
+ *
+ * `draw` is held in a ref and refreshed every render, so a settings change takes
+ * effect on the next frame without tearing down the subscription.
+ */
+function useStreamCanvas(trim: FreqTrim, draw: DrawFn) {
+  const api = useWidgetApi();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frameRef = useRef<FrequencyReading[] | null>(null);
+
+  const drawRef = useRef(draw);
+  drawRef.current = draw;
+  const trimRef = useRef(trim);
+  trimRef.current = trim;
+
+  const paint = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    // Keep the backing store matched to the CSS box — the grid can resize this
+    // widget at any time, and a stale size silently stretches the drawing.
+    if (canvas.width !== canvas.clientWidth) canvas.width = canvas.clientWidth;
+    if (canvas.height !== canvas.clientHeight)
+      canvas.height = canvas.clientHeight;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const raw = frameRef.current;
+    const { bottom, top } = trimRef.current;
+    const frame = raw
+      ? raw.slice(
+          Math.floor((raw.length * bottom) / 100),
+          Math.ceil(raw.length * (1 - top / 100)),
+        )
+      : null;
+
+    // Read per paint rather than per render — same frequency as before, since
+    // the old code read it in the render body that ran on every frame.
+    const color = globalThis
+      .getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-accent")
+      .trim();
+
+    drawRef.current(ctx, canvas, frame, color);
+  }, []);
+
+  useEffect(() => {
+    // Seed from the hub's retained frame so a remount draws immediately.
+    frameRef.current = api.streams.latest("visualizer");
+    paint();
+    return api.streams.subscribe("visualizer", (frame) => {
+      frameRef.current = frame;
+      paint();
+    });
+  }, [api, paint]);
+
+  // No dep array: the component only re-renders when a setting changed, and that
+  // is exactly when the last frame needs repainting with the new settings.
+  useEffect(paint);
+
+  return canvasRef;
+}
+
+function VisualizerCanvas({
+  canvasRef,
+}: {
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+}) {
+  // Width/height are set in `paint` from the live client box rather than as
+  // render-time attributes, which read as `undefined` on the first pass and
+  // never updated on resize.
+  return <canvas ref={canvasRef} className={styles.visualizer} />;
 }
 
 const VisualizerWidget = registerWidget(Visualizer, {
@@ -337,10 +413,9 @@ function applyMirrorFreq(
 }
 
 function BarsVisualizer({
-  frequencies,
+  trim,
   barCount,
   showWhenIdle,
-  color,
   direction,
   freqOrder,
   extentSource,
@@ -348,10 +423,9 @@ function BarsVisualizer({
   barStyle,
   stackBlockSize,
 }: {
-  frequencies: FrequencyReading[] | null;
+  trim: FreqTrim;
   barCount: number;
   showWhenIdle: boolean;
-  color: string;
   direction: string;
   freqOrder: string;
   extentSource: string;
@@ -359,14 +433,8 @@ function BarsVisualizer({
   barStyle: string;
   stackBlockSize: number;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const data = normalizeData(frequencies);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  const canvasRef = useStreamCanvas(trim, (ctx, canvas, frame, color) => {
+    const data = normalizeData(frame);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -400,27 +468,9 @@ function BarsVisualizer({
         drawBar(ctx, r.x, r.y, r.w, r.h, color);
       }
     }
-  }, [
-    data,
-    barCount,
-    showWhenIdle,
-    direction,
-    freqOrder,
-    extentSource,
-    mirrorFreq,
-    barStyle,
-    stackBlockSize,
-    color,
-  ]);
+  });
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className={styles.visualizer}
-      width={canvasRef.current?.clientWidth}
-      height={canvasRef.current?.clientHeight}
-    />
-  );
+  return <VisualizerCanvas canvasRef={canvasRef} />;
 }
 
 function drawBar(
@@ -497,10 +547,9 @@ function stackSegments(
 }
 
 function RadialBars({
-  frequencies,
+  trim,
   barCount,
   showWhenIdle,
-  color,
   innerRadius,
   mirror,
   freqOrder,
@@ -508,10 +557,9 @@ function RadialBars({
   stackBlockSize,
   origin,
 }: {
-  frequencies: FrequencyReading[] | null;
+  trim: FreqTrim;
   barCount: number;
   showWhenIdle: boolean;
-  color: string;
   innerRadius: number;
   mirror: string;
   freqOrder: string;
@@ -519,15 +567,8 @@ function RadialBars({
   stackBlockSize: number;
   origin: number;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const data = normalizeData(frequencies);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  const canvasRef = useStreamCanvas(trim, (ctx, canvas, frame, color) => {
+    const data = normalizeData(frame);
 
     const mirrorFactor =
       mirror === "both" ? 4 : mirror === "vert" || mirror === "horiz" ? 2 : 1;
@@ -577,13 +618,13 @@ function RadialBars({
           );
         }
       } else {
-        ctx!.fillStyle = color;
-        ctx!.beginPath();
-        ctx!.moveTo(
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(
           centerX + innerRadius * Math.cos(angle - angularWidth / 2),
           centerY + innerRadius * Math.sin(angle - angularWidth / 2),
         );
-        ctx!.arc(
+        ctx.arc(
           centerX,
           centerY,
           innerRadius,
@@ -591,11 +632,11 @@ function RadialBars({
           angle + angularWidth / 2,
           false,
         );
-        ctx!.lineTo(
+        ctx.lineTo(
           centerX + outerRadius * Math.cos(angle + angularWidth / 2),
           centerY + outerRadius * Math.sin(angle + angularWidth / 2),
         );
-        ctx!.arc(
+        ctx.arc(
           centerX,
           centerY,
           outerRadius,
@@ -603,8 +644,8 @@ function RadialBars({
           angle - angularWidth / 2,
           true,
         );
-        ctx!.closePath();
-        ctx!.fill();
+        ctx.closePath();
+        ctx.fill();
       }
     }
 
@@ -702,49 +743,21 @@ function RadialBars({
           break;
       }
     }
-  }, [
-    data,
-    barCount,
-    showWhenIdle,
-    freqOrder,
-    mirror,
-    innerRadius,
-    origin,
-    barStyle,
-    stackBlockSize,
-    color,
-  ]);
+  });
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className={styles.visualizer}
-      width={canvasRef.current?.clientWidth}
-      height={canvasRef.current?.clientHeight}
-    />
-  );
+  return <VisualizerCanvas canvasRef={canvasRef} />;
 }
 
 function Waveform({
-  data,
-  smoothing,
+  trim,
+  smoothing: _smoothing,
   showWhenIdle,
-  color,
 }: {
-  data: FrequencyReading[] | null;
+  trim: FreqTrim;
   smoothing: number;
   showWhenIdle: boolean;
-  color: string;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
+  const canvasRef = useStreamCanvas(trim, (ctx, canvas, data, color) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!data || (data.every((d) => d.magnitude === 0) && !showWhenIdle)) {
@@ -788,14 +801,7 @@ function Waveform({
       ctx.lineWidth = 2;
       ctx.stroke();
     }
-  }, [data, smoothing, showWhenIdle, color]);
+  });
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className={styles.visualizer}
-      width={canvasRef.current?.clientWidth}
-      height={canvasRef.current?.clientHeight}
-    />
-  );
+  return <VisualizerCanvas canvasRef={canvasRef} />;
 }

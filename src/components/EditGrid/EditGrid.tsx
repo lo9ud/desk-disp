@@ -2,13 +2,17 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { WidgetPlacement } from "../../ffi_types";
 import { useEditMode } from "../../context/EditModeContext";
 import { getWidgetDefinition } from "../../registry/defRegistry";
-import { useWidgetInstanceIds } from "../../registry/instanceRegistry";
+import {
+  InstanceRegistry,
+  useWidgetInstanceIds,
+} from "../../registry/instanceRegistry";
 import { defaultSettingsForWidget } from "../../registry/settingsDefaults";
 import { errorSeverity } from "../../utils/widgetErrors";
 import { AddButton } from "./band/AddButton";
@@ -119,7 +123,10 @@ export default function EditGrid() {
     cancel,
   } = useEditMode();
 
-  const allIds = useWidgetInstanceIds(editRegistry ?? undefined);
+  // Edit mode renders before the draft registry exists on the very first pass;
+  // an empty stand-in keeps the hook call unconditional.
+  const emptyRegistry = useMemo(() => new InstanceRegistry(), []);
+  const allIds = useWidgetInstanceIds(editRegistry ?? emptyRegistry);
   const [openSettingsId, setOpenSettingsId] = useState<string | null>(null);
   const tileRefs = useRef(new Map<string, HTMLElement>());
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
@@ -455,6 +462,7 @@ export default function EditGrid() {
             add-mode scale, only the grid and its own edge controls do. */}
         <Notch
           errors={allErrors}
+          registry={editRegistry}
           hasBlockingErrors={hasBlockingErrors}
           saving={saving}
           onSave={handleSaveClick}
@@ -508,6 +516,7 @@ export default function EditGrid() {
       {confirmSaveOpen && (
         <ConfirmSaveModal
           errors={allErrors}
+          registry={editRegistry}
           onCancel={closeConfirm}
           onConfirm={performSave}
         />

@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo } from "react";
 import { LayoutFile } from "../ffi_types";
-import { ipc } from "../ipc";
+import { useRuntime } from "../runtime/context";
 import { logger } from "../utils/logger";
 
 const {error} = logger("persistence-context");
@@ -30,14 +30,15 @@ export function PersistenceProvider({
   getLayout,
   children,
 }: PersistenceProviderProps) {
+  const runtime = useRuntime();
   const saveLayout = useCallback(async () => {
     const layout = getLayout();
     try {
-      await ipc.saveLayout(activeLayoutId, layout);
+      await runtime.layouts.save(activeLayoutId, layout);
     } catch (err) {
       error("Failed to save layout:", err?.toString());
     }
-  }, [activeLayoutId, getLayout]);
+  }, [runtime, activeLayoutId, getLayout]);
 
   const value = useMemo(
     () => ({ activeLayoutId, saveLayout }),

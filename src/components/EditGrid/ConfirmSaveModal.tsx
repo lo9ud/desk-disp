@@ -1,14 +1,17 @@
 import { Button } from "../../primitives/Button";
 import { Modal } from "../../primitives/Modal";
+import type { InstanceRegistry } from "../../registry/instanceRegistry";
 import { WidgetError, widgetErrorText } from "../../utils/widgetErrors";
 import styles from "./styles/grid.module.css";
 
 export function ConfirmSaveModal({
   errors,
+  registry,
   onCancel,
   onConfirm,
 }: {
   errors: WidgetError[];
+  registry: InstanceRegistry | null;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -29,7 +32,7 @@ export function ConfirmSaveModal({
       <ul className={styles.errorList}>
         {errors.map((e) => (
           <li key={`${e.kind}-${e.widgetIds.join(",")}`}>
-            {widgetErrorText(e).message}
+            {widgetErrorText(e, registry).message}
           </li>
         ))}
       </ul>

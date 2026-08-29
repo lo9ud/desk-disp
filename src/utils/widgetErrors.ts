@@ -1,5 +1,5 @@
 import { getWidgetDefinition } from "../registry/defRegistry";
-import { canonicalRegistry } from "../registry/instanceRegistry";
+import type { InstanceRegistry } from "../registry/instanceRegistry";
 
 export type OutOfBoundsError = {
   kind: "out_of_bounds";
@@ -43,7 +43,17 @@ export function errorSeverity(e: WidgetError): "error" | "warning" | "info" {
   }
 }
 
-export function widgetErrorText(e: WidgetError): {
+/**
+ * `registry` is only consulted to name the widgets in an overlap message. It is
+ * passed in rather than read from a module global — and the caller is always in
+ * edit mode, so it supplies the *edit* registry, which is the layout the message
+ * is actually describing. The old global read named widgets from the canonical
+ * registry, i.e. the pre-edit layout.
+ */
+export function widgetErrorText(
+  e: WidgetError,
+  registry: InstanceRegistry | null,
+): {
   message: string;
   hint?: string;
 } {
@@ -62,7 +72,7 @@ export function widgetErrorText(e: WidgetError): {
     }
     case "overlap": {
       const widgetNames = e.widgetIds.map((id) => {
-        const def = canonicalRegistry.get(id)?.definitionId;
+        const def = registry?.get(id)?.definitionId;
         if (!def) return id;
         return (
           getWidgetDefinition(def)?.name ||

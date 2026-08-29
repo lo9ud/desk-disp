@@ -1,23 +1,18 @@
 import { useEffect } from "react";
-import { ipc, ipcListen } from "../ipc";
+import { useRuntime } from "../runtime/context";
 import { applyTheme, themeDataToCss } from "../utils/config";
 
 export function useThemeCss(): void {
+  const runtime = useRuntime();
   useEffect(() => {
-    let unlisten: (() => void) | null = null;
-
-    ipc.getConfig().then((config) => {
+    runtime.config.get().then((config) => {
       if (config.active_theme) {
-        ipc.getTheme(config.active_theme).then((t) => applyTheme(themeDataToCss(t)));
+        runtime.themes
+          .get(config.active_theme)
+          .then((t) => applyTheme(themeDataToCss(t)));
       }
     });
 
-    ipcListen("theme::changed", ({ css }) => applyTheme(css)).then((fn) => {
-      unlisten = fn;
-    });
-
-    return () => {
-      unlisten?.();
-    };
-  }, []);
+    return runtime.events.on("theme::changed", ({ css }) => applyTheme(css));
+  }, [runtime]);
 }
