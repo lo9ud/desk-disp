@@ -8,7 +8,7 @@ import {
 } from "react";
 import { widgetPlacementToProps } from "../utils/config";
 import styles from "./styles/widget.module.css";
-import { getWidgetDefinition } from "../registry/defRegistry";
+import { getWidgetEntry } from "../registry/defRegistry";
 import {
   canonicalRegistry,
   InstanceRegistry,
@@ -16,10 +16,9 @@ import {
   useVisibleWidgetInstanceIds,
 } from "../registry/instanceRegistry";
 import { combineClassNames } from "../utils/format";
-import { ErrorBoundary, FallbackProps } from "react-error-boundary";
+import { ErrorBoundary } from "react-error-boundary";
 import { retryAfterReset } from "../ipc/persistence_store";
 import { useDevMode } from "../context/DevModeContext";
-import { Button } from "../primitives/Button";
 import WidgetError from "../components/WidgetError";
 
 export const WidgetInstanceIdContext = createContext<string | undefined>(
@@ -83,12 +82,7 @@ export default function Widget({
     : [];
 
   return (
-    <div
-      ref={containerRef}
-      className={combineClassNames(styles.widget, className, ...devStyles)}
-      style={style}
-      data-widget-id={instanceId}
-    >
+    <>
       {devMode.active &&
         devMode.toolboxSettings.showMissingBackground &&
         bgRect && (
@@ -103,7 +97,14 @@ export default function Widget({
             }}
           />
         )}
-      {children}
+      <div
+        ref={containerRef}
+        className={combineClassNames(styles.widget, className, ...devStyles)}
+        style={style}
+        data-widget-id={instanceId}
+      >
+        {children}
+      </div>
       {devMode.active &&
         devMode.toolboxSettings.displayWidgetUsedSpace &&
         bgRect && (
@@ -118,11 +119,9 @@ export default function Widget({
             }}
           />
         )}
-    </div>
+    </>
   );
 }
-
-
 
 /**
  * Renders a single widget instance by ID. Subscribes only to that
@@ -140,40 +139,32 @@ export function RenderWidget({
   if (!widget) return null;
 
   const placementProps = widgetPlacementToProps(widget.placement);
-  const widgetDef = getWidgetDefinition(widget.definitionId);
+  const entry = getWidgetEntry(widget.definitionId);
 
-  if (!widgetDef) {
+  if (!entry) {
     return (
       <WidgetInstanceIdContext.Provider value={instanceId}>
-        <WidgetError
-          {...placementProps}
-          error={
-            new Error(
-              `Error: No widget definition found for id "${widget.definitionId}"`,
-            )
-          }
-          resetErrorBoundary={() => {}}
-          instanceId={instanceId}
-          widgetDef={undefined}
-        />
+        <Widget {...placementProps}>
+          <WidgetError
+            error={
+              new Error(
+                `Error: No widget definition found for id "${widget.definitionId}"`,
+              )
+            }
+            resetErrorBoundary={() => {}}
+            instanceId={instanceId}
+            widgetDef={undefined}
+          />
+        </Widget>
       </WidgetInstanceIdContext.Provider>
     );
   }
 
-  function FallbackErrorWidget(props: FallbackProps) {
-    return <WidgetError {...placementProps} {...props} instanceId={instanceId} widgetDef={widgetDef} />;
-  }
-
-  const WidgetComponent = widgetDef.component;
+  const WidgetComponent = entry.component;
   return (
-    <ErrorBoundary
-      FallbackComponent={FallbackErrorWidget}
-      onReset={retryAfterReset}
-    >
-      <WidgetInstanceIdContext.Provider value={instanceId}>
-        <WidgetComponent {...placementProps} {...widget.settings} />
-      </WidgetInstanceIdContext.Provider>
-    </ErrorBoundary>
+    <WidgetInstanceIdContext.Provider value={instanceId}>
+      <WidgetComponent {...placementProps} settings={widget.settings} />
+    </WidgetInstanceIdContext.Provider>
   );
 }
 
