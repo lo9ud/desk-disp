@@ -1,5 +1,4 @@
 import { FallbackProps } from "react-error-boundary";
-import Widget, { WidgetPlacementProps } from "../widgets/widget";
 import styles from "./styles/WidgetError.module.css";
 import { Button } from "../primitives/Button";
 import { WidgetDefinition } from "../registry/defRegistry";
@@ -48,70 +47,66 @@ export default function WidgetError({
   resetErrorBoundary,
   instanceId,
   widgetDef,
-  ...placement
-}: FallbackProps &
-  WidgetPlacementProps & {
-    instanceId: string | undefined;
-    widgetDef: WidgetDefinition | undefined;
-  }) {
+}: FallbackProps & {
+  instanceId: string | undefined;
+  widgetDef: WidgetDefinition | undefined;
+}) {
   const [showDetails, setShowDetails] = useState(false);
 
   return (
-    <Widget {...placement}>
-      <div className={styles.error}>
-        <p className={styles.errorMessage}>
-          An unhandled error occurred in this widget. Please report this to the
-          developer.
-          <br />
-          <code>
-            {`Error: ${error instanceof Error ? trimErrorMessage(error.message) : String(error)}`}
-          </code>
-        </p>
-        <div className={styles.errorButtons}>
-          <Button onClick={() => setShowDetails(!showDetails)}>
-            Show Details
-          </Button>
-          <Button onClick={resetErrorBoundary}>Reset Widget</Button>
-        </div>
-        {showDetails && (
-          <Modal
-            title="Widget Error Details"
-            onClose={() => setShowDetails(false)}
-            actions={
-              <>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    const markdownText = makeMarkdownText(
-                      instanceId,
-                      widgetDef,
-                      error,
-                    );
-                    navigator.clipboard.writeText(markdownText).then(() => {
-                      alert("Error report copied to clipboard.");
-                    });
-                  }}
-                >
-                  Copy Error Report
-                </Button>
-                <Button
-                  variant="ghost_danger"
-                  onClick={() => setShowDetails(false)}
-                >
-                  Close
-                </Button>
-              </>
-            }
-          >
-            <ErrorDetails
-              instanceId={instanceId}
-              widgetDef={widgetDef}
-              error={error}
-            />
-          </Modal>
-        )}
+    <div className={styles.error}>
+      <p className={styles.errorMessage}>
+        An unhandled error occurred in this widget. Please report this to the
+        developer.
+        <br />
+        <code>
+          {`Error: ${error instanceof Error ? trimErrorMessage(error.message) : String(error)}`}
+        </code>
+      </p>
+      <div className={styles.errorButtons}>
+        <Button onClick={() => setShowDetails(!showDetails)}>
+          Show Details
+        </Button>
+        <Button onClick={resetErrorBoundary}>Reset Widget</Button>
       </div>
-    </Widget>
+      {showDetails && (
+        <Modal
+          title="Widget Error Details"
+          onClose={() => setShowDetails(false)}
+          actions={
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  const markdownText = makeMarkdownText(
+                    instanceId,
+                    widgetDef,
+                    error,
+                  );
+                  navigator.clipboard.writeText(markdownText).then(() => {
+                    alert("Error report copied to clipboard.");
+                  });
+                }}
+              >
+                Copy Error Report
+              </Button>
+              <Button
+                variant="ghost_danger"
+                onClick={() => setShowDetails(false)}
+              >
+                Close
+              </Button>
+            </>
+          }
+        >
+          <ErrorDetails
+            instanceId={instanceId}
+            widgetDef={widgetDef}
+            error={error}
+          />
+        </Modal>
+      )}
+    </div>
   );
 }
 
@@ -162,7 +157,7 @@ function StackTrace({ stack }: { stack: string }) {
     <pre className={styles.stackTrace}>
       {stack
         .split("\n")
-        .map((line, index) => (
+        .map((line) => (
           <div key={line} className={styles.stackTraceLine}>
             {line}
           </div>
