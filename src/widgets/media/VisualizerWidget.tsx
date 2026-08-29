@@ -213,16 +213,33 @@ type DrawFn = (
  *
  * `draw` is held in a ref and refreshed every render, so a settings change takes
  * effect on the next frame without tearing down the subscription.
+ *
+ * It also owns the idle decision, which is why `showWhenIdle` is a hook argument
+ * rather than something the renderers check: the three `draw` functions then
+ * have one job each, and a `null` frame means "there is nothing to show", with
+ * no second opinion about whether the data counts as silence.
  */
-function useStreamCanvas(trim: FreqTrim, draw: DrawFn) {
+function useStreamCanvas(trim: FreqTrim, showWhenIdle: boolean, draw: DrawFn) {
   const api = useWidgetApi();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<FrequencyReading[] | null>(null);
+  const idleRef = useRef<IdleState>({ silentSince: null, mix: 0, at: null });
+  const rafRef = useRef<number | null>(null);
 
   const drawRef = useRef(draw);
   drawRef.current = draw;
   const trimRef = useRef(trim);
   trimRef.current = trim;
+  const showWhenIdleRef = useRef(showWhenIdle);
+  showWhenIdleRef.current = showWhenIdle;
+
+  // Indirection so the animation loop can be a stable callback that always runs
+  // the current paint, rather than paint having to reference itself.
+  const paintRef = useRef<() => void>(undefined);
+  const tick = useCallback(() => {
+    rafRef.current = null;
+    paintRef.current?.();
+  }, []);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
@@ -237,13 +254,24 @@ function useStreamCanvas(trim: FreqTrim, draw: DrawFn) {
     if (!ctx) return;
 
     const raw = frameRef.current;
+    const idle = idleRef.current;
+    const now = api.now();
+    const settled = advanceIdle(idle, raw, now);
+
     const { bottom, top } = trimRef.current;
-    const frame = raw
+    // Trim first, then overlay: the idle animation is not frequency data, so it
+    // spans the bars actually on screen rather than being clipped by a trim.
+    const live = raw
       ? raw.slice(
           Math.floor((raw.length * bottom) / 100),
           Math.ceil(raw.length * (1 - top / 100)),
         )
       : null;
+
+    let frame: FrequencyReading[] | null;
+    if (!showWhenIdleRef.current) frame = settled ? null : live;
+    else if (idle.mix > 0) frame = blendIdle(live, idle.mix, now);
+    else frame = live;
 
     // Read per paint rather than per render — same frequency as before, since
     // the old code read it in the render body that ran on every frame.
@@ -253,16 +281,37 @@ function useStreamCanvas(trim: FreqTrim, draw: DrawFn) {
       .trim();
 
     drawRef.current(ctx, canvas, frame, color);
-  }, []);
+
+    // Self-drive whenever going quiet still has a visible consequence pending.
+    // Arriving frames are the only other thing that repaints, and a stream that
+    // has gone quiet may have stopped emitting altogether — on a platform with
+    // no visualizer backend at all, this loop is the only thing that ever runs.
+    // With the animation off that is a bounded wait for the hide; with it on it
+    // runs for as long as the animation is on screen or on its way in.
+    const pending = showWhenIdleRef.current
+      ? idle.silentSince !== null || idle.mix > 0
+      : idle.silentSince !== null && !settled;
+    if (pending && rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(tick);
+    }
+  }, [api, tick]);
+  paintRef.current = paint;
 
   useEffect(() => {
     // Seed from the hub's retained frame so a remount draws immediately.
     frameRef.current = api.streams.latest("visualizer");
     paint();
-    return api.streams.subscribe("visualizer", (frame) => {
+    const unsubscribe = api.streams.subscribe("visualizer", (frame) => {
       frameRef.current = frame;
-      paint();
+      // While the idle loop is running it repaints on the next animation frame
+      // anyway; painting here too would just paint the same state twice.
+      if (rafRef.current === null) paint();
     });
+    return () => {
+      unsubscribe();
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
   }, [api, paint]);
 
   // No dep array: the component only re-renders when a setting changed, and that
@@ -293,6 +342,25 @@ const VisualizerWidget = registerWidget(Visualizer, {
   settingsDef: VISUALIZER_SETTINGS_DEF,
   minSize: [null, null],
   maxSize: [null, null],
+  presetsSettings: [
+    {
+      mirrorFreq: true,
+    },
+    {
+      barStyle: "stack",
+      extentSource: "center",
+      mirrorFreq: true,
+    },
+    {
+      direction: "horizontal",
+      extentSource: "split",
+    },
+    {
+      direction: "circular",
+      mirror: "vert",
+      origin: 90,
+    }
+  ],
 });
 
 export default VisualizerWidget;
@@ -313,6 +381,12 @@ type Rect = {
 // segment-to-segment gap at this value so both axes of the LED grid line up.
 const BAR_GAP = 2;
 
+// The backend peak-normalises every frame and maps it onto a 120dB log scale,
+// so a magnitude is a *distance below the frame's loudest bin*, not a height —
+// 0.7 is roughly 30dB down. These re-expand that range for display.
+const MAG_CUTOFF = 0.4;
+const MAG_SCALE = Math.pow(2, 7.65); // = approx 200
+
 function scaleValue(value: number, cutoff: number, scale: number) {
   // Roughly:
   // Values less than cutoff are aggressively reduced to near zero
@@ -323,15 +397,118 @@ function scaleValue(value: number, cutoff: number, scale: number) {
   );
 }
 
+/** Inverse of `scaleValue`: the magnitude that renders as `height`. */
+function magnitudeForHeight(height: number) {
+  return (
+    MAG_CUTOFF +
+    ((1 - MAG_CUTOFF) * Math.log(height * (MAG_SCALE - 1) + 1)) /
+      Math.log(MAG_SCALE)
+  );
+}
+
 function normalizeData(frequencies: FrequencyReading[] | null) {
-  const cutoff = 0.4;
-  const scale = Math.pow(2, 7.65); // = approx 200
   return (
     frequencies?.map((d) => ({
       freq: Math.log(d.freq_hi + d.freq_lo),
-      magnitude: scaleValue(d.magnitude, cutoff, scale),
+      magnitude: scaleValue(d.magnitude, MAG_CUTOFF, MAG_SCALE),
     })) ?? null
   );
+}
+
+/* Idle animation  */
+
+const TAU = Math.PI * 2;
+
+/** Below this, a bin counts as quiet. The backend peak-normalises every frame,
+ *  so anything playing at all puts a bin at 1.0 — this only has to clear the
+ *  tail of its decay filter once playback stops, not judge a volume. */
+const IDLE_QUIET_MAGNITUDE = 0.05;
+/** How long quiet must persist before the animation takes over, so the gap
+ *  between two tracks doesn't start a fade nobody asked for. */
+const IDLE_ENTER_MS = 1500;
+const IDLE_FADE_IN_MS = 1200;
+/** Quicker the other way: audio starting again should show up immediately. */
+const IDLE_FADE_OUT_MS = 250;
+
+type IdleState = {
+  /** When the stream first went quiet; null while something is playing. */
+  silentSince: number | null;
+  /** 0 = incoming frame only, 1 = idle animation fully faded in. */
+  mix: number;
+  /** Previous paint's timestamp, so fading is frame-rate independent. */
+  at: number | null;
+};
+
+/**
+ * Advances the idle state machine by one paint, returning whether the stream
+ * has now been quiet long enough to count as idle.
+ */
+function advanceIdle(
+  state: IdleState,
+  raw: FrequencyReading[] | null,
+  now: number,
+): boolean {
+  const dt = state.at === null ? 0 : Math.max(now - state.at, 0);
+  state.at = now;
+
+  const quiet =
+    raw === null || raw.every((d) => d.magnitude < IDLE_QUIET_MAGNITUDE);
+  if (!quiet) state.silentSince = null;
+  else state.silentSince ??= now;
+
+  const settled =
+    state.silentSince !== null && now - state.silentSince >= IDLE_ENTER_MS;
+  const step = settled ? dt / IDLE_FADE_IN_MS : -dt / IDLE_FADE_OUT_MS;
+  state.mix = Math.min(Math.max(state.mix + step, 0), 1);
+  return settled;
+}
+
+/**
+ * Bar height, 0..1, at fractional position `u` across the display.
+ *
+ * Two waves travelling opposite ways at unrelated wavelengths, so the crest
+ * drifts rather than settling into a loop the eye can lock onto; the arch keeps
+ * the two ends a little shorter so it reads as one moving shape rather than as
+ * bars that happen to be moving. Deliberately never bottoms out — an idle
+ * animation that goes flat is indistinguishable from a broken one.
+ */
+function idleHeight(u: number, t: number) {
+  const travel = 0.5 + 0.5 * Math.sin(TAU * (u * 1.35 - t / 4200));
+  const counter = 0.5 + 0.5 * Math.sin(TAU * (u * 0.6 + t / 6700));
+  const breathe = 0.75 + 0.25 * Math.sin(TAU * (t / 5300));
+  const arch = 0.6 + 0.4 * Math.sin(Math.PI * u);
+  return 0.05 + 0.7 * arch * breathe * (0.55 * travel + 0.45 * counter);
+}
+
+/** Stand-in bins for when the stream has never produced a frame at all — the
+ *  visualizer thread failed to start, or the platform has no implementation.
+ *  Same 20Hz → 20kHz log spacing `FFTStream::create_log_frequency_bins` uses. */
+const IDLE_BINS: FrequencyReading[] = Array.from({ length: 64 }, (_, i) => ({
+  freq_lo: 20 * Math.pow(1000, i / 64),
+  freq_hi: 20 * Math.pow(1000, (i + 1) / 64),
+  magnitude: 0,
+}));
+
+/**
+ * Lays the idle animation over a frame at `mix` strength. The fade is applied
+ * in height space and converted back, so it ramps the way it looks rather than
+ * the way the log scale would; taking the max means a stream that starts again
+ * simply overtakes the animation while the mix ramps back down.
+ */
+function blendIdle(
+  live: FrequencyReading[] | null,
+  mix: number,
+  t: number,
+): FrequencyReading[] {
+  const bins = live ?? IDLE_BINS;
+  const span = Math.max(bins.length - 1, 1);
+  return bins.map((bin, i) => ({
+    ...bin,
+    magnitude: Math.max(
+      bin.magnitude,
+      magnitudeForHeight(mix * idleHeight(i / span, t)),
+    ),
+  }));
 }
 
 function verticalBaseRects(
@@ -433,14 +610,12 @@ function BarsVisualizer({
   barStyle: string;
   stackBlockSize: number;
 }) {
-  const canvasRef = useStreamCanvas(trim, (ctx, canvas, frame, color) => {
+  const canvasRef = useStreamCanvas(trim, showWhenIdle, (ctx, canvas, frame, color) => {
     const data = normalizeData(frame);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (!data || (data.every((d) => d.magnitude === 0) && !showWhenIdle)) {
-      return;
-    }
+    if (!data) return;
 
     const getBaseRects =
       direction === "vertical" ? verticalBaseRects : horizontalBaseRects;
@@ -567,7 +742,7 @@ function RadialBars({
   stackBlockSize: number;
   origin: number;
 }) {
-  const canvasRef = useStreamCanvas(trim, (ctx, canvas, frame, color) => {
+  const canvasRef = useStreamCanvas(trim, showWhenIdle, (ctx, canvas, frame, color) => {
     const data = normalizeData(frame);
 
     const mirrorFactor =
@@ -578,9 +753,7 @@ function RadialBars({
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (!data || (data.every((d) => d.magnitude === 0) && !showWhenIdle)) {
-      return;
-    }
+    if (!data) return;
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
@@ -757,21 +930,10 @@ function Waveform({
   smoothing: number;
   showWhenIdle: boolean;
 }) {
-  const canvasRef = useStreamCanvas(trim, (ctx, canvas, data, color) => {
+  const canvasRef = useStreamCanvas(trim, showWhenIdle, (ctx, canvas, data, color) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (!data || (data.every((d) => d.magnitude === 0) && !showWhenIdle)) {
-      return;
-    }
-
-    if (showWhenIdle) {
-      data.forEach((d, i) => {
-        data[i] =
-          Math.sin((i / data.length) * Math.PI) > 0
-            ? d
-            : { ...d, magnitude: 0 };
-      });
-    }
+    if (!data) return;
 
     const points = data.map((_, i) => [
       (i / (data.length - 1)) * canvas.width,

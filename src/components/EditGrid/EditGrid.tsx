@@ -253,12 +253,20 @@ export default function EditGrid() {
   }
 
   /** Add the widget, leave add mode, and select it; settings open after the
-   *  stage has animated back to 1:1. */
-  function placeWidget(defId: string, placement: WidgetPlacement) {
+   *  stage has animated back to 1:1.
+   *
+   *  `settings` is the gallery preset the card was showing when it was picked,
+   *  so what lands on the grid is what the user was looking at. Falls back to
+   *  the plain defaults for any caller that isn't the rail. */
+  function placeWidget(
+    defId: string,
+    placement: WidgetPlacement,
+    settings?: Record<string, any>,
+  ) {
     const newId = addWidget(
       defId,
       placement,
-      defaultSettingsForWidget(defId) as Record<string, any>,
+      settings ?? (defaultSettingsForWidget(defId) as Record<string, any>),
     );
     exitAddMode();
     if (!newId) return;
@@ -283,7 +291,7 @@ export default function EditGrid() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addMode]);
 
-  function handleRailPick(defId: string) {
+  function handleRailPick(defId: string, settings?: Record<string, any>) {
     if (!editRegistry) return;
     let target = addMode?.pendingCell ?? null;
     if (target && occupied.has(`${target.col},${target.row}`)) target = null;
@@ -292,12 +300,11 @@ export default function EditGrid() {
       setNoSpace(true);
       return;
     }
-    placeWidget(defId, {
-      col: target.col,
-      row: target.row,
-      col_span: 1,
-      row_span: 1,
-    });
+    placeWidget(
+      defId,
+      { col: target.col, row: target.row, col_span: 1, row_span: 1 },
+      settings,
+    );
   }
 
   function railPlacementAt(x: number, y: number): WidgetPlacement | null {
@@ -316,13 +323,18 @@ export default function EditGrid() {
     });
   }
 
-  function handleRailDrop(defId: string, x: number, y: number) {
+  function handleRailDrop(
+    defId: string,
+    x: number,
+    y: number,
+    settings?: Record<string, any>,
+  ) {
     setPlaceGhost(null);
     if (!editRegistry) return;
     const placement = railPlacementAt(x, y);
     if (!placement) return;
     if (!checkGhostValid(placement, RAIL_PLACE_ID, dims, editRegistry)) return;
-    placeWidget(defId, placement);
+    placeWidget(defId, placement, settings);
   }
 
   function handleCancelClick() {

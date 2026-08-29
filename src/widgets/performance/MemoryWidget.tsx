@@ -66,6 +66,20 @@ const MemoryWidget = registerWidget(Memory, {
   tags: [],
   maxSize: [null, null],
   minSize: [null, null],
+  presetsSettings: [
+    {
+      style: "bar",
+      showDetail: false,
+    },
+    {
+      style: "pie",
+      showDetail: false,
+    },
+    {
+      style: "pie",
+      showDetail: true,
+    },
+  ],
   settingsDef: MEMORY_WIDGET_SETTINGS_DEF,
 });
 

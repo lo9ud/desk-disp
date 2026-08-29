@@ -157,3 +157,49 @@
 .previewFallback {
   color: var(--ui-text-subtle);
 }
+
+/* Preset stepper: prev/next either side of one dot per preset, marking which
+   the preview is currently showing. Dot 0 is the widget's own defaults, so
+   this is present on every card -- a widget declaring no presets gets a single
+   inert dot and disabled arrows rather than a missing footer. */
+.cardPresets {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 2px;
+  cursor: default;
+}
+
+.cardPresetDots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardPresetDot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.cardPresetDot:hover:not(:disabled) {
+  border-color: var(--ui-text-muted);
+  background: var(--ui-text-subtle);
+}
+
+.cardPresetDot[data-active] {
+  border-color: var(--ui-text-muted);
+  background: var(--ui-text-muted);
+}
+
+.cardPresetDot:disabled {
+  cursor: default;
+}

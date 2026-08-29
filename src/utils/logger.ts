@@ -6,21 +6,81 @@ export type LogLevel = "trace" | "debug" | "info" | "warn" | "error";
  * The `logger(module)` factory below stays module-level on purpose: it is a
  * diagnostic sink rather than data access, and ~10 modules call it at import time
  * where no runtime exists yet. What DI buys here is only that this file no longer
- * reaches for `invoke` itself — lines emitted before the runtime exists go to the
- * console and are dropped from the backend log, which is the same behaviour the
- * old "backend not ready yet" catch produced.
+ * reaches for `invoke` itself — lines emitted before the runtime exists are held
+ * in `preRuntime` below and flushed once it is, so registration-time diagnostics
+ * (see defRegistry's checkPresets) reach the log file instead of the devtools
+ * console alone.
  */
 type LogSink = (cmd: string, args: Record<string, unknown>) => Promise<unknown>;
 
 let sink: LogSink | null = null;
 
+type BufferedLine = {
+  level: LogLevel;
+  module: string;
+  message: string;
+  hint?: string;
+};
+
+/**
+ * Lines emitted before a sink existed. Only the backend hop is deferred — the
+ * console half of `emit` always runs immediately, with the correct frontend
+ * timestamp.
+ */
+const preRuntime: BufferedLine[] = [];
+
+/**
+ * Realistically unreachable (module init emits a few dozen lines), so this is
+ * only here to stop an app that never installs a transport from growing the
+ * buffer forever. Earliest lines win: they are the startup ones worth having.
+ */
+const MAX_BUFFERED = 500;
+let bufferedDropped = 0;
+
+/**
+ * Marks a flushed line's leading timestamp as a receipt time rather than an
+ * emission time. Deliberately not the emission timestamp itself: the frontend
+ * and backend stamp on different clocks, so a precise-looking frontend time
+ * sitting in a backend-stamped log invites a comparison that doesn't hold. That
+ * the line was buffered at all is the part worth knowing.
+ */
+const BUFFERED_HINT = "buffered pre-runtime";
+
 export function setLogTransport(transport: {
   invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T>;
 }) {
   sink = (cmd, args) => transport.invoke(cmd, args);
+  // Before syncBackendLevel, and synchronous: nothing can emit between
+  // installing the sink and draining the queue, so a buffered line can never be
+  // overtaken by a live one. Waiting for the real backend level first would
+  // keep pre-runtime `debug` lines that the default "info" filter drops here,
+  // but it costs an IPC round-trip during which live lines would jump the
+  // queue — and those dropped lines are still in the console either way.
+  flushPreRuntime();
   // Deferred until there is something to ask: the backend's level is what decides
   // whether a line is worth shipping at all.
   syncBackendLevel();
+}
+
+function flushPreRuntime() {
+  const queued = preRuntime.splice(0, preRuntime.length);
+  const dropped = bufferedDropped;
+  bufferedDropped = 0;
+  for (const line of queued) {
+    if (LEVEL_ORDER[line.level] < LEVEL_ORDER[backendMinLevel]) continue;
+    send(line.level, line.module, line.message, taggedHint(line.hint));
+  }
+  if (dropped > 0) {
+    // Safe to go through the normal path: `sink` is set by now, so this takes
+    // the direct branch rather than re-entering the buffer.
+    logger("logger").warn(
+      `Dropped ${dropped} pre-runtime log lines over the ${MAX_BUFFERED}-line buffer cap`,
+    );
+  }
+}
+
+function taggedHint(hint: string | undefined): string {
+  return hint ? `${hint} | ${BUFFERED_HINT}` : BUFFERED_HINT;
 }
 
 const LEVEL_ORDER: Record<LogLevel, number> = {
@@ -84,6 +144,19 @@ function formatLine(
   return `[${timestamp()}] [${level.toUpperCase().padEnd(5)}] [${module}] ${body}`;
 }
 
+function send(
+  level: LogLevel,
+  module: string,
+  message: string,
+  hint?: string,
+): void {
+  sink!("log_from_frontend", { level, module, message, hint }).catch(() => {
+    console.warn(
+      `Failed to send log to backend, level=${level}, module=${module}, message=${message}`,
+    );
+  });
+}
+
 function emit(
   level: LogLevel,
   module: string,
@@ -92,13 +165,20 @@ function emit(
 ): void {
   CONSOLE_FN[level](formatLine(level, module, message, hint));
 
-  if (sink && LEVEL_ORDER[level] >= LEVEL_ORDER[backendMinLevel]) {
-    sink("log_from_frontend", { level, module, message, hint }).catch(() => {
-      // Backend not ready yet (e.g. very early startup) — silently drop.
-      console.warn(
-        `Failed to send log to backend, level=${level}, module=${module}, message=${message}`,
-      );
-    });
+  if (!sink) {
+    // Level-filtered at flush, not here: `backendMinLevel` is still the default
+    // until the backend answers, so filtering now would use the same value
+    // twice over, and holding the line keeps the decision in one place.
+    if (preRuntime.length < MAX_BUFFERED) {
+      preRuntime.push({ level, module, message, hint });
+    } else {
+      bufferedDropped++;
+    }
+    return;
+  }
+
+  if (LEVEL_ORDER[level] >= LEVEL_ORDER[backendMinLevel]) {
+    send(level, module, message, hint);
   }
 }
 

@@ -28,21 +28,36 @@ export function genWidgetId(_type: string): string {
 }
 
 export class InstanceRegistry {
-  private readonly instances = new Map<string, WidgetInstance>();
-  private snapshot: readonly string[] = [];
-  private readonly listListeners = new Set<() => void>();
-  private readonly instanceListeners = new Map<string, Set<() => void>>();
+  protected readonly instances = new Map<string, WidgetInstance>();
+  protected snapshot: readonly string[] = [];
+  protected readonly listListeners = new Set<() => void>();
+  protected readonly instanceListeners = new Map<string, Set<() => void>>();
 
-  private rebuildSnapshot() {
+  protected rebuildSnapshot() {
     this.snapshot = [...this.instances.keys()];
   }
 
-  private notifyList() {
+  protected notifyList() {
     this.listListeners.forEach((l) => l());
   }
 
-  private notifyInstance(id: string) {
+  protected notifyInstance(id: string) {
     this.instanceListeners.get(id)?.forEach((l) => l());
+  }
+
+  protected buildInstance(
+    id: string,
+    definitionId: string,
+    placement: WidgetPlacement,
+    settings: Record<string, any>,
+  ): WidgetInstance {
+    return {
+      id,
+      definitionId,
+      placement,
+      settings,
+      errors: [],
+    };
   }
 
   // --- Mutations ---
@@ -53,13 +68,12 @@ export class InstanceRegistry {
     placement: WidgetPlacement,
     settings: Record<string, any> = {},
   ): WidgetInstance {
-    const instance: WidgetInstance = {
+    const instance: WidgetInstance = this.buildInstance(
       id,
       definitionId,
       placement,
       settings,
-      errors: [],
-    };
+    );
     this.instances.set(id, instance);
     this.rebuildSnapshot();
     this.notifyList();
@@ -82,7 +96,9 @@ export class InstanceRegistry {
   updatePlacement(id: string, placement: WidgetPlacement): void {
     const inst = this.instances.get(id);
     if (!inst) {
-      warn(`Attempted to update placement of non-existent widget instance: ${id}`);
+      warn(
+        `Attempted to update placement of non-existent widget instance: ${id}`,
+      );
       return;
     }
     this.instances.set(id, { ...inst, placement });
@@ -92,10 +108,15 @@ export class InstanceRegistry {
   updateSettings(id: string, settings: Record<string, any>): void {
     const inst = this.instances.get(id);
     if (!inst) {
-      warn(`Attempted to update settings of non-existent widget instance: ${id}`);
+      warn(
+        `Attempted to update settings of non-existent widget instance: ${id}`,
+      );
       return;
     }
-    this.instances.set(id, { ...inst, settings: { ...inst.settings, ...settings } });
+    this.instances.set(id, {
+      ...inst,
+      settings: { ...inst.settings, ...settings },
+    });
     this.notifyInstance(id);
   }
 
@@ -206,4 +227,3 @@ export function useWidgetInstance(
     () => registry.getInstanceSnapshot(id),
   );
 }
-

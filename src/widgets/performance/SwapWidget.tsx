@@ -72,6 +72,20 @@ const SwapWidget = registerWidget(Swap, {
   tags: [],
   maxSize: [null, null],
   minSize: [null, null],
+  presetsSettings: [
+    {
+      style: "bar",
+      showDetail: false,
+    },
+    {
+      style: "pie",
+      showDetail: false,
+    },
+    {
+      style: "pie",
+      showDetail: true,
+    },
+  ],
   settingsDef: SWAP_WIDGET_SETTINGS_DEF,
 });
 

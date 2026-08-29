@@ -7,6 +7,7 @@ import {
 } from "../../registry/defRegistry";
 import styles from "./styles/AlbumArtWidget.module.css";
 import { combineClassNames } from "../../utils/format";
+import { imageDataUrl } from "../../utils/image";
 
 const ALBUM_ART_WIDGET_SETTINGS_DEF = {
   style: {
@@ -64,7 +65,7 @@ const ALBUM_ART_WIDGET_SETTINGS_DEF = {
       normal: "Normal",
       reduced: "Reduced",
     },
-    default: "none",
+    default: "normal",
     enableWhen: { key: "filterGlow", is: true },
   },
 } satisfies WidgetSettingsDefinition;
@@ -78,8 +79,10 @@ export function AlbumArt({
   filterSaturation,
 }: WidgetSettingsProps<typeof ALBUM_ART_WIDGET_SETTINGS_DEF>) {
   const { data } = useSubscription("media");
-  const albumArtSrc =
-    data?.album_art_b64 && `data:image/jpeg;base64,${data?.album_art_b64}`;
+  // Type sniffed from the payload, not assumed: see imageDataUrl's note.
+  const albumArtSrc = data?.album_art_b64
+    ? imageDataUrl(data.album_art_b64)
+    : null;
   const playing = data?.playing ?? !data?.active;
   const pausedStyle = playing ? null : styles.paused;
   const rotateStyle = rotate && style === "circle" ? styles.rotate : null;
@@ -152,6 +155,22 @@ const AlbumArtWidget = registerWidget(AlbumArt, {
   settingsDef: ALBUM_ART_WIDGET_SETTINGS_DEF,
   minSize: [null, null],
   maxSize: [null, null],
+  // The gallery's variety for this widget comes from here rather than from the
+  // media stream: the mock tracks rotate far too slowly to change during a
+  // browse, by design (see MOCK_STREAMS.media).
+  presetsSettings: [
+    { style: "circle", rotate: true, speed: "slow" },
+    { style: "square", filterGlow: true, filterSaturation: "max" },
+    {
+      style: "circle",
+      rotate: true,
+      speed: "medium",
+      filterGlow: true,
+      filterLightness: "lighten",
+      filterSaturation: "boost",
+    },
+    { filterGlow: true, filterLightness: "darken", filterSaturation: "reduced" },
+  ],
 });
 
 export default AlbumArtWidget;

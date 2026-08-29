@@ -60,7 +60,14 @@ pub struct MediaState {
     pub title: String,
     pub artist: String,
     pub album: String,
-    /// Base64-encoded thumbnail image (JPEG or PNG).
+    /// Base64-encoded thumbnail image.
+    ///
+    /// The media type is deliberately **not** declared here. The frontend sniffs
+    /// it from the payload's own magic bytes (`imageDataUrl` in
+    /// `src/utils/image.ts`), so this field may carry PNG, JPEG or SVG and
+    /// nothing on this side has to agree in advance — SMTC returns whichever
+    /// raster format the source app embedded, while the preview streams emit
+    /// SVG. Emitting a new format only means teaching the sniffer its signature.
     pub album_art_b64: Option<String>,
     pub position_ms: u64,
     pub duration_ms: u64,

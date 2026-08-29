@@ -39,6 +39,11 @@ const PerformanceWidget = registerWidget(Performance, {
   tags: [],
   maxSize: [null, null],
   minSize: [null, null],
+  presetsSettings: [
+    {
+      style: "dense",
+    },
+  ],
   settingsDef: PERFORMANCE_WIDGET_SETTINGS_DEF,
 });
 

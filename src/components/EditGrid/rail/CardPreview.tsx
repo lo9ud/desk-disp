@@ -1,18 +1,28 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { WidgetDefinition } from "../../../registry/defRegistry";
-import { InstanceRegistry } from "../../../registry/instanceRegistry";
-import { defaultSettingsForWidget } from "../../../registry/settingsDefaults";
-import { previewInstanceId } from "../../../preview/previewIds";
 import { RenderWidget } from "../../../widgets/widget";
 import styles from "../styles/rail.module.css";
+import { PreviewInstanceRegistry } from "./previewRegistry";
 
 /**
  * Live widget render for a gallery card, fed mocked data. Mounted only once
  * the card scrolls into view so a large catalog doesn't spin up dozens of
  * animated widgets at once.
+ *
+ * The instance lives in the rail's shared PreviewInstanceRegistry rather than
+ * in a per-card throwaway one, so the rail can drive every card's preset
+ * through a single registry it holds.
  */
-export function CardPreview({ def }: { def: WidgetDefinition }) {
+export function CardPreview({
+  registry,
+  def,
+  instanceId,
+}: {
+  registry: PreviewInstanceRegistry;
+  def: WidgetDefinition;
+  instanceId: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -32,29 +42,13 @@ export function CardPreview({ def }: { def: WidgetDefinition }) {
     return () => observer.disconnect();
   }, [visible]);
 
-  // Throwaway registry per card: never touches the canonical or edit
-  // registries, and the "preview:" id keeps persistence in memory.
-  const registry = useMemo(() => {
-    const r = new InstanceRegistry();
-    r.add(
-      previewInstanceId(def.id),
-      def.id,
-      { col: 1, row: 1, col_span: 1, row_span: 1 },
-      defaultSettingsForWidget(def.id),
-    );
-    return r;
-  }, [def.id]);
-
   return (
     <div ref={ref} className={styles.cardPreview}>
       {visible ? (
         <ErrorBoundary
           fallback={<span className={styles.previewFallback}>No preview</span>}
         >
-          <RenderWidget
-            instanceId={previewInstanceId(def.id)}
-            registry={registry}
-          />
+          <RenderWidget instanceId={instanceId} registry={registry} />
         </ErrorBoundary>
       ) : (
         <span className={styles.previewFallback}>{def.name}</span>

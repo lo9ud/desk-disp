@@ -55,6 +55,20 @@ const CPUWidget = registerWidget(CPU, {
   category: "system",
   maxSize: [null, null],
   minSize: [null, null],
+  presetsSettings: [
+    {
+      style: "bar",
+      showDetail: false,
+    },
+    {
+      style: "pie",
+      showDetail: false,
+    },
+    {
+      style: "pie",
+      showDetail: true,
+    },
+  ],
 });
 
 export default CPUWidget;

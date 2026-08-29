@@ -10,6 +10,7 @@ import {
 import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 import WidgetError from "../components/WidgetError";
 import { useWidgetApi } from "../runtime/context";
+import { collectDefaults } from "./collectDefaults";
 
 
 export type {
@@ -44,7 +45,7 @@ export const CATEGORIES = {
   media: "Media",
 } as const;
 
-const { debug } = logger("defRegistry");
+const { debug, warn } = logger("defRegistry");
 
 
 export type ErasedWidgetProps = WidgetPlacementProps & {
@@ -62,6 +63,12 @@ export interface WidgetDefinition<
   minSize: [number | null, number | null];
   maxSize: [number | null, number | null];
   settingsDef: S;
+  /**
+   * Author-supplied settings combinations the add-rail gallery steps through to
+   * show off what the widget can look like. Each entry is layered over the
+   * widget's defaults, so a preset only has to name the settings it changes.
+   */
+  presetsSettings?: Partial<WidgetSettingsProps<S>>[];
 }
 
 export interface DefinitionRegistryEntry {
@@ -95,6 +102,60 @@ function checkGroupDepth(
       }
     }
   }
+}
+
+function shallowEqual(
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+): boolean {
+  // Sound here without a deep compare because every value-bearing setting case
+  // contributes a primitive -- SettingType is string/number/boolean, and a
+  // select contributes one of its own option keys. Nothing in a settings object
+  // is ever an array or a nested object.
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) if (a[k] !== b[k]) return false;
+  return true;
+}
+
+/**
+ * Authoring check for gallery presets: the rail's stepper already shows the
+ * widget's own defaults as its first preset, so a declared preset that resolves
+ * to the defaults -- or to an earlier preset -- is a redundant dot showing an
+ * identical widget.
+ *
+ * Warns rather than throwing, unlike checkGroupDepth: a duplicate preset is
+ * cosmetic, and taking the app down over one would be wildly out of proportion
+ * to a spare dot.
+ */
+function checkPresets(
+  metadata: Pick<WidgetDefinition, "id" | "settingsDef" | "presetsSettings">,
+): void {
+  const declared = metadata.presetsSettings as
+    | Record<string, unknown>[]
+    | undefined;
+  if (!declared?.length) return;
+
+  // Compare resolved, not as-written: presets are partial, so two that name
+  // different subsets can still land on the same settings once merged.
+  const defaults = collectDefaults(metadata.settingsDef);
+  const resolved = declared.map((preset) => ({ ...defaults, ...preset }));
+
+  resolved.forEach((settings, i) => {
+    if (shallowEqual(settings, defaults)) {
+      warn(
+        `Widget '${metadata.id}': presetsSettings[${i}] resolves to the widget's own defaults, which the gallery already shows as the first preset -- remove it.`,
+      );
+      return;
+    }
+    const twin = resolved.findIndex(
+      (other, j) => j < i && shallowEqual(other, settings),
+    );
+    if (twin !== -1) {
+      warn(
+        `Widget '${metadata.id}': presetsSettings[${i}] resolves to the same settings as presetsSettings[${twin}] -- one of them is redundant.`,
+      );
+    }
+  });
 }
 
 function hasUnsetRequired(
@@ -133,11 +194,15 @@ export interface WidgetFallbacks<S extends WidgetSettingsDefinition> {
 
 export function registerWidget<S extends WidgetSettingsDefinition>(
   Component: ComponentType<WidgetSettingsProps<S>>,
-  metadata: Omit<WidgetDefinition, "settingsDef"> & { settingsDef: S },
+  // WidgetDefinition<S>, not the erased WidgetDefinition: presetsSettings is
+  // only checked against the widget's own settings schema if S is threaded
+  // through here.
+  metadata: Omit<WidgetDefinition<S>, "settingsDef"> & { settingsDef: S },
   fallbacks?: WidgetFallbacks<S>,
 ): void {
   debug(`Registering widget: ${metadata.id}`);
   checkGroupDepth(metadata.settingsDef, metadata.id, 1);
+  checkPresets(metadata);
 
   function DefaultLoading() {
     return <DelayedLoading what={metadata.name} delay={300} />;

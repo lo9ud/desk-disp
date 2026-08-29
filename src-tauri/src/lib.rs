@@ -340,6 +340,8 @@ pub fn run(args: cli::Args) {
                     .devtools(true)
                     // Allow  zoom hotkeys to test different zoom levels
                     .zoom_hotkeys_enabled(true)
+                    // Don't make the window always on bottom so the developer can interact with other windows while debugging
+                    .always_on_bottom(false)
             } else {
                 win_builder
             };

@@ -1,5 +1,5 @@
 import { FunnelIcon, XMarkIcon } from "@heroicons/react/16/solid";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../../primitives/Button";
 import { Input } from "../../../primitives/Input";
 import {
@@ -11,6 +11,12 @@ import { PreviewEnvironment } from "../../../preview/PreviewEnvironment";
 import styles from "../styles/rail.module.css";
 import { RailCard } from "./RailCard";
 import { useRailDrag } from "./useRailDrag";
+import {
+  PreviewInstanceRegistry,
+  PRESET_INTERVAL_MS,
+} from "./previewRegistry";
+import { previewInstanceId } from "../../../preview/previewIds";
+import { defaultSettingsForWidget } from "../../../registry/settingsDefaults";
 
 export function AddRail({
   open,
@@ -27,9 +33,15 @@ export function AddRail({
   width: number;
   /** Transient "no space" flag from a failed click-to-place. */
   noSpace: boolean;
-  onPick: (defId: string) => void;
+  /** `settings` is the preset the card was showing when it was picked. */
+  onPick: (defId: string, settings: Record<string, any> | undefined) => void;
   onGhostMove: (defId: string, clientX: number, clientY: number) => void;
-  onDrop: (defId: string, clientX: number, clientY: number) => void;
+  onDrop: (
+    defId: string,
+    clientX: number,
+    clientY: number,
+    settings: Record<string, any> | undefined,
+  ) => void;
   onGhostCancel: () => void;
   onRequestClose: () => void;
   onExited: () => void;
@@ -64,6 +76,27 @@ export function AddRail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Built from the whole catalog, not the filtered `defs` below: filtering
+  // decides what gets *rendered*, and rebuilding the registry per keystroke
+  // would remount every card (losing its IntersectionObserver state and its
+  // place in the preset cycle) each time the search box changed.
+  const registry = useMemo(() => {
+    const r = new PreviewInstanceRegistry();
+    for (const def of getAllWidgetDefinitions()) {
+      r.add(
+        previewInstanceId(def.id),
+        def.id,
+        { col: 1, row: 1, col_span: 1, row_span: 1 },
+        defaultSettingsForWidget(def.id),
+      );
+    }
+    return r;
+  }, []);
+
+  function currentPreset(defId: string): Record<string, any> | undefined {
+    return registry.currentSettings(previewInstanceId(defId));
+  }
+
   const {
     placing,
     handleCardPointerDown,
@@ -72,9 +105,12 @@ export function AddRail({
     handleCardPointerCancel,
   } = useRailDrag({
     railRef,
-    onClick: onPick,
+    // useRailDrag only knows the definition id; which preset a card is showing
+    // is the rail's own business, so it's read off the registry here rather
+    // than threaded through the drag hook.
+    onClick: (defId) => onPick(defId, currentPreset(defId)),
     onGhostMove,
-    onDrop,
+    onDrop: (defId, x, y) => onDrop(defId, x, y, currentPreset(defId)),
     onGhostCancel,
   });
 
@@ -88,6 +124,15 @@ export function AddRail({
       //@ts-expect-error applet tag can be filtered on, but typeof def.tags technically disallows it.
       (selectedTag === null || def.tags?.includes(selectedTag)),
   );
+
+  useEffect(() => {
+    if (!open) return;
+    const interval = setInterval(
+      () => registry.advanceAll(),
+      PRESET_INTERVAL_MS,
+    );
+    return () => clearInterval(interval);
+  }, [registry, open]);
 
   return (
     <div
@@ -178,6 +223,8 @@ export function AddRail({
             <RailCard
               key={def.id}
               def={def}
+              registry={registry}
+              instanceId={previewInstanceId(def.id)}
               onPointerDown={handleCardPointerDown}
               onPointerMove={handleCardPointerMove}
               onPointerUp={handleCardPointerUp}
