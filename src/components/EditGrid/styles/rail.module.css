@@ -127,12 +127,9 @@
   white-space: nowrap;
 }
 
-/* Canonical preview cell: most widgets are designed around 16:9 and tolerate
-   departures from it, so it's a fair default frame for the gallery. The live
-   widget inside is inert - clicks belong to the card's drag/pick handling. */
 .cardPreview {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 5/3;/*16 / 9;*/
   border: 1px dashed var(--ui-border-subtle);
   background: var(--color-base);
   display: flex;
