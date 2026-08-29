@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# local todos management
+/scripts/todos.ts
+
 # generated license attribution data (rebuilt on each build via pnpm gen-licenses)
 src/generated/licenses-npm.json
 src/generated/licenses-cargo.json
