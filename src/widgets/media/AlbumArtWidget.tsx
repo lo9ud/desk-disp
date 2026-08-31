@@ -34,11 +34,11 @@ const ALBUM_ART_WIDGET_SETTINGS_DEF = {
             },
             default: "slow",
             showWhen: { key: "rotate", is: true },
-          }
+          },
         },
       },
     },
-    default: "rounded",
+    default: "square",
   },
   filterGlow: {
     type: "boolean",
@@ -159,8 +159,19 @@ const AlbumArtWidget = registerWidget(AlbumArt, {
   // media stream: the mock tracks rotate far too slowly to change during a
   // browse, by design (see MOCK_STREAMS.media).
   presetsSettings: [
+    {
+      filterGlow: true,
+      filterLightness: "darken",
+      filterSaturation: "reduced",
+    },
+    {
+      style: "rounded",
+      filterGlow: true,
+      filterLightness: "lighten",
+      filterSaturation: "boost",
+    },
     { style: "circle", rotate: true, speed: "slow" },
-    { style: "square", filterGlow: true, filterSaturation: "max" },
+    { filterGlow: true, filterSaturation: "max" },
     {
       style: "circle",
       rotate: true,
@@ -169,7 +180,6 @@ const AlbumArtWidget = registerWidget(AlbumArt, {
       filterLightness: "lighten",
       filterSaturation: "boost",
     },
-    { filterGlow: true, filterLightness: "darken", filterSaturation: "reduced" },
   ],
 });
 

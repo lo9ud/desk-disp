@@ -2,25 +2,27 @@ import { useHistory, useSubscription } from "../../hooks";
 import { LineGraph, Readout } from "../../primitives";
 import { registerWidget } from "../../registry/defRegistry";
 import { formatBps } from "../../utils/format";
+import styles from "./styles/BandwidthWidget.module.css";
 
 export function Upload() {
   const { data } = useSubscription("networks");
   const tx =
-    data?.reduce((sum, iface) => sum + Number(iface.transmitted), 0) ??
-    0;
+    data?.reduce((sum, iface) => sum + Number(iface.transmitted), 0) ?? 0;
   const txHistory = useHistory(tx);
 
   const peak = Math.max(...txHistory, 1);
   return (
-    <Readout title="↑ Upload" value={formatBps(tx)}>
-      <LineGraph
-        values={txHistory}
-        max={peak}
-        color="hsl(280, 55%, 60%)"
-        filled
-        smooth
-      />
-    </Readout>
+    <div className={styles.container}>
+      <Readout title="↑ Upload" value={formatBps(tx)}>
+        <LineGraph
+          values={txHistory}
+          max={peak}
+          color="hsl(280, 55%, 60%)"
+          filled
+          smooth
+        />
+      </Readout>
+    </div>
   );
 }
 

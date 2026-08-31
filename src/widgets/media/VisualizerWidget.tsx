@@ -327,10 +327,6 @@ const VisualizerWidget = registerWidget(Visualizer, {
       mirrorFreq: true,
     },
     {
-      direction: "horizontal",
-      extentSource: "split",
-    },
-    {
       direction: "circular",
       mirror: "vert",
       origin: 90,

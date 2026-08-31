@@ -5,6 +5,7 @@
     align-items: stretch;
     justify-content: center;
     gap: 3px;
+    height: 100%;
 }
 
 .timeContainer {
@@ -18,8 +19,8 @@
 .elapsed, .duration {
     text-align: center;
     font-size: smaller;
-    font-weight: normal;
-    opacity: 0.7;
+    font-weight: 600;
+    opacity: 0.8;
     padding: 0 2px;
 }
 
