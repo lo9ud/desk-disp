@@ -2,6 +2,7 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -9,8 +10,12 @@ import React, {
 import { LayoutFile, WidgetPlacement } from "../ffi_types";
 import { genWidgetId, InstanceRegistry } from "../registry/instanceRegistry";
 import { useRuntime } from "../runtime/context";
+import { useUiController } from "../ui/context";
+import { logger } from "../utils/logger";
 import { GridDims, validateLayout } from "../utils/validation";
 import { errorSeverity, WidgetError } from "../utils/widgetErrors";
+
+const { warn } = logger("edit-mode");
 
 interface EditModeContextValue {
   active: boolean;
@@ -18,7 +23,12 @@ interface EditModeContextValue {
   draftGridDims: GridDims;
   widgetErrors: WidgetError[];
   editRegistry: InstanceRegistry | null;
-  enterEditMode: (opts?: { newLayout?: { id: string; name: string } }) => void;
+  enterEditMode: (opts?: {
+    newLayout?: { id: string; name: string };
+    /** Start from a prepared registry instead of cloning the live one. A tour
+     *  hands in its own; nothing reaches disk unless save() runs. */
+    draft?: InstanceRegistry;
+  }) => void;
   save: () => Promise<void>;
   cancel: () => void;
   moveWidget: (id: string, placement: WidgetPlacement) => void;
@@ -61,6 +71,7 @@ export function EditModeProvider({
   onGridDimsChange,
 }: EditModeProviderProps) {
   const runtime = useRuntime();
+  const ui = useUiController();
   const [active, setActive] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [draftGridDims, setDraftGridDims] = useState<GridDims>(gridDims);
@@ -75,12 +86,17 @@ export function EditModeProvider({
     setWidgetErrors(validateLayout(editRegistryRef.current.getAll(), dims));
   }, []);
 
-  const enterEditMode = useCallback((opts?: { newLayout?: { id: string; name: string } }) => {
+  const enterEditMode = useCallback((opts?: {
+    newLayout?: { id: string; name: string };
+    draft?: InstanceRegistry;
+  }) => {
+    // Always the live dims, never a caller's: cancel() restores this, so taking
+    // an injected value here would write a tour's grid back over the real one.
     preEditGridDims.current = gridDims;
     pendingNewLayoutRef.current = opts?.newLayout ?? null;
-    editRegistryRef.current = opts?.newLayout
-      ? new InstanceRegistry()
-      : runtime.instances.clone();
+    editRegistryRef.current =
+      opts?.draft ??
+      (opts?.newLayout ? new InstanceRegistry() : runtime.instances.clone());
     setDraftGridDims(gridDims);
     setWidgetErrors(validateLayout(editRegistryRef.current.getAll(), gridDims));
     setEditRegistryVersion((v) => v + 1);
@@ -149,6 +165,11 @@ export function EditModeProvider({
 
   const save = useCallback(async () => {
     if (!editRegistryRef.current) return;
+    // Not a guard - the save affordance is suppressed and the tour has no way to
+    // call this. If it ever fires, one of those two has a hole in it.
+    if (ui.resolved("tourActive")) {
+      warn("save() reached while a tour chapter owns the edit session");
+    }
     const errors = validateLayout(editRegistryRef.current.getAll(), draftGridDims);
     if (errors.some((e) => errorSeverity(e) === "error")) {
       throw new Error(`Layout has unresolved errors`);
@@ -169,7 +190,7 @@ export function EditModeProvider({
     setDirty(false);
     setWidgetErrors([]);
     setEditRegistryVersion((v) => v + 1);
-  }, [runtime, draftGridDims, activeLayoutId, buildLayout, onGridDimsChange]);
+  }, [runtime, ui, draftGridDims, activeLayoutId, buildLayout, onGridDimsChange]);
 
   const cancel = useCallback(() => {
     pendingNewLayoutRef.current = null;
@@ -180,6 +201,20 @@ export function EditModeProvider({
     setDirty(false);
     setEditRegistryVersion((v) => v + 1);
   }, []);
+
+  // Stable handle reading a live ref, so registration doesn't churn as this
+  // provider re-renders and the controller never holds a stale callback.
+  const latest = useRef({ enterEditMode, cancel });
+  latest.current = { enterEditMode, cancel };
+  const surface = useMemo(
+    () => ({
+      enter: (opts?: { draft?: InstanceRegistry }) =>
+        latest.current.enterEditMode(opts),
+      cancel: () => latest.current.cancel(),
+    }),
+    [],
+  );
+  useEffect(() => ui.registerSurface("editMode", surface), [ui, surface]);
 
   const value: EditModeContextValue = useMemo(
     () => ({

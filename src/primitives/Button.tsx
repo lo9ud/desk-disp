@@ -12,6 +12,7 @@ const variantClass = {
   danger: [styles.danger],
   warning: [styles.warning],
   icon: [styles.icon],
+  icon_ghost: [styles.icon, styles.ghost],
   icon_danger: [styles.icon, styles.danger],
   icon_accent: [styles.icon, styles.accent],
 };

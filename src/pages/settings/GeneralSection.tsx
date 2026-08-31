@@ -5,6 +5,7 @@ import ToggleInput from "../../components/inputs/ToggleInput";
 import { Button } from "../../primitives/Button";
 import { useRuntime } from "../../runtime/context";
 import type { Preferences } from "../../ffi_types";
+import { CHAPTERS } from "../../onboarding/chapters";
 
 const DEFAULT_PREFS: Preferences = {
   rounded: false,
@@ -44,6 +45,17 @@ export default function GeneralSection() {
     runtime.config.previewPreferences(confirmedRef.current);
   }
 
+  // Resetting to unseen is the whole mechanism: the main window is listening for
+  // the config broadcast and restarts any chapter that goes back to it.
+  function handleReplayTour() {
+    for (const chapter of CHAPTERS) {
+      runtime.config.setOnboarding(chapter.id, {
+        status: "unseen",
+        reached: null,
+      });
+    }
+  }
+
   return (
     <section className={pageStyles.section}>
       <InputGroup label="Visual">
@@ -63,7 +75,12 @@ export default function GeneralSection() {
           onChange={(v) => updateDraft({ background_transparent: v })}
         />
       </InputGroup>
-      <InputGroup label="Application">
+      <InputGroup
+        label="Application"
+        headerButtons={[
+          { label: "Replay tour", variant: "ghost", onClick: handleReplayTour },
+        ]}
+      >
         <ToggleInput label="Run on startup" value={false} onChange={() => {}} />
         <ToggleInput label="Show taskbar icon" value={true} onChange={() => {}} />
         <ToggleInput label="Show tray icon" value={true} onChange={() => {}} />

@@ -10,7 +10,7 @@ import type { GridDims } from "./utils/validation";
 import { Widgets } from "./widgets/widget";
 import EditGrid from "./components/EditGrid";
 import WindowControls from "./components/WindowControls";
-import Onboarding from "./components/Onboarding";
+import Tour from "./onboarding/Tour";
 import { PersistenceProvider } from "./context/PersistenceContext";
 import { useRuntime } from "./runtime/context";
 import { useThemeCss } from "./hooks/useTheme";
@@ -27,21 +27,26 @@ const windowLabel = getCurrentWindow().label;
 function MainContent({ gridDims }: { gridDims: GridDims }) {
   const { toolboxSettings } = useDevMode();
   const { active: editModeActive } = useEditMode();
-  if (editModeActive) return <EditGrid />;
   return (
     <>
-      <Grid
-        cols={gridDims.cols}
-        rows={gridDims.rows}
-        gap={gridDims.gap}
-        padding={gridDims.padding}
-        className="container"
-      >
-        <Widgets />
-      </Grid>
-      <WindowControls />
-      <Onboarding />
-      {toolboxSettings.showToolbox && <DevModeToolbox />}
+      {editModeActive ? (
+        <EditGrid />
+      ) : (
+        <>
+          <Grid
+            cols={gridDims.cols}
+            rows={gridDims.rows}
+            gap={gridDims.gap}
+            padding={gridDims.padding}
+            className="container"
+          >
+            <Widgets />
+          </Grid>
+          <WindowControls />
+          {toolboxSettings.showToolbox && <DevModeToolbox />}
+        </>
+      )}
+      <Tour />
     </>
   );
 }

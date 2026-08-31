@@ -34,7 +34,8 @@ import {
 } from "./gridMath";
 import { AddRail } from "./rail/AddRail";
 import { SettingsPanel } from "./settings/SettingsPanel";
-import { Rect } from "./settings/placement";
+import { Rect } from "../../utils/placement";
+import { useUiController, useUiFlag } from "../../ui/context";
 import styles from "./styles/grid.module.css";
 import { GhostState, PaddingEdge } from "./types";
 import { useEdgeControls } from "./useEdgeControls";
@@ -122,6 +123,10 @@ export default function EditGrid() {
     save,
     cancel,
   } = useEditMode();
+
+  const ui = useUiController();
+  const tourActive = useUiFlag("tourActive");
+  const saveSuppressed = useUiFlag("editSaveSuppressed");
 
   // Edit mode renders before the draft registry exists on the very first pass;
   // an empty stand-in keeps the hook call unconditional.
@@ -340,8 +345,63 @@ export default function EditGrid() {
     else beginExit();
   }
 
+  // Stable handle over a live ref: this component re-renders on every ghost
+  // drag, so a handle rebuilt from state would churn the registration.
+  const gridLatest = useRef({
+    selectedId,
+    openSettingsId,
+    addMode,
+    allIds,
+    dims,
+    editRegistry,
+  });
+  gridLatest.current = {
+    selectedId,
+    openSettingsId,
+    addMode,
+    allIds,
+    dims,
+    editRegistry,
+  };
+  const gridSurface = useMemo(
+    () => ({
+      read: () => {
+        const s = gridLatest.current;
+        return {
+          selected: s.selectedId,
+          settingsOpen: s.openSettingsId,
+          addOpen: s.addMode !== null,
+          widgetIds: s.allIds,
+          grid: { cols: s.dims.cols, rows: s.dims.rows },
+          placementOf: (id: string) => s.editRegistry?.get(id)?.placement,
+        };
+      },
+      setSelection: ({
+        selected,
+        settingsOpen,
+      }: {
+        selected: string | null;
+        settingsOpen: string | null;
+      }) => {
+        // Drop any deferred auto-open, or its timer lands after this and
+        // reopens a panel the caller just asked to close.
+        pendingSettingsIdRef.current = null;
+        setSelectedId(settingsOpen ?? selected);
+        setOpenSettingsId(settingsOpen);
+      },
+      setAddOpen: (open: boolean) => {
+        if (open) enterAddMode(null);
+        else exitAddMode();
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  useEffect(() => ui.registerSurface("editGrid", gridSurface), [ui, gridSurface]);
+
   useEditKeyLadder({
     suspended: closing,
+    tourActive: tourActive.value,
     confirmSaveOpen,
     closeConfirmSave: closeConfirm,
     confirmCancelOpen,
@@ -381,6 +441,7 @@ export default function EditGrid() {
           <div
             ref={containerRef}
             className={styles.container}
+            data-onboarding="edit-grid"
             style={gridContainerStyle(dims)}
             onTransitionEnd={(e) => handleTransitionEnd(e, containerRef.current)}
             onPointerDown={(e) => {
@@ -422,6 +483,21 @@ export default function EditGrid() {
                 />
               );
             })}
+
+            {/* Nothing to see or click - a named cell a tour step can point at
+                when it needs to show where something should end up. */}
+            {tourActive.value && (
+              <div
+                className={styles.tourAnchor}
+                data-onboarding="grid-centre"
+                style={gridItemStyle({
+                  col: Math.ceil(dims.cols / 2),
+                  row: Math.ceil(dims.rows / 2),
+                  col_span: 1,
+                  row_span: 1,
+                })}
+              />
+            )}
 
             <EmptyCells
               emptyCells={emptyCells}
@@ -475,6 +551,7 @@ export default function EditGrid() {
           registry={editRegistry}
           hasBlockingErrors={hasBlockingErrors}
           saving={saving}
+          saveDisabled={saveSuppressed.value}
           onSave={handleSaveClick}
           onCancel={handleCancelClick}
           gap={dims.gap}

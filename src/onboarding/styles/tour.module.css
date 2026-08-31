@@ -1,0 +1,194 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: default;
+}
+
+.rings {
+  position: fixed;
+  inset: 0;
+  z-index: 2001;
+  pointer-events: none;
+}
+
+.shake {
+  animation: tour-shake 320ms var(--ease-out);
+}
+
+@keyframes tour-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+.ring {
+  position: fixed;
+  border: 2px solid var(--ui-focus-ring);
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* A destination rather than a control: dashed, and never cut out of the scrim. */
+.markRing {
+  border-width: 2px;
+  border-style: dashed;
+  border-color: var(--ui-accent-indicator);
+  box-shadow: none;
+}
+
+.card {
+  position: fixed;
+  z-index: 2002;
+  width: 280px;
+  background-color: var(--ui-panel);
+  border: 2px solid var(--ui-border-subtle);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 0 8px 4px rgba(0, 0, 0, 0.35);
+}
+
+/* Rotated square sharing the card's fill and border; the two borders facing the
+   card are dropped so it reads as a continuous edge. */
+.arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: var(--ui-panel);
+  border: 2px solid var(--ui-border-subtle);
+}
+
+.arrow_below {
+  top: -7px;
+  border-right: none;
+  border-bottom: none;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.arrow_above {
+  bottom: -7px;
+  border-left: none;
+  border-top: none;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.arrow_right {
+  left: -7px;
+  border-top: none;
+  border-right: none;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.arrow_left {
+  right: -7px;
+  border-bottom: none;
+  border-left: none;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  color: var(--ui-accent-text);
+
+  & svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ui-text);
+}
+
+.body {
+  font-size: 0.8rem;
+  color: var(--ui-text-muted);
+  line-height: 1.4;
+}
+
+/* Something worth trying. Sits below the body and reads as an aside. */
+.hint {
+  font-size: 0.78rem;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--ui-text-subtle);
+}
+
+/* What the step is waiting for, so it carries the weight the Next button would. */
+.instruction {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ui-accent-text);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dot,
+.dot_active {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--ui-border-subtle);
+  transition: background-color 150ms ease;
+}
+
+.dot_active {
+  background-color: var(--ui-accent-indicator);
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 0 1 auto;
+
+  & > button {
+    flex: 1 0 max-content;
+  }
+}

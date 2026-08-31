@@ -32,6 +32,7 @@ export function RailCard({
   return (
     <div
       className={styles.card}
+      data-widget-def={def.id}
       onPointerDown={(e) => onPointerDown(e, def.id)}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

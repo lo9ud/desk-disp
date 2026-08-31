@@ -44,6 +44,8 @@ export function WidgetTile({
       ref={tileRef}
       className={`${styles.widgetOverlay} ${isSelected ? styles.widgetSelected : ""} ${isDimmed ? styles.widgetDimmed : ""} ${isFlashing ? styles.widgetFlash : ""} ${errorClass}`}
       style={gridItemStyle(inst.placement)}
+      data-widget-id={instanceId}
+      data-onboarding="widget-tile"
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
         e.preventDefault();
@@ -56,6 +58,7 @@ export function WidgetTile({
             type="button"
             className={styles.iconButton}
             title="Widget settings"
+            data-onboarding="widget-settings"
             onClick={onToggleSettings}
           >
             <Cog6ToothIcon />
@@ -65,6 +68,7 @@ export function WidgetTile({
           type="button"
           className={`${styles.iconButton} ${styles.danger}`}
           title="Remove widget"
+          data-onboarding="widget-remove"
           onClick={onRemove}
         >
           <XMarkIcon />

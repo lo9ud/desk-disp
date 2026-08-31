@@ -36,6 +36,12 @@ html,
   color: var(--ui-text);
 }
 
+/* Chromium's default ring is near-black and unreadable on the dark surfaces. */
+:focus-visible {
+  outline: 2px solid var(--ui-focus-ring);
+  outline-offset: 2px;
+}
+
 /* debug: show all elements */
 /* #root > * > .widget {
   outline: 1px magenta dashed;

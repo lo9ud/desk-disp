@@ -6,7 +6,7 @@ import {
   PlusIcon,
   BugAntIcon,
 } from "@heroicons/react/16/solid";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRuntime } from "../runtime/context";
 import type { LayoutInfo, ThemeInfo } from "../ffi_types";
 import styles from "./styles/WindowControls.module.css";
@@ -14,13 +14,47 @@ import { useEditMode } from "../context/EditModeContext";
 import { logger } from "../utils/logger";
 import { Button } from "../primitives/Button";
 import { useDevMode } from "../context/DevModeContext";
+import { useUiFlag } from "../ui/context";
 
 const { warn } = logger("window-controls");
 
 export default function WindowControls() {
   const runtime = useRuntime();
   const devMode = useDevMode();
+  const revealed = useUiFlag("chromeRevealed", { own: true });
   const { enterEditMode } = useEditMode();
+
+  // Pointer and focus are independent reasons to stay open, so the flag carries
+  // their union rather than whichever fired last.
+  const barRef = useRef<HTMLDivElement>(null);
+  const hovered = useRef(false);
+  const focused = useRef(false);
+  const pointerDriven = useRef(false);
+  const setRevealed = revealed.set;
+  const syncRevealed = useCallback(() => {
+    setRevealed(hovered.current || focused.current);
+  }, [setRevealed]);
+
+  useEffect(() => {
+    const onBlur = () => {
+      // Only focus is given up here. Hover is left alone: another window taking
+      // focus doesn't move the pointer, and clearing it would hide the bar out
+      // from under a pointer still resting on it, with no leave event coming to
+      // put it back. A native <select> popup is exempt entirely - it takes focus
+      // while the user is still working in the bar.
+      const active = document.activeElement;
+      const inBar =
+        active instanceof HTMLElement && barRef.current?.contains(active);
+      if (inBar && active instanceof HTMLSelectElement) return;
+      // Drop it rather than just forgetting it, or returning to this window
+      // restores focus to whatever was clicked and re-reveals the bar.
+      if (inBar) active.blur();
+      focused.current = false;
+      syncRevealed();
+    };
+    window.addEventListener("blur", onBlur);
+    return () => window.removeEventListener("blur", onBlur);
+  }, [syncRevealed]);
   const [themes, setThemes] = useState<ThemeInfo[]>([]);
   const [activeTheme, setActiveTheme] = useState<string | null>(null);
   const [layouts, setLayouts] = useState<LayoutInfo[]>([]);
@@ -28,14 +62,32 @@ export default function WindowControls() {
   const [themeUnsaved, setThemeUnsaved] = useState(false);
   const [monitorCount, setMonitorCount] = useState<number>(0);
 
+  // A control keeps focus after a mouse interaction, which would hold the bar
+  // open past the pointer leaving. Release it once the interaction is done, but
+  // never when keys are driving it - that would fight the keyboard user.
+  //
+  // Buttons release on click and selects on change, deliberately: a select's
+  // click is the dropdown opening, and blurring there would shut it before a
+  // choice could be made.
+  const releaseAfterPointerChange = (el: HTMLSelectElement) => {
+    if (pointerDriven.current) el.blur();
+  };
+
+  const releaseButtonFocus = (e: React.MouseEvent) => {
+    if (!pointerDriven.current) return;
+    (e.target as HTMLElement).closest("button")?.blur();
+  };
+
   const handleThemeChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (e.target.value === "__unsaved__") return;
+    releaseAfterPointerChange(e.target);
     await runtime.themes.setActive(e.target.value || null);
   };
 
   const handleLayoutChange = async (
     e: React.ChangeEvent<HTMLSelectElement>,
   ) => {
+    releaseAfterPointerChange(e.target);
     await runtime.layouts.setActive(e.target.value || null);
   };
 
@@ -64,7 +116,42 @@ export default function WindowControls() {
   }, [runtime]);
 
   return (
-    <div className={styles.windowControls} data-onboarding="controls">
+    <div
+      ref={barRef}
+      className={styles.windowControls}
+      data-onboarding="controls"
+      data-revealed={revealed.value || undefined}
+      data-suppressed={revealed.override === false || undefined}
+      onPointerDown={() => {
+        pointerDriven.current = true;
+      }}
+      onClick={releaseButtonFocus}
+      onKeyDown={() => {
+        pointerDriven.current = false;
+      }}
+      onPointerEnter={() => {
+        hovered.current = true;
+        syncRevealed();
+      }}
+      onPointerLeave={() => {
+        hovered.current = false;
+        syncRevealed();
+      }}
+      onFocus={() => {
+        focused.current = true;
+        syncRevealed();
+      }}
+      onBlur={(e) => {
+        // Opening a native <select> can report focus leaving with no
+        // relatedTarget while the dropdown is still open; activeElement stays
+        // inside the bar in that case.
+        const next = (e.relatedTarget ??
+          document.activeElement) as Node | null;
+        if (next && e.currentTarget.contains(next)) return;
+        focused.current = false;
+        syncRevealed();
+      }}
+    >
       <div className={styles.buttons}>
         <HoverWrapper
           Element={Button}

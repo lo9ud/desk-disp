@@ -16,6 +16,7 @@ export function Notch({
   registry,
   hasBlockingErrors,
   saving,
+  saveDisabled,
   onSave,
   onCancel,
   gap,
@@ -28,6 +29,9 @@ export function Notch({
   registry: InstanceRegistry | null;
   hasBlockingErrors: boolean;
   saving: boolean;
+  /** Set when the session is a tour's throwaway draft, which must never be
+   *  promoted over the real layout. */
+  saveDisabled?: boolean;
   onSave: () => void;
   onCancel: () => void;
   gap: number;
@@ -42,12 +46,13 @@ export function Notch({
     <div className={styles.notch} onPointerDown={(e) => e.stopPropagation()}>
       <Button
         variant="accent"
-        disabled={hasBlockingErrors || saving}
+        disabled={hasBlockingErrors || saving || saveDisabled}
         onClick={onSave}
+        data-onboarding="save-edit"
       >
         {saving ? "Saving..." : "Save"}
       </Button>
-      <Button variant="ghost" onClick={onCancel}>
+      <Button variant="ghost" data-onboarding="cancel-edit" onClick={onCancel}>
         Cancel
       </Button>
       {errors.length > 0 && (

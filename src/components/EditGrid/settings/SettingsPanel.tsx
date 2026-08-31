@@ -9,7 +9,7 @@ import { InstanceRegistry } from "../../../registry/instanceRegistry";
 import { collectDefaults } from "../../../registry/settingsDefaults";
 import { beginDragCursor, endDragCursor } from "../dragCursor";
 import styles from "../styles/settingsPanel.module.css";
-import { placePanel, Rect } from "./placement";
+import { placePanel, Rect } from "../../../utils/placement";
 
 const PANEL_W = 360;
 const PANEL_MAX_H = 520;
@@ -50,8 +50,8 @@ export function SettingsPanel({
   useLayoutEffect(() => {
     if (dragged || !anchor || !bounds) return;
     const h = panelRef.current?.offsetHeight ?? PANEL_MAX_H;
-    const placed = placePanel(anchor, { w: PANEL_W, h }, bounds);
-    setPos({ x: placed.x, y: placed.y });
+    const { rect } = placePanel(anchor, { w: PANEL_W, h }, bounds);
+    setPos({ x: rect.x, y: rect.y });
   }, [anchor, bounds, dragged]);
 
   if (!inst || !def?.settingsDef || Object.keys(def.settingsDef).length === 0) {
@@ -108,6 +108,7 @@ export function SettingsPanel({
       <div
         ref={panelRef}
         className={styles.panel}
+        data-onboarding="widget-settings-panel"
         // Position is inherently dynamic; everything else lives in the module.
         style={{
           width: PANEL_W,

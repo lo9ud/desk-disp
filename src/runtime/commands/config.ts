@@ -1,4 +1,4 @@
-import type { Config, Preferences } from "../../ffi_types";
+import type { ChapterProgress, Config, Preferences } from "../../ffi_types";
 import type { EventBus } from "../events";
 import type { Transport } from "../transport";
 
@@ -14,6 +14,7 @@ export interface ConfigCommands {
   get(): Promise<Config>;
   setPreferences(prefs: Preferences): Promise<void>;
   previewPreferences(prefs: Preferences): Promise<void>;
+  setOnboarding(chapter: string, progress: ChapterProgress): Promise<void>;
 
   /** Latest known config, or null before the first load resolves. */
   current(): Config | null;
@@ -51,6 +52,8 @@ export function makeConfigCommands(
     setPreferences: (prefs) => t.invoke<void>("set_preferences", { prefs }),
     previewPreferences: (prefs) =>
       t.invoke<void>("preview_preferences", { prefs }),
+    setOnboarding: (chapter, progress) =>
+      t.invoke<void>("set_onboarding", { chapter, progress }),
 
     current: () => snapshot,
     subscribe(onChange) {

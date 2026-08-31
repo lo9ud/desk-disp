@@ -220,6 +220,8 @@ pub fn run(args: cli::Args) {
             // preferences commands
             config::set_preferences,
             config::preview_preferences,
+            // onboarding commands
+            config::set_onboarding,
             // theme generation
             config::generate_theme,
             // file persistence commands

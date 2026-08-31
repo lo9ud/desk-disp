@@ -154,6 +154,12 @@ it can't stack with the ghost overlay into visual noise during drags. */
 }
 
 /* Resize handles */
+/* Geometry only: a tour measures it, nothing else should see or hit it. */
+.tourAnchor {
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .resizeHandle {
   position: absolute;
   width: 10px;

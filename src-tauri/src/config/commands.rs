@@ -5,8 +5,8 @@ use tauri::{Manager, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 use crate::{config::ThemeVar, place_window};
 
 use super::{
-    get_layouts_root, get_themes_root, layout_path, theme_path, GridPadding, GridSettings,
-    LayoutFile, LayoutInfo, Preferences, ThemeData, ThemeInfo, TARGET,
+    get_layouts_root, get_themes_root, layout_path, theme_path, ChapterProgress, GridPadding,
+    GridSettings, LayoutFile, LayoutInfo, Preferences, ThemeData, ThemeInfo, TARGET,
 };
 
 #[tauri::command]
@@ -644,6 +644,18 @@ pub async fn set_preferences(prefs: Preferences, app: tauri::AppHandle) -> Resul
     })?;
     crate::events::emit_preferences_changed(&app, &prefs);
     Ok(())
+}
+
+#[tauri::command]
+pub async fn set_onboarding(
+    chapter: String,
+    progress: ChapterProgress,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    tracing::debug!(target: TARGET, chapter = %chapter, "invoke: set_onboarding");
+    let state = app.state::<crate::AppState>();
+    let mut state = state.lock().await;
+    state.config.set_onboarding(chapter, progress, &app)
 }
 
 #[tauri::command]

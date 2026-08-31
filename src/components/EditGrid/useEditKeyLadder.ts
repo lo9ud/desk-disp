@@ -3,6 +3,10 @@ import { useEffect, useRef } from "react";
 export interface KeyLadderState {
   /** Ignore all keys (e.g. while the exit animation is running). */
   suspended: boolean;
+  /** A tour chapter is running and owns the keyboard. It sits outside this
+   *  ladder entirely: Esc leaves the tour, and its teardown restores whatever
+   *  edit state the chapter had put in place. */
+  tourActive: boolean;
   confirmSaveOpen: boolean;
   closeConfirmSave: () => void;
   confirmCancelOpen: boolean;
@@ -42,7 +46,7 @@ export function useEditKeyLadder(state: KeyLadderState) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const s = stateRef.current;
-      if (s.suspended || isTextTarget(e.target)) return;
+      if (s.suspended || s.tourActive || isTextTarget(e.target)) return;
 
       if (e.key === "Escape") {
         e.preventDefault();

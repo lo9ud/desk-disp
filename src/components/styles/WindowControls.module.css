@@ -20,7 +20,7 @@
   fill: var(--ui-text);
   background-color: var(--ui-panel);
 
-  &:hover {
+  &[data-revealed] {
     border-color: var(--ui-border);
     background-color: var(--ui-panel);
     opacity: 1;
@@ -28,6 +28,13 @@
     & > * {
       opacity: 1;
     }
+  }
+
+  /* Held hidden by the host: don't let a hover queue up a reveal for later.
+     Hidden-by-default keeps its pointer events - the invisible bar is the
+     only way to open it. */
+  &[data-suppressed] {
+    pointer-events: none;
   }
 
   & > * {
@@ -124,15 +131,4 @@
   width: 1px;
   margin: 0 4px;
   background-color: var(--ui-border-strong);
-}
-
-/* Force control bar visible during onboarding tour */
-:global([data-tour-active]) .windowControls {
-  opacity: 1;
-  z-index: 2001;
-  border-color: var(--ui-border);
-}
-
-:global([data-tour-active]) .windowControls > * {
-  opacity: 1;
 }

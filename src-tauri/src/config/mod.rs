@@ -10,6 +10,7 @@ pub use self::widget::{WidgetConfig, WidgetId};
 pub use self::commands::{get_or_create_settings_window};
 
 use std::{
+    collections::HashMap,
     fs,
     path::PathBuf,
 };
@@ -37,6 +38,42 @@ impl Default for Preferences {
     }
 }
 
+/// Declining the offer, quitting partway and being interrupted are three
+/// different signals, and only `InProgress` is resumed on next launch.
+#[derive(serde::Deserialize, serde::Serialize, Clone, Copy, Debug, PartialEq, ts_rs::TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+#[serde(rename_all = "snake_case")]
+pub enum ChapterStatus {
+    Unseen,
+    /// Turned down the invite without starting.
+    Declined,
+    /// Started and interrupted by something other than the user - never offered
+    /// again on its own, but picked up where it left off.
+    InProgress,
+    /// Started and explicitly quit. Terminal: the user has said no.
+    Abandoned,
+    Completed,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug, ts_rs::TS)]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
+#[serde(default)]
+pub struct ChapterProgress {
+    pub status: ChapterStatus,
+    /// Furthest step actually shown, by id. Never an index: reordering steps
+    /// would move every resume point and make counts incomparable across builds.
+    pub reached: Option<String>,
+}
+
+impl Default for ChapterProgress {
+    fn default() -> Self {
+        Self {
+            status: ChapterStatus::Unseen,
+            reached: None,
+        }
+    }
+}
+
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug, ts_rs::TS)]
 #[ts(export, export_to = "../../src/ffi_types.ts")]
 #[serde(default)]
@@ -45,6 +82,8 @@ pub struct Config {
     pub active_theme: Option<String>,
     pub active_layout: Option<String>,
     pub preferences: Preferences,
+    /// Chapter id -> progress.
+    pub onboarding: HashMap<String, ChapterProgress>,
 }
 
 /* Theme types  */
@@ -145,6 +184,7 @@ impl Default for Config {
             active_theme: Some("e58e167b-8c7d-4b88-9c20-46b25147ab25".to_string()),
             active_layout: Some("3dd07989-2eda-4a0b-83f8-ef66323e85a4".to_string()),
             preferences: Preferences::default(),
+            onboarding: HashMap::new(),
         }
     }
 }
@@ -192,6 +232,20 @@ impl Config {
                 Err(e) => tracing::warn!(target: TARGET, error = %e, "failed to load layout after set"),
             }
         }
+        Ok(())
+    }
+
+    /// Broadcasts rather than targeting "main": a replay triggered from the
+    /// settings window has to reach the window actually running the tour.
+    pub fn set_onboarding(&mut self, chapter: String, progress: ChapterProgress, app: &tauri::AppHandle) -> Result<(), String> {
+        tracing::debug!(target: TARGET, chapter = %chapter, status = ?progress.status, "set_onboarding");
+        self.onboarding.insert(chapter, progress);
+        write_config(self).map_err(|e| {
+            tracing::error!(target: TARGET, error = %e, "failed to write config");
+            e.to_string()
+        })?;
+        tracing::trace!(target: TARGET, "emitting config::changed");
+        crate::events::emit_config_changed(app, self);
         Ok(())
     }
 
