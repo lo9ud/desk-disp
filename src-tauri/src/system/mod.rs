@@ -126,9 +126,6 @@ fn collect_network_stats(networks: &sysinfo::Networks) -> Vec<NetworkInterfaceIn
         .collect()
 }
 
-/// `sysinfo` handles for the cpu/memory/disks/networks metrics, owned entirely by
-/// `run_resource_loop`'s task — confirmed (full-crate grep) that nothing outside this module
-/// ever touches them, so unlike the rest of `AppStateInner` they need no shared mutex at all.
 struct ResourceState {
     system: sysinfo::System,
     disks: sysinfo::Disks,
@@ -149,11 +146,6 @@ impl ResourceState {
     }
 }
 
-/// Consolidates what used to be `run_system_loop` (cpu+memory) and `run_hardware_loop`
-/// (disks+networks) into one task: a `tokio::select!` over 4 independent per-metric intervals,
-/// so cadences can diverge later without another refactor, while cutting 2 tokio tasks down to
-/// 1. Only one `select!` arm's body ever executes per loop iteration, so plain field access on
-/// the task-owned `ResourceState` needs no interior mutability.
 pub async fn run_resource_loop(
     app: tauri::AppHandle,
     hints: Arc<StreamHints>,

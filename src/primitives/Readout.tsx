@@ -5,11 +5,11 @@ import { combineClassNames } from "../utils/format";
 interface ReadoutProps {
   /** Left side of the header row. */
   title?: ReactNode;
-  /** Right side of the header row — typically a formatted current value. */
+  /** Right side of the header row. */
   value?: ReactNode;
   /** Small text rendered below the visual. */
   subtitle?: ReactNode;
-  /** The visual — Bar, VBar, LineGraph, PieChart, or any composition. */
+  /** The visual: Bar, VBar, LineGraph, PieChart, or any composition. */
   children?: ReactNode;
   className?: string;
 }

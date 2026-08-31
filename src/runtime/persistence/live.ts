@@ -1,14 +1,5 @@
 import type { KeyValueType } from "./handles";
 
-/**
- * Live wrappers: value and mutators bundled on one object, never a
- * `[value, setter]` tuple, so a mutator cannot be called against the wrong
- * resource by accident.
- *
- * `value` is always `T` — never `T | null | undefined`. The Suspense gate is what
- * buys that, and it is the whole reason widget code carries no "not loaded yet"
- * branch.
- */
 export class LiveKeyValue<T extends KeyValueType> {
   constructor(
     public readonly value: T,

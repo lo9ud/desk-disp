@@ -6,15 +6,6 @@ import {
   once as tauriOnce,
 } from "@tauri-apps/api/event";
 
-/**
- * The one place `@tauri-apps/api` is reached from. Everything above this line —
- * commands, streams, persistence — talks to a `Transport`, so swapping the
- * underlying channel (a postMessage bridge into a sandboxed frame, a test
- * double) is a constructor argument rather than a rewrite.
- *
- * The surface mirrors Tauri's own rather than only the calls used today, so a
- * later feature or a test never has a reason to reach around the seam.
- */
 export interface Transport {
   invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T>;
   listen<T>(event: string, handler: (payload: T) => void): Promise<() => void>;
@@ -37,15 +28,6 @@ export type CommandHandler = (
   args: Record<string, unknown>,
 ) => unknown | Promise<unknown>;
 
-/**
- * Tauri-free transport for preview renders and tests: `invoke` dispatches
- * against a supplied command table, and the event methods form a local loopback
- * bus, so a test can drive a widget by emitting a backend event at it.
- *
- * An unlisted command rejects rather than resolving `undefined` — a preview
- * render that unexpectedly reaches for the backend should be a visible failure,
- * not a silent null.
- */
 export function memoryTransport(
   handlers: Record<string, CommandHandler> = {},
 ): Transport {

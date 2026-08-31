@@ -1,18 +1,9 @@
 /**
  * Type-level regression tests for the widget-settings type transform
- * (WidgetSettingsDefinition -> WidgetSettingsProps). Pure compile-time
- * assertions -- a failure here is a `tsc` error, not a runtime one. Run with
- * `pnpm typecheck`.
- *
- * Deliberately self-contained: every fixture below is a small hand-authored
- * settingsDef local to this file, not imported from a real widget. Editing a
- * real widget's settingsDef must never require touching this file -- these
- * exist to protect the flattening *machinery* (defRegistry.ts /
- * settingsSchema.ts), not to pin any particular widget's current shape.
+ * (WidgetSettingsDefinition -> WidgetSettingsProps). 
  *
  * Each `test_*` export is unused by design (its only job is to fail to
- * compile if wrong) -- `export` is what exempts it from `noUnusedLocals`
- * (tsconfig.json already enables that), no separate test tsconfig needed.
+ * compile if wrong) -- `export` to prevent `noUnusedLocals` from complaining
  */
 import {
   SchemaError,
@@ -20,31 +11,14 @@ import {
   WidgetSettingsProps,
 } from "./defRegistry";
 
-// ---------------------------------------------------------------------------
-// Tiny hand-rolled type-assertion helpers (previously the `type-testing`
-// package; removed since WidgetSettingsProps needed a workaround regardless --
-// see Simplify below -- so a purpose-fit local version pulls its weight
-// better than a dependency we're already patching around).
-// ---------------------------------------------------------------------------
-
 /**
  * Expands an intersection of object types into a single flat object type, so
- * the equality check below isn't tripped up by *how* a type was built (e.g.
- * `{a: string} & {} & {}` vs `{a: string}`) rather than *what it accepts*.
- * WidgetSettingsProps is always an intersection of several mapped-type
- * branches -- most resolve to `{}` for a simple settingsDef -- and stays
- * unsimplified until something forces expansion like this.
- *
- * Guarded to `T extends object` on purpose: mapping over `keyof T` for a
- * non-object T (e.g. `unknown`, whose `keyof` is `never`) collapses it to
- * `{}`, which would make this helper quietly treat `unknown` as equal to an
- * empty object -- a real bug caught while writing the tests below (see the
- * "colliding subordinate key" test's history for why that distinction
- * actually matters here, not just in the abstract).
+ * the equality check below isn't tripped up by how a type was built (e.g.
+ * `{a: string} & {} & {}` vs `{a: string}`)
  */
 type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 
-/** True iff A and B are exactly the same type (not just mutually assignable), once both are simplified. */
+/** True iff A and B are exactly the same type, once both are simplified. */
 type Equal<A, B> =
   (<T>() => T extends Simplify<A> ? 1 : 2) extends <
     T,

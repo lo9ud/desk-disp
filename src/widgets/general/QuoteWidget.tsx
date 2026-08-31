@@ -70,7 +70,7 @@ const QuoteWidget = registerWidget(Quote, {
   name: "Quote",
   description: "Displays a quotes from a configuable source.",
   category: "general",
-  tags: ["customizable", "requires setup"],
+  tags: [],
   settingsDef: QUOTE_WIDGET_SETTINGS_DEF,
   minSize: [null, null],
   maxSize: [null, null],

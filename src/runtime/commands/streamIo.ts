@@ -4,8 +4,7 @@ import type { Transport } from "../transport";
 /**
  * Raw stream lifecycle hints. Subscriber counting is the frontend hub's job
  * (see `BackendStreamHub`); these three only tell the backend whether this
- * window currently wants a stream at all, and are advisory — the backend may
- * keep a stream alive past a `stop`.
+ * window currently wants a stream at all, and are advisory, not authoritative.
  */
 export interface StreamIoCommands {
   /** Returns the last cached frame, if the backend has emitted one. */

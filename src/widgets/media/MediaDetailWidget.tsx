@@ -32,7 +32,7 @@ const MediaDetailWidget = registerWidget(MediaDetail, {
   minSize: [null, null],
   maxSize: [null, null],
   category: "media",
-  tags: ["customizable"],
+  tags: [],
 });
 
 export default MediaDetailWidget;

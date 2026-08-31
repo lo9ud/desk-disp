@@ -50,7 +50,7 @@ pub struct Config {
 /* Theme types  */
 
 /// A single typed CSS variable entry. The CSS variable name is assembled as
-/// `--{type}-{label}` (e.g. Color { label: "base" } → `--color-base`).
+/// `--{type}-{label}` (e.g. Color { label: "base" } -> `--color-base`).
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug, ts_rs::TS)]
 #[ts(export, export_to = "../../src/ffi_types.ts")]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -352,10 +352,6 @@ pub struct MonitorCache {
 
 /// Build a monitor cache seeded to the monitor with `current_name` so that the
 /// first `next()` call advances past whichever monitor the window is already on.
-///
-/// Takes an `AppHandle` rather than a window on purpose: this runs during
-/// `setup()` before any webview exists (so state can be `manage()`-d ahead of
-/// window creation — see lib.rs), and monitor enumeration doesn't need one.
 pub fn build_monitor_cache(app: &tauri::AppHandle, current_name: Option<&str>) -> MonitorCache {
     let monitors = app.available_monitors().unwrap_or_default();
     let index = current_name

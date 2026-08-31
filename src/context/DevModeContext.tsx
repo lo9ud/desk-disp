@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { useRuntime } from "../runtime/context";
 
 type DevModeToolboxSettings = {
@@ -9,7 +9,7 @@ type DevModeToolboxSettings = {
 };
 
 type DevModeContextType = {
-  // Sourced from backend, not user-editable
+  // Sourced from the `--dev` CLI flag, not user-editable
   active: boolean;
 
   // Toolbox Settings
@@ -17,26 +17,24 @@ type DevModeContextType = {
   toolboxSettings: DevModeToolboxSettings;
 };
 
-const DEFAULT_DEV_MODE_CONTEXT: Omit<DevModeContextType, "setToolboxSettings"> = {
-  active: false,
-  toolboxSettings: {
-    showToolbox: false,
-    displayWidgetCells: false,
-    displayWidgetUsedSpace: false,
-    showMissingBackground: false,
-  },
+const DEFAULT_TOOLBOX_SETTINGS: DevModeToolboxSettings = {
+  showToolbox: false,
+  displayWidgetCells: false,
+  displayWidgetUsedSpace: false,
+  showMissingBackground: false,
 };
 
-const DevModeContext = createContext<DevModeContextType>(DEFAULT_DEV_MODE_CONTEXT as DevModeContextType);
+const DevModeContext = createContext<DevModeContextType>({
+  active: false,
+  toolboxSettings: DEFAULT_TOOLBOX_SETTINGS,
+} as DevModeContextType);
 
 export function DevModeProvider({ children }: { children: React.ReactNode }) {
   const runtime = useRuntime();
-  let [value, setValue] = useState<Omit<DevModeContextType, "setToolboxSettings">>(DEFAULT_DEV_MODE_CONTEXT);
-  useEffect(() => {
-    runtime.config.isDevMode().then((isDev) => {
-      setValue((prev) => ({ ...prev, active: isDev }));
-    });
-  }, [runtime]);
+  let [value, setValue] = useState<Omit<DevModeContextType, "setToolboxSettings">>(() => ({
+    active: runtime.cli.dev,
+    toolboxSettings: DEFAULT_TOOLBOX_SETTINGS,
+  }));
   const contextValue = useMemo(() => {
     return {
       ...value,

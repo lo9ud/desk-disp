@@ -1,6 +1,6 @@
 import type { Transport } from "../transport";
 
-/** Window and process-level control. Host authority — never on `WidgetApi`. */
+/** Window and process-level control */
 export interface WindowCommands {
   openSettings(): Promise<void>;
   closeSettings(): Promise<void>;

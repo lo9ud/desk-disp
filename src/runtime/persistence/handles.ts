@@ -14,7 +14,7 @@ export type KeyValueTypeMap = {
 };
 
 /**
- * First-usage producer, not a loading placeholder. Invoked at most once ever per
+ * First-usage producer, not a loading placeholder. Invoked at most once per
  * key, only when the backend genuinely has no value yet; its result is both used
  * immediately and persisted as that key's first value. May have side effects, and
  * may read the results of hooks called earlier in the same render.
@@ -22,10 +22,7 @@ export type KeyValueTypeMap = {
 export type FallbackProducer<T> = () => T | Promise<T>;
 
 /**
- * Shared plumbing for the three handle kinds. A handle is a long-lived object
- * bound to one store, one backend and one scope — the scope is captured at
- * construction, so nothing downstream takes a scope (or a widget id) as an
- * argument it could get wrong.
+ * Shared plumbing for the three handle types.
  */
 abstract class Handle<T> {
   protected constructor(
@@ -54,8 +51,7 @@ abstract class Handle<T> {
   error = (): unknown => this.store.peekError(this.cacheKey);
 
   /**
-   * Suspends this render until the value is loaded. Render-phase only — it goes
-   * through React's `use()`.
+   * Suspends this render until the value is loaded.
    *
    * Pass this handle's own `load(...)`, which is already deduplicated via
    * `store.loadOnce`; the gate does not wrap it again. See `PersistenceStore.gate`.
@@ -70,7 +66,7 @@ abstract class Handle<T> {
 }
 
 /**
- * The read side of a handle — what the hooks need, without the mutators.
+ * The read side of a handle
  *
  * `gate`'s `load` must be a deduplicated producer (i.e. this handle's `load()`),
  * not a raw fetch.
@@ -230,7 +226,7 @@ export class ObjectHandle<T extends object> extends Handle<T> {
 
 /**
  * A whole collection, cached as one `Record<string, T>` under a single key.
- * Entries load eagerly on first read — fine for per-widget datasets, and it is
+ * Entries load eagerly on first read - fine for per-widget datasets, and it is
  * what lets `.items`/`.ids` be plain synchronous properties.
  */
 export class CollectionHandle<T extends object> extends Handle<
@@ -299,7 +295,7 @@ export class CollectionHandle<T extends object> extends Handle<
 
   /**
    * Removes one entry. Unlike the single-key handles this does not invalidate the
-   * collection — the collection itself still exists and is still loaded, it just
+   * collection - the collection itself still exists and is still loaded, it just
    * has one fewer member.
    */
   delete(id: string): void {

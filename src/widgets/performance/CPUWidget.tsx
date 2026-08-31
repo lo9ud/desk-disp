@@ -51,7 +51,7 @@ const CPUWidget = registerWidget(CPU, {
   name: "CPU Usage",
   description: "Shows current CPU usage",
   settingsDef: CPU_SETTINGS_DEF,
-  tags: ["customizable"],
+  tags: [],
   category: "system",
   maxSize: [null, null],
   minSize: [null, null],

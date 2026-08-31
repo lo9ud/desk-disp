@@ -2,15 +2,6 @@ import { createContext, useContext } from "react";
 import type { AppRuntime } from "./AppRuntime";
 import type { WidgetApi } from "./WidgetApi";
 
-/**
- * Two contexts, never one.
- *
- * If the root and the widget-scoped child shared a context object, a widget
- * rendered outside its scope — a bug, or a render path added later — would fall
- * through to the root and silently receive full authority. Separate contexts make
- * that case a loud error instead.
- */
-
 const HostRuntimeContext = createContext<AppRuntime | null>(null);
 const WidgetApiContext = createContext<WidgetApi | null>(null);
 

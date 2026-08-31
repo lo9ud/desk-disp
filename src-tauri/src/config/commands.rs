@@ -39,8 +39,6 @@ pub async fn get_monitor_count(app: tauri::AppHandle) -> Result<usize, String> {
 
 /* Theme commands  */
 
-/// Returns `ThemeInfo { id, name }` for every theme in the flat themes directory.
-/// Files beginning with `.` are hidden.
 #[tauri::command]
 pub async fn list_themes() -> Result<Vec<ThemeInfo>, String> {
     let root = get_themes_root().ok_or("Cannot determine themes directory")?;
@@ -136,12 +134,14 @@ pub fn get_or_create_settings_window(app: &tauri::AppHandle) -> Result<WebviewWi
     }
 
     tracing::info!(target: TARGET, "creating settings window");
-    let win = crate::apply_webview_env(
+    let args = app.state::<crate::cli::Args>();
+    let win = crate::prepare_webview(
         WebviewWindowBuilder::new(app, "settings", tauri::WebviewUrl::App("".into()))
             .title("desk-disp - Settings")
             .inner_size(1200.0, 800.0)
             .resizable(true)
             .visible(false),
+        &args,
     )
     .build()
     .map_err(|e| format!("{:?}", e))?;
@@ -189,8 +189,6 @@ pub async fn toggle_settings_visibility(app: tauri::AppHandle) -> Result<(), Str
 
 /* Layout commands  */
 
-/// Returns `LayoutInfo { id, name }` for every layout in the flat layouts directory.
-/// Files beginning with `.` are hidden.
 #[tauri::command]
 pub async fn list_layouts() -> Result<Vec<LayoutInfo>, String> {
     let root = get_layouts_root().ok_or("Cannot determine layouts directory")?;

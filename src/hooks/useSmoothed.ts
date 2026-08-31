@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 
 /**
- * Exponential moving average: smoothed = prev + alpha * (value - prev).
- *
- * alpha=1.0  → no smoothing (returns value immediately)
- * alpha=0.1  → heavy smoothing (slow to respond)
- * alpha=0.3  → default, moderate lag
+ * Exponential moving average of a numeric value, updated whenever the value changes.
+ * 
+ * @param value The latest value to smooth.
+ * @param [alpha=0.3] The smoothing factor, between 0 and 1. Defaults to 0.3.
+ * @returns The smoothed value.
  */
 export function useSmoothed(value: number, alpha = 0.3): number {
   const [smoothed, setSmoothed] = useState(value);

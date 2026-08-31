@@ -1,27 +1,19 @@
 /**
  * Cover art for the mock media stream's synthetic tracks.
  *
- * Drawn rather than bundled, for two reasons. Real cover images would be tens of
- * KB of base64 each sitting in the repo; and any real album art is a copyrighted
- * work in its own right, separate from the recording, which this app has no
- * licence to redistribute. These are a few hundred bytes each and belong to
- * nobody.
- *
- * Kept out of `mockStreams.ts` so the stream generators stay readable — the SVG
- * bodies would otherwise dominate that file and every diff touching it.
- *
- * Like the generators next door, everything here is deterministic: no
- * `Math.random`, so a fixed clock still produces byte-identical frames.
+ * Drawn rather than bundled, as b64 images would be large and opaque, and make diffs hard to read.
+ * 
+ * Album covers are LLM-generated SVG's.
  */
 
-/** `btoa` is Latin-1 only, so every builder below stays strictly ASCII. */
+/** `btoa` is Latin-1 only, so every builder below stays ASCII. */
 function svgToBase64(svg: string): string {
   return btoa(svg.replace(/\s+/g, " ").trim());
 }
 
 const SIZE = 600;
 
-/* --- "Weightless Horizon" — a sun going down into a flat plane. --- */
+/* --- "Weightless Horizon" - a sun going down into a flat plane. --- */
 
 const HORIZON_Y = 392;
 
@@ -62,7 +54,7 @@ const weightlessHorizon = `
   </g>
 </svg>`;
 
-/* --- "Synthetic Sunrise" — slotted disc over a perspective grid. --- */
+/* --- "Synthetic Sunrise" - slotted disc over a perspective grid. --- */
 
 const GROUND_Y = 372;
 const VANISH_X = 300;
@@ -119,7 +111,7 @@ const syntheticSunrise = `
   </g>
 </svg>`;
 
-/* --- "Grid Lines" — hard geometry, no gradients, to contrast the other two. --- */
+/* --- "Grid Lines" - hard geometry, no gradients, to contrast the other two. --- */
 
 const RULES = [75, 150, 225, 300, 375, 450, 525];
 

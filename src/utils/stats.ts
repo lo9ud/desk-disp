@@ -8,7 +8,6 @@ export interface Stats {
 
 const EMPTY: Stats = { min: 0, max: 0, avg: 0, median: 0, last: 0};
 
-/** Pure function — wrap with useMemo if used in a hot render path. */
 export function computeStats(values: readonly number[]): Stats {
   if (values.length === 0) return EMPTY;
 

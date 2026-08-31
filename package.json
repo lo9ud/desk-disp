@@ -15,8 +15,7 @@
     "tauri": "tauri",
     "tauri:predev": "pnpm dev",
     "tauri:prebuild": "pnpm gen-types && pnpm gen-licenses && pnpm build",
-    "gen-icons": "tauri icon ./icon-dark.svg -o ./src-tauri/icons/dark --ios-color #1a1a1a && tauri icon ./icon-light.svg -o ./src-tauri/icons/light --ios-color #ffffff",
-    "task": "node scripts/todos.ts"
+    "gen-icons": "tauri icon ./icon-dark.svg -o ./src-tauri/icons/dark --ios-color #1a1a1a && tauri icon ./icon-light.svg -o ./src-tauri/icons/light --ios-color #ffffff"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

@@ -1,6 +1,8 @@
+import type { Args } from "../ffi_types";
 import { InstanceRegistry } from "../registry/instanceRegistry";
 import { setLogTransport } from "../utils/logger";
 import { systemClock, type Clock } from "./clock";
+import { cliArgs } from "./cliArgs";
 import { makeConfigCommands, type ConfigCommands } from "./commands/config";
 import { makeLayoutCommands, type LayoutCommands } from "./commands/layouts";
 import { makeMediaCommands, type MediaCommands } from "./commands/media";
@@ -20,14 +22,8 @@ import { makeWidgetApi, type WidgetApi } from "./WidgetApi";
 
 /**
  * Root of the dependency graph, constructed once per window. Owns the real
- * resources — transport, stream hub, persistence store, instance registry — and
- * acts as the factory for widget-scoped children.
- *
- * The root is intentionally *not* what widgets receive. `forWidget` mints a
- * `WidgetApi` bound to one instance, and only that goes into a React context
- * widgets read (see `context.tsx`). Host code reaches the root through its own
- * context; a widget could still import that today, which is the same hole
- * `import { ipc }` used to be and is what the permission work closes later.
+ * resources: transport, stream hub, persistence store, instance registry and
+ * the factory for widget-scoped children.
  */
 export interface AppRuntime {
   readonly transport: Transport;
@@ -44,6 +40,8 @@ export interface AppRuntime {
 
   readonly clock: Clock;
   readonly isPreview: boolean;
+  /** The process's CLI args, injected at webview creation. See `cliArgs.ts`. */
+  readonly cli: Args;
 
   forWidget(instanceId: string, definitionId: string): WidgetApi;
   dispose(): void;
@@ -56,6 +54,9 @@ export interface AppRuntimeOptions {
   persistenceBackend?: PersistenceBackend;
   clock?: Clock;
   isPreview?: boolean;
+  /** Override so a preview or test runtime states its own flags rather than
+   * inheriting whatever the surrounding process was launched with. */
+  cli?: Args;
 }
 
 export function createAppRuntime(opts: AppRuntimeOptions = {}): AppRuntime {
@@ -102,6 +103,7 @@ export function createAppRuntime(opts: AppRuntimeOptions = {}): AppRuntime {
 
     clock,
     isPreview,
+    cli: opts.cli ?? cliArgs(),
 
     forWidget: (instanceId, definitionId) =>
       makeWidgetApi(instanceId, definitionId, widgetDeps),

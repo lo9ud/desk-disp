@@ -33,8 +33,7 @@ function describeError(err: unknown): string {
  * gate.
  *
  * `peek` is what goes to `useSyncExternalStore` because React also calls
- * `getSnapshot` outside the render phase — while deciding whether a store change
- * warrants a re-render — where a throw would escape into the notifying code path.
+ * `getSnapshot` outside the render phase where a throw would escape into the notifying code path.
  * The narrowing then happens here, in render, as a control-flow guard rather than
  * an `as T` cast: `value` is `T` below this line because the branch above proved
  * it, so the contract is enforced instead of asserted.

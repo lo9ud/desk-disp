@@ -23,17 +23,6 @@ interface Entry {
 /**
  * Owns subscriber counting for the whole window, and keeps exactly one backend
  * hint and one event listener per stream no matter how many widgets are watching.
- *
- * Counting lives here rather than in Rust because this is the only side that can
- * observe mount and unmount ordering accurately; the backend gets a coarse
- * per-window "wanted / not wanted" hint instead of a running total it has to keep
- * in step across an async boundary.
- *
- * All backend traffic for a stream goes through `reconcile`, a serialized
- * desired-vs-applied loop. A rapid subscribe → unsubscribe → subscribe therefore
- * settles on the correct final state instead of racing: intermediate flips are
- * coalesced, and the listener can never be registered twice or torn down while
- * still wanted.
  */
 export class BackendStreamHub implements StreamSource {
   private readonly entries = new Map<StreamName, Entry>();
@@ -99,8 +88,7 @@ export class BackendStreamHub implements StreamSource {
             void this.io.stop(name);
             return;
           }
-          // Only seed from the cache if nothing live has arrived meanwhile —
-          // otherwise a fresh frame would be replaced by an older one.
+          // Only seed from the cache if nothing live has arrived in the meantime
           if (last !== null && last !== undefined && e.latest === null) {
             this.emit(e, last);
           }

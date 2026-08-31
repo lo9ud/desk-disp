@@ -58,7 +58,7 @@ const STEPS: Step[] = [
   {
     target: ["controls"],
     title: "Control bar",
-    body: "This is your control bar. It stays hidden to keep your display clean — hover the top-left corner anytime to reveal it.",
+    body: "This is your control bar. It stays hidden to keep your display clean - hover the top-left corner anytime to reveal it.",
     icon: <CursorArrowRaysIcon />,
   },
   {
@@ -230,7 +230,7 @@ export default function Onboarding() {
       top = aboveTop;
       above = true;
     } else {
-      // Neither fits cleanly — place below, clamped
+      // Neither fits cleanly - place below, clamped
       top = Math.max(MARGIN, vh - cardH - MARGIN);
       above = false;
     }

@@ -17,37 +17,35 @@ mod media;
 mod system;
 
 struct AppStateInner {
-    // Application configuration and command-line arguments
     config: config::Config,
-    args: cli::Args,
     monitor_cache: config::MonitorCache,
 
-    // File management'
+    // File management
     file_manager: Arc<RwLock<file::FileManager>>,
 }
 
 type AppState = Mutex<AppStateInner>;
 
-/// Extra WebView2 browser args used in dev mode. First arg is Tauri's default
-/// (disables Edge context menus and SmartScreen); second enables the Chrome
-/// DevTools Protocol.
+/// Extra WebView2 browser args used in dev mode.
 const DEV_BROWSER_ARGS: &str =
     "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=9222";
 
-static DEV_MODE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+/// Global every webview receives its parsed [`cli::Args`] on.
+const CLI_ARGS_GLOBAL: &str = "__DESK_DISP_ARGS__";
 
-/// Apply the process-wide WebView2 environment options to a window builder.
-///
-/// **Every** webview in the process must be created with identical environment
-/// options: they share one user-data folder, and WebView2 refuses to create a
-/// second webview whose options differ from the already-running browser
-/// process, failing with `ERROR_INVALID_STATE` (0x8007139F, surfaced as
-/// "failed to create webview"). So dev-only browser args cannot be applied to
-/// just the main window — every window builder must go through here.
-pub fn apply_webview_env<'a, R: tauri::Runtime, M: Manager<R>>(
+fn cli_args_script(args: &cli::Args) -> String {
+    format!(
+        "window.{CLI_ARGS_GLOBAL} = Object.freeze({});",
+        serde_json::to_string(args).expect("CLI args are serialisable")
+    )
+}
+
+pub fn prepare_webview<'a, R: tauri::Runtime, M: Manager<R>>(
     builder: tauri::WebviewWindowBuilder<'a, R, M>,
+    args: &cli::Args,
 ) -> tauri::WebviewWindowBuilder<'a, R, M> {
-    if *DEV_MODE.get().unwrap_or(&false) {
+    let builder = builder.initialization_script(cli_args_script(args));
+    if args.dev {
         builder.additional_browser_args(DEV_BROWSER_ARGS)
     } else {
         builder
@@ -55,7 +53,7 @@ pub fn apply_webview_env<'a, R: tauri::Runtime, M: Manager<R>>(
 }
 
 /// Caches the last emitted value per stream channel so new subscribers can
-/// receive it immediately without waiting for the next poll tick.
+/// receive it immediately without waiting for the next event.
 pub struct ChannelCache(std::sync::Mutex<HashMap<events::StreamName, serde_json::Value>>);
 
 impl ChannelCache {
@@ -74,7 +72,6 @@ impl ChannelCache {
     }
 }
 
-// Takes an `AppHandle` rather than a window on purpose — see build_monitor_cache in config/mod.rs.
 fn get_monitor(app: &tauri::AppHandle, config: &config::Config) -> Result<Monitor, String> {
     let monitors = app.available_monitors().map_err(|e| e.to_string())?;
 
@@ -99,12 +96,6 @@ fn get_monitor(app: &tauri::AppHandle, config: &config::Config) -> Result<Monito
     Err("No monitors found".into())
 }
 
-/* Stream lifecycle hints
- *
- * The window label is taken from the `tauri::Window` command argument, never from the
- * payload, so a caller cannot claim to be another window. See `events::StreamHints` for why
- * these are per-window sets rather than a subscriber count.
- */
 
 /// Marks this window as wanting `channel`, and returns the last cached frame (if any) so a
 /// first subscriber renders immediately instead of waiting a full poll interval.
@@ -130,9 +121,7 @@ async fn stop_stream(
     Ok(())
 }
 
-/// Drops every hint this window holds. Invoked once when a window's frontend initialises, so
-/// a reload starts from a clean slate rather than leaving streams running for a page that no
-/// longer exists.
+/// Drops every hint this window holds.
 #[tauri::command]
 async fn reset_streams(window: tauri::Window, app: tauri::AppHandle) -> Result<(), String> {
     debug!(window = window.label(), "clearing stream hints");
@@ -172,24 +161,10 @@ async fn log_from_frontend(level: String, module: String, message: String, hint:
 }
 
 #[tauri::command]
-async fn get_log_level(app: tauri::AppHandle) -> Result<String, String> {
-    let state = app.state::<AppState>();
-    let state = state.lock().await;
-    Ok(format!("{:?}", state.args.log_level.clone()))
-}
-
-#[tauri::command]
 async fn exit_program(_app: tauri::AppHandle) {
     info!("Exiting program");
     logging::flush();
     std::process::exit(0);
-}
-
-#[tauri::command]
-async fn is_dev_mode(app: tauri::AppHandle) -> Result<bool, String> {
-    let state = app.state::<AppState>();
-    let state = state.lock().await;
-    Ok(state.args.dev)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -202,7 +177,6 @@ pub fn run(args: cli::Args) {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             exit_program,
-            is_dev_mode,
             // stream lifecycle hints
             start_stream,
             stop_stream,
@@ -211,7 +185,6 @@ pub fn run(args: cli::Args) {
             get_config_path,
             get_config,
             log_from_frontend,
-            get_log_level,
             // media commands
             media::play_media,
             media::pause_media,
@@ -267,17 +240,7 @@ pub fn run(args: cli::Args) {
             config::ensure_default_themes();
             config::ensure_default_layouts();
 
-            // Everything state-related (`app.manage()`) must happen before any webview is
-            // built below: building a window starts loading frontend JS immediately, and
-            // its very first render can `invoke()` a command that reads this state (e.g.
-            // App.tsx's is_dev_mode/get_config hooks). If that invoke is dispatched before
-            // manage() runs, `app.state::<AppState>()` panics with "state() called before
-            // manage()" — a race that's normally too fast to hit, but becomes real once
-            // window creation gets slow enough (e.g. --remote-debugging-port) for the page
-            // to load within it. Monitor lookups use the AppHandle instead of the (not yet
-            // built) window so this ordering is possible at all — see build_monitor_cache.
             let dev = args.dev;
-            let _ = DEV_MODE.set(dev);
             let target_monitor = get_monitor(app.handle(), &config).expect("Failed to get target monitor");
             let monitor_cache =
                 config::build_monitor_cache(app.handle(), target_monitor.name().map(|s| s.as_str()));
@@ -286,20 +249,15 @@ pub fn run(args: cli::Args) {
 
             app.manage::<AppState>(Mutex::new(AppStateInner {
                 config,
-                args,
                 monitor_cache,
                 file_manager,
             }));
+            app.manage(args.clone());
 
-            /* Stream lifecycle hints and last-value cache  */
-
-            // One shared hint table: managed for the commands, cloned into each loop. Streams
-            // no longer need registering up front — an absent entry simply reads as inactive.
             let stream_hints = Arc::new(events::StreamHints::new());
             app.manage(Arc::clone(&stream_hints));
             app.manage(ChannelCache::new());
 
-            /* Windows — only now, with all state already managed  */
 
             let url = tauri::WebviewUrl::App("index.html".into());
             let mut win_builder = tauri::WebviewWindowBuilder::new(app, "main", url)
@@ -318,7 +276,7 @@ pub fn run(args: cli::Args) {
                 .resizable(false)
                 // Invisible until we place it on the correct monitor
                 .visible(false)
-                // Disable zoom hotkeys (Ctrl+/-/0) so they don't interfere with widgets
+                // Disable zoom hotkeys (`Ctrl`+`+`/`-`/`0`) so they don't interfere with widgets
                 .zoom_hotkeys_enabled(false)
                 // Accept first mouse click so the user doesn't have to click twice to interact with the window
                 .accept_first_mouse(true)
@@ -346,9 +304,7 @@ pub fn run(args: cli::Args) {
                 win_builder
             };
 
-            // Browser args live here, not in the dev branch above: they are a
-            // process-wide WebView2 setting that every window must match.
-            let win_builder = apply_webview_env(win_builder);
+            let win_builder = prepare_webview(win_builder, &args);
 
             let win = win_builder.build().expect("Failed to create main window");
             place_window(&win, target_monitor);

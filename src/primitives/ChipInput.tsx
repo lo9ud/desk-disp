@@ -64,7 +64,7 @@ export function ChipInput({
   }
 
   const defaultPlaceholder =
-    chips.length === 0 ? (placeholder ?? "Add…") : "+";
+    chips.length === 0 ? (placeholder ?? "Add...") : "+";
 
   return (
     <div

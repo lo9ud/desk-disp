@@ -73,8 +73,6 @@ export function makeEventBus(transport: Transport): EventBus {
       transport
         .listen(event, handler as (payload: unknown) => void)
         .then((fn) => {
-          // Unsubscribed before registration completed — tear down immediately
-          // rather than leaking a listener nobody holds a handle to.
           if (cancelled) fn();
           else unlisten = fn;
         });

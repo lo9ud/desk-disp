@@ -14,12 +14,6 @@ import { placePanel, Rect } from "./placement";
 const PANEL_W = 360;
 const PANEL_MAX_H = 520;
 
-/**
- * Widget settings, anchored beside the widget being edited rather than in a
- * centred modal — the whole point is to see the effect of a setting while
- * changing it. The user can drag it anywhere if the automatic placement
- * doesn't suit; dragging pins it until the panel closes.
- */
 export function SettingsPanel({
   instanceId,
   registry,
@@ -32,7 +26,7 @@ export function SettingsPanel({
   registry: InstanceRegistry;
   /** The edited widget's rect, in viewport pixels. */
   anchor: Rect | null;
-  /** Area the panel may occupy — the grid, so it never covers band chrome. */
+  /** Area the panel may occupy on the grid, so it never covers band UI. */
   bounds: Rect | null;
   onChange: (id: string, settings: Record<string, unknown>) => void;
   onClose: () => void;

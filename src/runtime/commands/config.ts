@@ -12,8 +12,6 @@ import type { Transport } from "../transport";
  */
 export interface ConfigCommands {
   get(): Promise<Config>;
-  isDevMode(): Promise<boolean>;
-  getLogLevel(): Promise<string>;
   setPreferences(prefs: Preferences): Promise<void>;
   previewPreferences(prefs: Preferences): Promise<void>;
 
@@ -50,8 +48,6 @@ export function makeConfigCommands(
 
   return {
     get: () => t.invoke<Config>("get_config"),
-    isDevMode: () => t.invoke<boolean>("is_dev_mode"),
-    getLogLevel: () => t.invoke<string>("get_log_level"),
     setPreferences: (prefs) => t.invoke<void>("set_preferences", { prefs }),
     previewPreferences: (prefs) =>
       t.invoke<void>("preview_preferences", { prefs }),

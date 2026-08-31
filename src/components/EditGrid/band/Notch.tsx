@@ -45,7 +45,7 @@ export function Notch({
         disabled={hasBlockingErrors || saving}
         onClick={onSave}
       >
-        {saving ? "Saving…" : "Save"}
+        {saving ? "Saving..." : "Save"}
       </Button>
       <Button variant="ghost" onClick={onCancel}>
         Cancel

@@ -1,16 +1,6 @@
 import type { Scope } from "../../ffi_types";
 import type { PersistenceBackend } from "./backend";
 
-/**
- * In-memory stand-in for the backend's file store, used by preview renders and
- * tests. Applets' first-use fallback producers *write* by design, so preview
- * writes have to succeed — they just must not reach disk or leave stray scope
- * directories behind. Denying them instead would make every applet preview
- * throw.
- *
- * One instance per runtime, so two preview environments cannot see each other's
- * data.
- */
 export function memoryBackend(): PersistenceBackend {
   const store = new Map<string, unknown>();
 

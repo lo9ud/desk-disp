@@ -2,9 +2,7 @@ import type { TodoList } from "../../widgets/applets/todolist/TodoListWidget";
 import type { KeyValueType } from "./handles";
 
 /**
- * Type registry for shared (group-scoped) persistence. A group alias must be
- * declared here before it can be used — an undeclared one resolves to `never`,
- * so the mistake is a compile error rather than a silently empty scope.
+ * Type registry for shared (group-scoped) persistence.
  *
  * Shape per alias:
  *   { keys?: { [key]: KeyValueType }, objects?: { [key]: object }, collections?: { [name]: object } }

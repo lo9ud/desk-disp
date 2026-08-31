@@ -17,12 +17,6 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Rides out spurious IO failures — notably a read racing `file.rs::write_raw`'s
- * fixed-name `.json.tmp` rename. Wraps individual IO steps only, never a
- * caller's fallback producer: that may have side effects and must run at most
- * once.
- */
 export async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt < RETRY_ATTEMPTS; attempt++) {
@@ -59,12 +53,6 @@ export class PersistenceInvariantError extends Error {
 /**
  * The shared in-memory cache, retry policy, Suspense gating and error bookkeeping
  * for widget persistence.
- *
- * Was a set of module-level `Map`s; now an instantiable class owned by the
- * runtime. Deliberately still *one shared instance per runtime* rather than one
- * per widget — group scopes exist precisely so several widgets read and write the
- * same data, and per-widget partitioning would destroy that. What scopes access
- * is the handle bound to a widget's own scope, not a separate store.
  */
 export class PersistenceStore {
   private readonly cache = new Map<string, unknown>();
@@ -93,8 +81,7 @@ export class PersistenceStore {
   /**
    * Post-gate read. Reaching this means `load()` already resolved and wrote the
    * cache, so an absent value is an invariant violation rather than a loading
-   * state — throwing surfaces it in the widget's ErrorBoundary instead of
-   * handing `undefined` to code the types promised would never see it.
+   * state
    */
   read = <T,>(cacheKey: string): T => {
     if (!this.cache.has(cacheKey)) throw new PersistenceInvariantError(cacheKey);
@@ -113,9 +100,7 @@ export class PersistenceStore {
   /**
    * Drops a key's cached value, its resolved gate and any recorded error, then
    * notifies. A still-mounted hook re-renders, finds no cache entry, and
-   * re-Suspends on a fresh `load()` — so a deleted key returns to genuine
-   * first-use state (fallback producer runs again) rather than leaving `read()`
-   * throwing on what was a legitimate operation.
+   * re-Suspends on a fresh `load()`
    */
   invalidate(cacheKey: string) {
     this.cache.delete(cacheKey);
@@ -136,8 +121,7 @@ export class PersistenceStore {
     };
   }
 
-  /* Error bookkeeping — a failed write reverts the cache and is *also* rethrown
-   * on the next render, so nothing is swallowed into a console log alone. */
+  /* Error bookkeeping */
 
   recordError(cacheKey: string, err: unknown) {
     this.errors.set(cacheKey, err);
@@ -204,18 +188,7 @@ export class PersistenceStore {
   /**
    * Suspends until the key's value is loaded, then returns it. Called during
    * render (it uses React's `use()`), which is what lets a widget's own body run
-   * only once its persisted data is genuinely present.
-   *
-   * `load` must already be deduplicated — every handle's `load()` goes through
-   * `loadOnce`, which is what makes two widgets sharing a group key coalesce onto
-   * one request. Do **not** wrap it in `loadOnce` again here: `loadOnce` invokes
-   * its producer *before* registering its own entry, so a nested call would
-   * register an inner entry that the outer one then overwrites, leaving two
-   * entries per key where only the outer one's `.then` commits to the cache.
-   * That happens to work, but it makes the "the map holds the entry that writes
-   * the cache" invariant accidental — and it breaks outright the moment anyone
-   * moves the `suspenseEntries.set` above the `load()` call, since the inner call
-   * would then read back a half-built entry whose `promise` is still undefined.
+   * only once its persisted data is present.
    */
   gate<T>(cacheKey: string, load: () => Promise<T>): T {
     if (this.cache.has(cacheKey)) return this.cache.get(cacheKey) as T;
@@ -235,7 +208,7 @@ export class PersistenceStore {
     this.write(cacheKey, optimisticValue);
     try {
       await withRetry(persist);
-      this.clearError(cacheKey); // succeeded — forget any earlier stale failure
+      this.clearError(cacheKey);
     } catch (err) {
       console.error(`persistence: write to ${cacheKey} failed, reverting`, err);
       try {

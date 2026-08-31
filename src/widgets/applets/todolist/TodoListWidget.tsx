@@ -352,7 +352,7 @@ const TodoListWidget = registerApplet(TodoList, {
   description:
     "Keep a running to-do list you can check off without leaving your desktop.",
   category: "productivity",
-  tags: ["interactive", "customizable"],
+  tags: ["interactive"],
   settingsDef: TODO_LIST_SETTINGS_DEF,
   minSize: [null, null],
   maxSize: [null, null],

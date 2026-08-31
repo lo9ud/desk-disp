@@ -19,7 +19,7 @@
   transition: width 0.4s ease;
 }
 
-/* blocks variant — N equal segments */
+/* blocks variant: N equal segments */
 .blocks {
   display: flex;
   gap: 2px;

@@ -150,9 +150,6 @@ export function Visualizer({
   freqTrimBottom,
   freqTrimTop,
 }: WidgetSettingsProps<typeof VISUALIZER_SETTINGS_DEF>) {
-  // No stream subscription here. Frames go straight to the canvas via
-  // useStreamCanvas below, so this component re-renders only when a *setting*
-  // changes — not 30 times a second to hand React an array it never renders.
   const trim = { bottom: freqTrimBottom, top: freqTrimTop };
 
   if (style === "bars") {
@@ -205,19 +202,6 @@ type DrawFn = (
 /**
  * Owns the canvas, the visualizer subscription and the repaint policy for all
  * three renderers.
- *
- * The point of the imperative path: a frame lands here and is painted directly.
- * React is not involved per frame at all, which is correct — it does not manage
- * this canvas's contents, so routing 30 arrays a second through `setState` only
- * bought a full settings destructure and subtree reconciliation per frame.
- *
- * `draw` is held in a ref and refreshed every render, so a settings change takes
- * effect on the next frame without tearing down the subscription.
- *
- * It also owns the idle decision, which is why `showWhenIdle` is a hook argument
- * rather than something the renderers check: the three `draw` functions then
- * have one job each, and a `null` frame means "there is nothing to show", with
- * no second opinion about whether the data counts as silence.
  */
 function useStreamCanvas(trim: FreqTrim, showWhenIdle: boolean, draw: DrawFn) {
   const api = useWidgetApi();
@@ -244,8 +228,7 @@ function useStreamCanvas(trim: FreqTrim, showWhenIdle: boolean, draw: DrawFn) {
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // Keep the backing store matched to the CSS box — the grid can resize this
-    // widget at any time, and a stale size silently stretches the drawing.
+    // Keep the backing store matched to the parent CSS box
     if (canvas.width !== canvas.clientWidth) canvas.width = canvas.clientWidth;
     if (canvas.height !== canvas.clientHeight)
       canvas.height = canvas.clientHeight;
@@ -273,8 +256,6 @@ function useStreamCanvas(trim: FreqTrim, showWhenIdle: boolean, draw: DrawFn) {
     else if (idle.mix > 0) frame = blendIdle(live, idle.mix, now);
     else frame = live;
 
-    // Read per paint rather than per render — same frequency as before, since
-    // the old code read it in the render body that ran on every frame.
     const color = globalThis
       .getComputedStyle(document.documentElement)
       .getPropertyValue("--color-accent")
@@ -282,12 +263,6 @@ function useStreamCanvas(trim: FreqTrim, showWhenIdle: boolean, draw: DrawFn) {
 
     drawRef.current(ctx, canvas, frame, color);
 
-    // Self-drive whenever going quiet still has a visible consequence pending.
-    // Arriving frames are the only other thing that repaints, and a stream that
-    // has gone quiet may have stopped emitting altogether — on a platform with
-    // no visualizer backend at all, this loop is the only thing that ever runs.
-    // With the animation off that is a bounded wait for the hide; with it on it
-    // runs for as long as the animation is on screen or on its way in.
     const pending = showWhenIdleRef.current
       ? idle.silentSince !== null || idle.mix > 0
       : idle.silentSince !== null && !settled;
@@ -338,7 +313,7 @@ const VisualizerWidget = registerWidget(Visualizer, {
   description:
     "Shows a live animation that reacts to audio playing on your system",
   category: "media",
-  tags: ["customizable"],
+  tags: [],
   settingsDef: VISUALIZER_SETTINGS_DEF,
   minSize: [null, null],
   maxSize: [null, null],
@@ -381,16 +356,14 @@ type Rect = {
 // segment-to-segment gap at this value so both axes of the LED grid line up.
 const BAR_GAP = 2;
 
-// The backend peak-normalises every frame and maps it onto a 120dB log scale,
-// so a magnitude is a *distance below the frame's loudest bin*, not a height —
-// 0.7 is roughly 30dB down. These re-expand that range for display.
+// Sort-of exponential scaling of the backend's peak-normalised magnitude to a height in the 0..1 range.
 const MAG_CUTOFF = 0.4;
 const MAG_SCALE = Math.pow(2, 7.65); // = approx 200
 
 function scaleValue(value: number, cutoff: number, scale: number) {
   // Roughly:
   // Values less than cutoff are aggressively reduced to near zero
-  // Values greater than cutoff are exponentially scaled so that 1 maps to 1, and cutoff maps to a small value close to zero (e.g. 0.001)
+  // Values greater than cutoff are exponentially scaled so that 1 maps to 1, and cutoff maps to a small value close to zero
   return Math.max(
     (Math.pow(scale, (value - cutoff) / (1 - cutoff)) - 1) / (scale - 1),
     0.001,
@@ -419,15 +392,11 @@ function normalizeData(frequencies: FrequencyReading[] | null) {
 
 const TAU = Math.PI * 2;
 
-/** Below this, a bin counts as quiet. The backend peak-normalises every frame,
- *  so anything playing at all puts a bin at 1.0 — this only has to clear the
- *  tail of its decay filter once playback stops, not judge a volume. */
+/** Below this, a bin counts as quiet */
 const IDLE_QUIET_MAGNITUDE = 0.05;
-/** How long quiet must persist before the animation takes over, so the gap
- *  between two tracks doesn't start a fade nobody asked for. */
+/** How long quiet must persist before the animation takes over */
 const IDLE_ENTER_MS = 1500;
 const IDLE_FADE_IN_MS = 1200;
-/** Quicker the other way: audio starting again should show up immediately. */
 const IDLE_FADE_OUT_MS = 250;
 
 type IdleState = {
@@ -435,7 +404,7 @@ type IdleState = {
   silentSince: number | null;
   /** 0 = incoming frame only, 1 = idle animation fully faded in. */
   mix: number;
-  /** Previous paint's timestamp, so fading is frame-rate independent. */
+  /** Previous paint's timestamp */
   at: number | null;
 };
 
@@ -465,12 +434,6 @@ function advanceIdle(
 
 /**
  * Bar height, 0..1, at fractional position `u` across the display.
- *
- * Two waves travelling opposite ways at unrelated wavelengths, so the crest
- * drifts rather than settling into a loop the eye can lock onto; the arch keeps
- * the two ends a little shorter so it reads as one moving shape rather than as
- * bars that happen to be moving. Deliberately never bottoms out — an idle
- * animation that goes flat is indistinguishable from a broken one.
  */
 function idleHeight(u: number, t: number) {
   const travel = 0.5 + 0.5 * Math.sin(TAU * (u * 1.35 - t / 4200));
@@ -480,9 +443,7 @@ function idleHeight(u: number, t: number) {
   return 0.05 + 0.7 * arch * breathe * (0.55 * travel + 0.45 * counter);
 }
 
-/** Stand-in bins for when the stream has never produced a frame at all — the
- *  visualizer thread failed to start, or the platform has no implementation.
- *  Same 20Hz → 20kHz log spacing `FFTStream::create_log_frequency_bins` uses. */
+/** Stand-in bins for when the stream has never produced a frame at all */
 const IDLE_BINS: FrequencyReading[] = Array.from({ length: 64 }, (_, i) => ({
   freq_lo: 20 * Math.pow(1000, i / 64),
   freq_hi: 20 * Math.pow(1000, (i + 1) / 64),
@@ -490,10 +451,7 @@ const IDLE_BINS: FrequencyReading[] = Array.from({ length: 64 }, (_, i) => ({
 }));
 
 /**
- * Lays the idle animation over a frame at `mix` strength. The fade is applied
- * in height space and converted back, so it ramps the way it looks rather than
- * the way the log scale would; taking the max means a stream that starts again
- * simply overtakes the animation while the mix ramps back down.
+ * Lerps the incoming frame with a generated idle animation at time `t` 
  */
 function blendIdle(
   live: FrequencyReading[] | null,
@@ -675,9 +633,6 @@ function stackSegments(
   blockSize: number,
 ): Rect[] {
   const segmentLength = blockSize;
-  // Capped at BAR_GAP: a wider segment gap than the bar-to-bar gap reads as an
-  // uneven LED grid, so only that direction of mismatch gets clamped — a segment
-  // gap narrower than BAR_GAP (small blockSize) is left alone, it's not the ugly case.
   const spacing = Math.min(Math.max(Math.round(blockSize / 5), 1), BAR_GAP);
   const step = segmentLength + spacing;
   const vertical = direction === "vertical";

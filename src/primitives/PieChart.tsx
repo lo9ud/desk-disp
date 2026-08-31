@@ -17,7 +17,7 @@ interface PieChartProps {
   className?: string;
 }
 
-// r chosen so that circumference ≈ 100, making stroke-dasharray values
+// r chosen so that circumference ~= 100, making stroke-dasharray values
 // directly equal to percentages.
 const R = 15.9155;
 const CX = 18;

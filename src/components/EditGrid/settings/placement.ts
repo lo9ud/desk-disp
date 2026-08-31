@@ -17,13 +17,7 @@ const MARGIN = 12;
 const SIDES: Side[] = ["right", "left", "below", "above"];
 
 /**
- * Best-effort placement for the settings panel: sit beside the widget being
- * edited without covering it. Only that one widget matters — covering others
- * is fine and intentional, since they're dimmed while the panel is open.
- *
- * When the widget is big enough that no side fits (the pathological
- * near-fullscreen case), the panel overlaps on whichever side has the most
- * room. It then covers part of a large widget, which stays largely readable.
+ * Best-effort placement for the settings panel. Adjecent to the anchor if possible, otherwise in the roomiest direction, clamped to the bounds.
  */
 export function placePanel(anchor: Rect, panel: Size, bounds: Rect): Rect {
   const minX = bounds.x + MARGIN;

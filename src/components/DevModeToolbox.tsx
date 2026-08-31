@@ -63,17 +63,12 @@ function emptyStats(): EventStats {
 
 /**
  * Counts every backend event while the toolbox is open.
- *
- * This used to be a module-level IIFE that registered twelve raw Tauri listeners
- * at import time, in every window, whether or not dev mode was on. Counting now
- * starts when the toolbox opens, which is also what the elapsed-time denominator
- * measures — so the rates are honest rather than divided by process uptime.
  */
 function useEventStats(): { stats: EventStats; since: number } {
   const { events } = useRuntime();
   const statsRef = useRef<EventStats>(emptyStats());
   const sinceRef = useRef(Date.now());
-  const [, bump] = useState(0);
+  const [_, bump] = useState(0); // NOSONAR
 
   useEffect(() => {
     statsRef.current = emptyStats();

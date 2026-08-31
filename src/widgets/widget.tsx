@@ -120,16 +120,14 @@ export default function Widget({
 }
 
 /**
- * Renders a single widget instance by ID. Subscribes only to that
- * instance via useSyncExternalStore — no other widget re-renders when
- * this instance's settings change.
+ * Renders a single widget instance by ID.
  */
 export function RenderWidget({
   instanceId,
   registry,
 }: {
   instanceId: string;
-  /** Defaults to the runtime's canonical registry; edit-mode drafts and gallery
+  /** Defaults to the runtime's registry; edit-mode drafts and gallery
    *  cards pass their own throwaway one. */
   registry?: InstanceRegistry;
 }) {
@@ -138,9 +136,6 @@ export function RenderWidget({
   const widget = useWidgetInstance(instanceId, reg);
   const definitionId = widget?.definitionId ?? "";
 
-  // Keyed to the runtime and the instance, not to this component — so a
-  // StrictMode double-mount or an ErrorBoundary reset remounts the widget while
-  // it keeps the same api object.
   const api = useMemo(
     () => runtime.forWidget(instanceId, definitionId),
     [runtime, instanceId, definitionId],
@@ -179,8 +174,7 @@ export function RenderWidget({
 }
 
 /**
- * Renders all registered widget instances. Re-renders only when the
- * instance list changes (add/remove) — not when individual settings change.
+ * Renders all registered widget instances.
  */
 export function Widgets() {
   const runtime = useRuntime();

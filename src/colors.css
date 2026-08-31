@@ -355,7 +355,7 @@
   --ui-accent-solid-hover: var(--blue-10); /* its hover */
   --ui-accent-on-solid: var(
     --blue-contrast
-  ); /* text on accent-solid — NOTE below */
+  ); /* text on accent-solid - NOTE below */
   --ui-accent-fill: var(--blue-3); /* tinted accent button rest */
   --ui-accent-fill-hover: var(--blue-4); /* tinted accent button hover */
   --ui-accent-fill-active: var(--blue-5); /* tinted accent button active */
@@ -366,7 +366,7 @@
     --blue-indicator
   ); /* active-tab underline, active markers */
 
-  /* ===== Selection (edit mode) — distinct ROLE from accent ===== */
+  /* ===== Selection (edit mode) - distinct ROLE from accent ===== */
   --ui-selection: var(--blue-a5); /* translucent wash over selected widget */
   --ui-selection-border: var(--blue-9); /* selection handle / outline */
 
@@ -377,7 +377,7 @@
   --ui-disabled-fill: var(--gray-3);
   --ui-disabled-text: var(
     --gray-8
-  ); /* intentionally below contrast floor — signals inert */
+  ); /* intentionally below contrast floor - signals inert */
   --ui-disabled-border: var(--gray-6);
 
   --ui-danger-tint: light-dark(#feebec, #3b1219); /* red 3 */

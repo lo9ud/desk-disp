@@ -45,7 +45,7 @@ const ErrorTestWidget = registerWidget(ErrorTest, {
   description:
     "Deliberately throws a render error to verify widget error boundary behavior.",
   category: "general",
-  tags: ["customizable", "interactive"],
+  tags: ["interactive"],
   settingsDef: ERROR_TEST_SETTINGS_DEF,
   minSize: [null, null],
   maxSize: [null, null],

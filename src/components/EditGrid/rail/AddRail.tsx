@@ -148,7 +148,7 @@ export function AddRail({
       <div className={styles.railHeader}>
         <Input
           type="text"
-          placeholder="Search widgets…"
+          placeholder="Search widgets..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={styles.searchInput}
@@ -209,8 +209,7 @@ export function AddRail({
 
       {noSpace && (
         <div className={styles.noSpace}>
-          No free cell for this widget — drag it onto the grid or make room
-          first.
+          No space for this widget on the grid. Move or resize existing widgets to make room.
         </div>
       )}
 

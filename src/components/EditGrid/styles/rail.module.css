@@ -113,10 +113,12 @@
 
 .cardTag {
   font-size: 0.7em;
+  font-weight: 600;
   padding: 1px 6px;
   border-radius: 999px;
   border: 1px solid var(--tag-color);
   color: var(--tag-color);
+  background: color-mix(in srgb, var(--tag-color) 15%, var(--ui-panel-raised));
 }
 
 .cardDesc {

@@ -4,7 +4,7 @@ import "./widgets/register";
 import Grid from "./widgets/Grid";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import SettingsPage from "./pages/settings/SettingsPage";
-import { LayoutFile, Preferences, WidgetPlacement } from "./ffi_types";
+import { LayoutFile, Preferences } from "./ffi_types";
 import { EditModeProvider, useEditMode } from "./context/EditModeContext";
 import type { GridDims } from "./utils/validation";
 import { Widgets } from "./widgets/widget";
@@ -12,93 +12,15 @@ import EditGrid from "./components/EditGrid";
 import WindowControls from "./components/WindowControls";
 import Onboarding from "./components/Onboarding";
 import { PersistenceProvider } from "./context/PersistenceContext";
-import type { AppRuntime } from "./runtime/AppRuntime";
-import { genWidgetId } from "./registry/instanceRegistry";
-import type { BackendEvents } from "./runtime/events";
 import { useRuntime } from "./runtime/context";
 import { useThemeCss } from "./hooks/useTheme";
 import { logger } from "./utils/logger";
 import { DevModeProvider, useDevMode } from "./context/DevModeContext";
 import DevModeToolbox from "./components/DevModeToolbox";
 
-const ALL_EVENTS: (keyof BackendEvents)[] = [
-  "stream::cpu",
-  "stream::memory",
-  "stream::disks",
-  "stream::networks",
-  "stream::media",
-  "stream::visualizer",
-  "config::changed",
-  "theme::changed",
-  "layout::changed",
-  "widget::updated",
-  "preferences::changed",
-  "preferences::preview",
-];
-
-const eventLog = logger("events");
 const { error } = logger("app");
 
-function logEvent(
-  window: string | undefined,
-  event: keyof BackendEvents,
-  payload: unknown,
-) {
-  eventLog.trace(
-    event,
-    `${window ? `[${window}] ` : ""}${JSON.stringify(payload).slice(0, 120)}`,
-  );
-}
-
-function useEventDebugLog(
-  window?: string,
-  filter?: (event: keyof BackendEvents) => boolean,
-) {
-  const { events } = useRuntime();
-  useEffect(() => {
-    const unlistens = (filter ? ALL_EVENTS.filter(filter) : ALL_EVENTS).map(
-      (event) => events.on(event, (payload) => logEvent(window, event, payload)),
-    );
-    return () => unlistens.forEach((off) => off());
-  }, [events, filter]);
-}
-
 const windowLabel = getCurrentWindow().label;
-
-// Demo helpers (preserved for widget prototyping)
-
-const DEMO_PLACEMENTS: WidgetPlacement[][] = [
-  [
-    { col: 1, row: 1, col_span: 1, row_span: 1 },
-    { col: 2, row: 1, col_span: 2, row_span: 1 },
-    { col: 1, row: 2, col_span: 1, row_span: 2 },
-    { col: 2, row: 2, col_span: 2, row_span: 2 },
-    { col: 4, row: 1, col_span: 2, row_span: 3 },
-    { col: 1, row: 4, col_span: 3, row_span: 2 },
-    { col: 1, row: 6, col_span: 3, row_span: 1 },
-    { col: 4, row: 4, col_span: 1, row_span: 3 },
-    { col: 5, row: 4, col_span: 1, row_span: 3 },
-  ],
-  [
-    { col: 1, row: 6, col_span: 1, row_span: 1 },
-    { col: 1, row: 1, col_span: 1, row_span: 1 },
-    { col: 5, row: 1, col_span: 1, row_span: 1 },
-    { col: 5, row: 6, col_span: 1, row_span: 1 },
-    { col: 3, row: 3, col_span: 1, row_span: 1 },
-  ],
-  [{ col: 1, row: 1, col_span: 6, row_span: 5 }],
-];
-
-export function registerDemoWidgets(
-  runtime: AppRuntime,
-  type: string,
-  props?: Record<string, any>,
-) {
-  runtime.instances.clear();
-  for (const placement of DEMO_PLACEMENTS[0]) {
-    runtime.instances.add(genWidgetId(type), type, placement, props);
-  }
-}
 
 /* Main display view  */
 
@@ -240,7 +162,6 @@ export default function App() {
   const runtime = useRuntime();
   const [activeLayoutId, setActiveLayoutId] = useState<string | null>(null);
   useThemeCss();
-  useEventDebugLog(windowLabel, (event) => !event.startsWith("stream"));
 
   useEffect(() => {
     runtime.config.get().then((config) => {

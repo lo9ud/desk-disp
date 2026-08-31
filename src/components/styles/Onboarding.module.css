@@ -20,13 +20,7 @@
   box-shadow: 0 0 8px 4px rgba(0, 0, 0, 0.35);
 }
 
-/*
-  Arrows: left is set inline (center of the triangle tip, relative to card left edge).
-  The border trick on a zero-width element means the visual triangle is symmetric
-  around the element's left position — no translateX needed.
-*/
-
-/* Card is below the target — arrow points up from the top of the card */
+/* Card is below the target: arrow points up from the top of the card */
 .arrow_up {
   position: absolute;
   top: -7px;
@@ -49,7 +43,7 @@
   }
 }
 
-/* Card is above the target — arrow points down from the bottom of the card */
+/* Card is above the target: arrow points down from the bottom of the card */
 .arrow_down {
   position: absolute;
   bottom: -7px;

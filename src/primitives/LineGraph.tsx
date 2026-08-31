@@ -30,7 +30,7 @@ function buildPath(
       .join(" ");
   }
   // Cubic bezier: control points are the midpoint x between neighbours,
-  // preserving each point's y — gives smooth monotone-ish curves.
+  // preserving each point's y.
   let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
   for (let i = 1; i < pts.length; i++) {
     const prev = pts[i - 1];

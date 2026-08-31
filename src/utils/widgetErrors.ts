@@ -43,13 +43,6 @@ export function errorSeverity(e: WidgetError): "error" | "warning" | "info" {
   }
 }
 
-/**
- * `registry` is only consulted to name the widgets in an overlap message. It is
- * passed in rather than read from a module global — and the caller is always in
- * edit mode, so it supplies the *edit* registry, which is the layout the message
- * is actually describing. The old global read named widgets from the canonical
- * registry, i.e. the pre-edit layout.
- */
 export function widgetErrorText(
   e: WidgetError,
   registry: InstanceRegistry | null,
@@ -98,7 +91,7 @@ export function widgetErrorText(
           ? `Widget is too narrow (${aw}px, needs ${mw}px)`
           : e.axis === "height"
             ? `Widget is too short (${ah}px, needs ${mh}px)`
-            : `Widget is too small (${aw}×${ah}px, needs ${mw}×${mh}px)`;
+            : `Widget is too small (${aw}x${ah}px, needs ${mw}x${mh}px)`;
       return {
         message,
         hint: "Make the widget span more grid cells",

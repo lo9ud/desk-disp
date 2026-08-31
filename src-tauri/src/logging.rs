@@ -67,8 +67,7 @@ pub fn init(log_level: &str) {
         .event_format(LogFormatter)
         .with_writer(std::io::stderr);
 
-    // `log=error` silences the tao/winit WARN noise that comes through the log→tracing bridge.
-    // CLI --log-level is authoritative; no RUST_LOG fallback.
+    // `log=error` silences the tao/winit WARN noise //TODO: has stopped working
     let filter = EnvFilter::new(format!("{log_level},log=error"));
 
     tracing_subscriber::registry()
@@ -85,7 +84,6 @@ pub fn init(log_level: &str) {
     );
 }
 
-/// Flush logs synchronously. Call before a controlled shutdown if possible.
 pub fn flush() {
     // Replacing the guard with None drops it, which blocks until the worker drains.
     if let Ok(mut g) = WORKER_GUARD.lock() {
@@ -96,7 +94,7 @@ pub fn flush() {
 fn install_panic_hook() {
     let default_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
-        tracing::error!(panic = %info, "PANIC — flushing logs before exit");
+        tracing::error!(panic = %info, "PANIC - flushing logs before exit");
         // Give the non-blocking writer's background thread time to drain.
         // flush() would deadlock here (Mutex already poisoned risk), so we sleep.
         std::thread::sleep(Duration::from_millis(500));

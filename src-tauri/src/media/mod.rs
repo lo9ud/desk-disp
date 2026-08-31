@@ -61,13 +61,6 @@ pub struct MediaState {
     pub artist: String,
     pub album: String,
     /// Base64-encoded thumbnail image.
-    ///
-    /// The media type is deliberately **not** declared here. The frontend sniffs
-    /// it from the payload's own magic bytes (`imageDataUrl` in
-    /// `src/utils/image.ts`), so this field may carry PNG, JPEG or SVG and
-    /// nothing on this side has to agree in advance — SMTC returns whichever
-    /// raster format the source app embedded, while the preview streams emit
-    /// SVG. Emitting a new format only means teaching the sniffer its signature.
     pub album_art_b64: Option<String>,
     pub position_ms: u64,
     pub duration_ms: u64,
@@ -127,8 +120,7 @@ async fn request_token(auth: &SpotifyClientAuth) -> Result<SpotifyAccessToken, S
         .map_err(|e| e.to_string())
 }
 
-/// Returns the name of the current default output device — the one the
-/// visualizer will capture from.
+/// Returns the name of the current default output device
 #[tauri::command]
 pub async fn get_visualiser_device() -> Result<String, String> {
     let name = cpal::default_host()
@@ -201,7 +193,7 @@ impl FFTStream {
         tracing::debug!(target: FFT_TARGET, format = ?sample_format, "building WASAPI loopback input stream");
         let stream =
             Self::build_wasapi_loopback_stream(&device, &config, sample_format, sender, channels)?;
-        tracing::debug!(target: FFT_TARGET, "input stream built — calling play()");
+        tracing::debug!(target: FFT_TARGET, "input stream built - calling play()");
         stream
             .play()
             .map_err(|e| format!("Failed to start WASAPI loopback stream: {}", e))?;
@@ -355,7 +347,7 @@ impl FFTStream {
         }
 
         if self.audio_buffer.len() < self.fft_size {
-            tracing::trace!(target: FFT_TARGET, buf_len = self.audio_buffer.len(), fft_size = self.fft_size, "buffer underrun — returning smoothed values");
+            tracing::trace!(target: FFT_TARGET, buf_len = self.audio_buffer.len(), fft_size = self.fft_size, "buffer underrun - returning smoothed values");
             return self
                 .frequency_bins
                 .iter()

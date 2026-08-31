@@ -12,7 +12,6 @@ import WidgetError from "../components/WidgetError";
 import { useWidgetApi } from "../runtime/context";
 import { collectDefaults } from "./collectDefaults";
 
-
 export type {
   LocalValues,
   SchemaError,
@@ -28,11 +27,19 @@ export type {
   WidgetSettingsProps,
 };
 
-export const TAGS = {
-  interactive: "#b84d8c",
-  customizable: "#4db88c",
+export const AUTO_TAGS = {
   "requires setup": "#c97f5f",
   applet: "#4d8cb8",
+  customizable: "#4db88c",
+} as const;
+
+export const MANUAL_TAGS = {
+  interactive: "#b84d8c",
+} as const;
+
+export const TAGS = {
+  ...AUTO_TAGS,
+  ...MANUAL_TAGS,
 } as const;
 
 export const CATEGORIES = {
@@ -47,7 +54,6 @@ export const CATEGORIES = {
 
 const { debug, warn } = logger("defRegistry");
 
-
 export type ErasedWidgetProps = WidgetPlacementProps & {
   settings: Record<string, unknown>;
 };
@@ -59,7 +65,7 @@ export interface WidgetDefinition<
   name: string;
   description: string;
   category: keyof typeof CATEGORIES;
-  tags: (keyof Omit<typeof TAGS, "applet">)[];
+  tags: (keyof typeof MANUAL_TAGS)[];
   minSize: [number | null, number | null];
   maxSize: [number | null, number | null];
   settingsDef: S;
@@ -183,6 +189,22 @@ function hasUnsetRequired(
   });
 }
 
+/**
+ * Registration-time counterpart to hasUnsetRequired, backing the automatic
+ * "requires setup" tag: would a freshly placed instance of this widget --
+ * carrying nothing but its defaults -- land in the preinit state?
+ *
+ * Answered by asking hasUnsetRequired the exact question WidgetWrapper will
+ * ask at render time, rather than by a second traversal that could drift from
+ * it. Which is also why this is deliberately NOT "declares a required setting
+ * anywhere in the schema": a required setting living under a select option the
+ * defaults don't choose needs no setup until the user picks that option, so
+ * tagging the widget for it would promise a setup step that never appears.
+ */
+function hasRequired(def: WidgetSettingsDefinition): boolean {
+  return hasUnsetRequired(def, collectDefaults(def));
+}
+
 export interface WidgetFallbacks<S extends WidgetSettingsDefinition> {
   // Loading component to show when widget is suspended
   loading?: ComponentType<WidgetSettingsProps<S>>;
@@ -261,6 +283,14 @@ export function registerWidget<S extends WidgetSettingsDefinition>(
   }
   WidgetWrapper.displayName = metadata.name + " Widget Wrapper";
 
+  const allTags = [
+    ...metadata.tags,
+    Object.keys(metadata.settingsDef).length > 0 ? "customizable" : null,
+    hasRequired(metadata.settingsDef) ? "requires setup" : null,
+  ].filter(Boolean) as (keyof typeof TAGS)[];
+  //@ts-expect-error type of metadata.tags is not compatible with the auto tags
+  metadata.tags = allTags;
+
   widgetRegistry.set(metadata.id, { component: WidgetWrapper, metadata });
 }
 
@@ -268,7 +298,9 @@ export function getWidgetDefinition(id: string): WidgetDefinition | undefined {
   return widgetRegistry.get(id)?.metadata;
 }
 
-export function getWidgetEntry(id: string): DefinitionRegistryEntry | undefined {
+export function getWidgetEntry(
+  id: string,
+): DefinitionRegistryEntry | undefined {
   return widgetRegistry.get(id);
 }
 

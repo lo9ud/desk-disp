@@ -211,7 +211,7 @@
 
 /* Pills track the padding line but sit fully on its outer side, clear of the
    line itself: a widget in an outer row/column has its edge exactly there, and
-   its resize handles straddle that edge by ±5px. The dashed guide (shown on
+   its resize handles straddle that edge by +-5px. The dashed guide (shown on
    hover/drag) is what ties the offset pill back to the line it moves.
    Clearance is half the leftover band, so at zero padding the pill comes to
    rest centred in the band (and so in the gap between the +/- chips). Bands

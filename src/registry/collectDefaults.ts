@@ -4,20 +4,6 @@ import {
   WidgetSettingsDefinition,
 } from "./settingsSchema";
 
-// Lives apart from settingsDefaults.ts, which is otherwise its natural home,
-// because defRegistry needs this at registration time (see checkPresets) and
-// settingsDefaults imports getWidgetDefinition FROM defRegistry. Pulling the
-// half that needs no registry lookup out here keeps that a straight line
-// instead of a cycle. settingsDefaults re-exports it, so importers that don't
-// care about the distinction don't have to know about this file.
-
-// Defaults contributed by a select's subordinate options -- pulled out of
-// collectDefaults so that function stays flat (one thing per case) rather
-// than nesting a second loop inside it. A dynamic (function-valued) options
-// source has nothing to contribute here: its actual option set, and
-// whatever per-option subordinate settings it might carry, aren't knowable
-// until runtime -- same reasoning FlattenDef's own select branch already
-// applies at the type level (see settingsSchema.ts).
 function collectSelectSubordinateDefaults(
   options: SelectOptionsSource,
 ): Record<string, unknown> {

@@ -30,11 +30,6 @@ function evalCondition(
     : val === cond.is;
 }
 
-// Deliberately plain text, no styling -- phase 2 is "prove the machinery
-// works," not "look good." A broader input-generation overhaul is planned
-// separately and would likely throw this away. Deps-driven as of phase 3
-// (via useDebouncedAsyncValue): an omitted `deps` still resolves exactly
-// once, on mount, same as before.
 function MarkerText({
   compute,
   allValues,
@@ -48,10 +43,6 @@ function MarkerText({
   return <span>{text}</span>;
 }
 
-// Pure rendering, split out of StatusText so TriggerRow below can reuse it
-// for an ALREADY-resolved status (its last click's result) without going
-// through useDebouncedAsyncValue -- a trigger's result isn't something to
-// resolve reactively, it's a plain value that arrives once per click.
 function VerifyStatusText({ status }: { status: VerifyStatus }) {
   const detail =
     status.state === "ok" || status.state === "error"
@@ -125,9 +116,6 @@ function BooleanRow({
   );
 }
 
-// The static case, unchanged from phase 1/2: options is a plain object, its
-// keys are known statically, and any option can carry its own subordinate
-// settings (rendered recursively via SettingRow, same as a group's).
 function StaticSelectRow({
   label,
   settingKey,
@@ -180,11 +168,6 @@ function StaticSelectRow({
   );
 }
 
-// The dynamic (phase 3) case: options come from `generate`, deps-driven via
-// useDebouncedAsyncValue. No subordinate-settings support here -- a dynamic
-// option set isn't known until runtime, so there's nothing for FlattenDef to
-// have statically flattened for any particular option in the first place
-// (see settingsSchema.ts's FlattenDef comment on the select branch).
 function DynamicSelectRow({
   label,
   settingKey,
@@ -365,10 +348,6 @@ function NumberRow({
   );
 }
 
-// suggestions feeds TextInput's existing `auto` prop (a <datalist>, not an
-// enforced constraint) -- doesn't need its own dedicated Static/Dynamic
-// split like select does, since there's no subordinate-settings concern
-// here, just an optional string array either way.
 function DynamicStringRow({
   label,
   settingKey,
@@ -445,9 +424,6 @@ function StringRow({
     </>
   );
 }
-
-// --- Phase 2: structural cases, deliberately minimal rendering (see plan's
-// "No new UI investment this phase" note) ---
 
 function GroupRow({
   label,

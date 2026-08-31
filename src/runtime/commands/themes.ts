@@ -19,9 +19,7 @@ export function makeThemeCommands(t: Transport): ThemeCommands {
     get: (id) => t.invoke<ThemeData>("get_theme", { id }),
     save: (theme) => t.invoke<void>("save_theme", { theme }),
     delete: (id) => t.invoke<void>("delete_theme", { id }),
-    // The backend parameter is still `name`, not `id` — kept as-is so this stays
-    // a pure refactor of the call, not a silent rename of the command contract.
-    setActive: (id) => t.invoke<void>("set_active_theme", { name: id }),
+    setActive: (id) => t.invoke<void>("set_active_theme", { name: id }), // FIXME: name vs id mismatch in backend
     preview: (theme) => t.invoke<void>("preview_theme", { theme }),
     generate: (seedHex) => t.invoke<void>("generate_theme", { seedHex }),
     openFolder: () => t.invoke<void>("open_themes_folder"),

@@ -284,7 +284,7 @@ const SettingsTestWidget = registerWidget(SettingsTest, {
   description:
     "A widget for testing settings functionality. It doesn't do anything special, but it does display its current settings in a JSON block.",
   category: "general",
-  tags: ["customizable", "interactive"],
+  tags: ["interactive"],
   settingsDef: SETTINGS_TEST_SETTINGS_DEF,
   minSize: [null, null],
   maxSize: [null, null],

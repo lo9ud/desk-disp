@@ -184,8 +184,7 @@ export default function WindowControls() {
                 devMode.setToolboxSettings((s) => ({
                   ...s,
                   showToolbox: !s.showToolbox,
-                })),
-                console.log("clicked", devMode.toolboxSettings)
+                }))
               )}
             >
               <BugAntIcon />
@@ -212,7 +211,7 @@ function HoverWrapper<T extends React.ElementType>({
   ...props
 }: HoverWrapperProps<T>) {
   const [hovered, setHovered] = useState(false);
-  const E = Element as React.ElementType; // NOSONAR — cast needed for JSX spread; TSC rejects LibraryManagedAttributes<T,any> without it
+  const E = Element as React.ElementType; // NOSONAR - cast needed for JSX spread; TSC rejects LibraryManagedAttributes<T,any> without it
   return (
     <E
       className={className}

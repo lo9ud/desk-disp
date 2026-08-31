@@ -23,13 +23,7 @@ import type {
 import type { StreamSource } from "./streams/types";
 
 /**
- * Everything a widget is given, and the only thing it is given.
- *
- * The scope is captured in the handles this object mints, so no widget-facing
- * signature takes an instance id — there is nothing to pass around and nothing to
- * get wrong. Deliberately absent: layout and registry mutation, config, themes,
- * preferences. Those are host authority; the test is whether widgets call them,
- * and they don't.
+ * Everything a widget is given to work with, scoped to one instance.
  */
 export interface WidgetApi {
   readonly instanceId: string;
@@ -49,7 +43,7 @@ export interface WidgetApi {
   object<T extends object>(key: string, collection?: string): ObjectHandle<T>;
   collection<T extends object>(collection: string): CollectionHandle<T>;
 
-  /* Group-scoped persistence — typed against GroupRegistry */
+  /* Group-scoped persistence - typed against GroupRegistry */
   groupKv<G extends GroupAlias, K extends GroupKeyName<G>>(
     alias: G,
     key: K,
@@ -64,7 +58,7 @@ export interface WidgetApi {
     collection: C,
   ): CollectionHandle<GroupCollectionType<G, C>>;
 
-  /** ErrorBoundary `onReset` — forget failed persistence loads so a retry starts clean. */
+  /** ErrorBoundary `onReset` - forget failed persistence loads so a retry starts clean. */
   retryPersistence(): void;
 }
 

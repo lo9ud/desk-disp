@@ -188,9 +188,7 @@ export default function EditGrid() {
   // re-places the panel.
   const [settingsAnchor, setSettingsAnchor] = useState<Rect | null>(null);
   const [settingsBounds, setSettingsBounds] = useState<Rect | null>(null);
-  // Bumped when the add-mode scale finishes. Opening settings exits add mode,
-  // so the first measurement can land while the stage is still transformed —
-  // measuring again on settle keeps the panel beside the widget's real rect.
+  // Allows forcing rerender and remeasurement of the anchor after the stage has completed animations
   const [stageSettled, setStageSettled] = useState(0);
   useLayoutEffect(() => {
     if (!openSettingsId) {

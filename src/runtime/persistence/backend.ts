@@ -2,13 +2,7 @@ import type { Scope } from "../../ffi_types";
 import type { Transport } from "../transport";
 
 /**
- * Raw persistence IO, with no caching, retry or Suspense behaviour — those live
- * in `PersistenceStore` above it.
- *
- * This interface is the seam that replaced the `preview:` instance-id prefix.
- * Previously every handle method branched on `isPreviewScope(scope)` to decide
- * between disk and an in-memory map; now a preview runtime is simply built with
- * `memoryBackend()` and no branch exists anywhere above this line.
+ * Raw persistence IO
  */
 export interface PersistenceBackend {
   getKv(key: string, scope: Scope): Promise<string | null>;

@@ -21,13 +21,6 @@ function wave(t: number, periodMs: number, phase = 0): number {
 const GiB = 1024 ** 3;
 const CORE_COUNT = 8;
 
-/**
- * Art is keyed per *track*, not per album, even though the two Mock Ensemble
- * tracks share one. Only ever one track is on screen at a time, so the shared
- * cover would be unobservable, while three distinct ones give the gallery more
- * variety — see the note on rotation below for why that variety is spread
- * across sessions rather than seen within one.
- */
 const TRACKS = [
   {
     title: "Weightless Horizon",
@@ -54,27 +47,11 @@ const TRACKS = [
 
 /* ---- visualizer ---------------------------------------------------------- */
 
-/**
- * The visualizer generator is the one mock that cannot invent its own output
- * scale, because `FrequencyReading.magnitude` is not "loudness 0..1".
- * `FFTStream::get` in [src-tauri/src/media/mod.rs] **peak-normalises every
- * frame**: the loudest bin is always 1.0 and every other bin is its distance
- * below that peak, squashed through a 120 dB log map. A bin 30 dB down still
- * reads ~0.7. The widget's `scaleValue` then re-expands that compressed range
- * from a 0.4 cutoff, so anything under ~0.79 is visually zero.
- *
- * That is why plausible-looking 0..1 numbers render as a flat line: 0.3 is not
- * a quiet bar, it is 70 dB down. So rather than fabricate magnitudes, this
- * fabricates the *linear* spectrum an FFT would see and runs it through the
- * same weighting → log map → peak-normalise steps the backend does. Fidelity
- * falls out of the shared arithmetic instead of being hand-tuned into the
- * output, and stays correct if the widget's scaling is ever retuned.
- */
 const VISUALIZER_BINS = 64; // FFTStream::create_log_frequency_bins(_, _, 64)
 const VISUALIZER_FRAME_MS = 33; // spawn_visualizer_loop(.., from_millis(33))
-/** `FFTStream::decay_coeff` — exp(-1/(0.3 * 48000/4096)), applied per frame. */
+/** `FFTStream::decay_coeff` - exp(-1/(0.3 * 48000/4096)), applied per frame. */
 const VISUALIZER_DECAY = 0.753;
-/** Frames of history the decay tail looks back over; 0.753^6 ≈ 0.18. */
+/** Frames of history the decay tail looks back over; 0.753^6 ~= 0.18. */
 const VISUALIZER_TAIL = 6;
 /** Playback level, as peak weighted magnitude. Only weakly affects the picture:
  *  peak-normalisation divides it back out, leaving it to set the log map's
@@ -92,7 +69,7 @@ function aWeighting(freq: number): number {
   return 10 ** ((20 * Math.log10(num / den) + 2) / 20);
 }
 
-/** 20 Hz → 20 kHz log-spaced bin edges, as `create_log_frequency_bins` lays
+/** 20 Hz -> 20 kHz log-spaced bin edges, as `create_log_frequency_bins` lays
  *  them out. Edges and weights are fixed, so they are built once. */
 const VISUALIZER_BANDS = Array.from({ length: VISUALIZER_BINS }, (_, i) => {
   const freq_lo = 20 * Math.pow(1000, i / VISUALIZER_BINS);
@@ -102,7 +79,7 @@ const VISUALIZER_BANDS = Array.from({ length: VISUALIZER_BINS }, (_, i) => {
     freq_hi,
     /** where the synthetic spectrum is sampled */
     center: Math.sqrt(freq_lo * freq_hi),
-    /** the backend weights by the *arithmetic* mean of the edges — keep that */
+    /** the backend weights by the *arithmetic* mean of the edges */
     weight: aWeighting((freq_lo + freq_hi) / 2),
   };
 });
@@ -133,7 +110,7 @@ const PAD_HZ = [220, 293.66, 329.63, 246.94];
 const ARP_HZ = [440, 554.37, 659.25, 880, 659.25, 554.37];
 
 /**
- * Linear magnitude of a fabricated track at `freq`, before A-weighting — the
+ * Linear magnitude of a fabricated track at `freq`, before A-weighting - the
  * quantity the real FFT would produce. A pink-ish -6.5 dB/octave tilt with a
  * sub-bass rolloff carries the broadband shape; the parts sit on top of it as
  * multiplicative boosts, so a level of 3 is "+12 dB in this band right now".
@@ -279,8 +256,8 @@ export const MOCK_STREAMS: MockStreams = {
     cadence: 500,
     /**
      * Track durations are realistic (a ~647s cycle) and deliberately stay that
-     * way. A track change is a *discrete* event — art, title and progress bar
-     * all swap at once — so it competes for attribution with the add-rail's
+     * way. A track change is a *discrete* event - art, title and progress bar
+     * all swap at once - so it competes for attribution with the add-rail's
      * preset carousel, which steps every `PRESET_INTERVAL_MS` (5s). Shortening
      * durations so all three covers cycle within one browse would drop that
      * event straight into the range where a viewer can't tell whether the card
@@ -325,7 +302,7 @@ export const MOCK_STREAMS: MockStreams = {
     cadence: VISUALIZER_FRAME_MS,
     generate: (t) => {
       // `FFTStream` smooths each bin with a fast-attack/slow-decay IIR *after*
-      // normalising, which is what gives bars their fall time — including when
+      // normalising, which is what gives bars their fall time - including when
       // a bar drops only because some other bin became the frame's new peak.
       // A generator that must stay pure over t can't carry that filter's state,
       // so it is approximated by a decaying max over the frames that would have

@@ -1,6 +1,9 @@
 use clap::Parser;
+use serde::Serialize;
 
-#[derive(Clone, Debug, clap::ValueEnum)]
+#[derive(Clone, Debug, clap::ValueEnum, Serialize, ts_rs::TS)]
+#[serde(rename_all = "lowercase")]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
 pub enum LogLevel {
     Trace,
     Debug,
@@ -21,8 +24,9 @@ impl LogLevel {
     }
 }
 
-#[derive(Parser, Clone, Debug)]
+#[derive(Parser, Clone, Debug, Serialize, ts_rs::TS)]
 #[command(name = "desk-disp", about = "Desktop display overlay", version = env!("CARGO_PKG_VERSION"))]
+#[ts(export, export_to = "../../src/ffi_types.ts")]
 pub struct Args {
     /// Enable development mode (renders with decorations + resizeable)
     #[arg(long, default_value_t = false, action = clap::ArgAction::SetTrue)]

@@ -21,8 +21,7 @@ export function defaultSettingsForWidget(
  *
  * Note that is NOT the same index space as the rail stepper's `presetIndex`,
  * where 0 is the widget's defaults and the declared list starts at 1. Presets
- * are partial by design -- layer the result over `defaultSettingsForWidget`,
- * don't use it as a complete settings object.
+ * are partial by design, to ease authoring.
  */
 export function presetSettingsForWidget(
   defId: string,

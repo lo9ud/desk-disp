@@ -127,7 +127,7 @@ pub async fn run_media_loop(
         }
     }
 
-    // Keepalive poll — only updates timeline position during active playback.
+    // Keepalive poll
     // Events cover play/pause/track changes; this catches continuous position drift.
     let mut interval = tokio::time::interval(poll_interval);
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -294,17 +294,18 @@ async fn fetch_media_state_from_session(
         .map(|s| s.to_string())
         .unwrap_or_default();
 
-    // Apple Music via SMTC reports "Artist — Album" in the Artist field with Album empty.
+    // Apple Music via SMTC reports "Artist — Album" (note em-dash) in the Artist field with Album empty.
     let source = session
         .SourceAppUserModelId()
         .map(|s| s.to_string())
         .unwrap_or_default();
     let is_apple_music = source.to_ascii_lowercase().contains("applemusic");
     let (artist, album) = if is_apple_music && raw_album.is_empty() {
+        // Somewhat fragile: if Artist contains an em-dash, then could end up with (Art, ist — Album) instead of (Artist, Album).
         if let Some((a, b)) = raw_artist.split_once(" \u{2014} ") {
             (a.to_string(), b.to_string())
         } else {
-            (raw_artist, raw_album)
+            (raw_artist, raw_album) // If Apple ever sorts this out, the fallback should still handle it
         }
     } else {
         (raw_artist, raw_album)
@@ -349,7 +350,7 @@ async fn fetch_media_state_from_session(
         .unwrap_or(false);
     
     if title.is_empty() && !playing {
-        trace!(target: TARGET, "no title and not playing — treating session as inactive");
+        trace!(target: TARGET, "no title and not playing - treating session as inactive");
         return MediaState::inactive();
     }
 
@@ -389,7 +390,7 @@ async fn read_thumbnail(
     tracing::trace!(target: TARGET, size, "read_thumbnail: stream size");
 
     if size > u32::MAX as u64 {
-        tracing::error!(target: TARGET, size, "read_thumbnail: size exceeds u32::MAX — skipping to avoid LoadAsync truncation");
+        tracing::error!(target: TARGET, size, "read_thumbnail: size exceeds u32::MAX - skipping to avoid LoadAsync truncation");
         return None;
     }
     if size == 0 {
@@ -411,7 +412,7 @@ async fn read_thumbnail(
         .ok()?;
 
     if loaded != size {
-        tracing::warn!(target: TARGET, size, loaded, "read_thumbnail: LoadAsync loaded fewer bytes than expected — skipping ReadBytes");
+        tracing::warn!(target: TARGET, size, loaded, "read_thumbnail: LoadAsync loaded fewer bytes than expected - skipping ReadBytes");
         return None;
     }
 
@@ -473,8 +474,7 @@ async fn current_session(
 /* Visualizer loop  */
 
 /// Spawns a dedicated thread that owns the FFT stream. Manages its own
-/// FFTStream lifecycle — creates on first subscriber, drops when empty,
-/// and re-creates automatically if the default output device changes.
+/// FFTStream lifecycle and reinitialises if the default output device changes.
 pub fn spawn_visualizer_loop(
     app: tauri::AppHandle,
     hints: Arc<StreamHints>,
@@ -485,8 +485,7 @@ pub fn spawn_visualizer_loop(
     const VIS_TARGET: &str = "media::visualizer";
 
     // Install a one-time panic hook that logs to the tracing file before Rust
-    // calls ExitProcess with STATUS_FATAL_APP_EXIT. Without this the only
-    // signal is the opaque exit code; with it we get the file:line in cpal.
+    // calls ExitProcess with STATUS_FATAL_APP_EXIT.
     static HOOK_INIT: std::sync::Once = std::sync::Once::new();
     HOOK_INIT.call_once(|| {
         std::panic::set_hook(Box::new(|info| {
@@ -502,15 +501,15 @@ pub fn spawn_visualizer_loop(
                 .unwrap_or("<non-string panic payload>");
             let thread = std::thread::current();
             let thread_name = thread.name().unwrap_or("<unnamed>");
-            // stderr is synchronous — tracing-appender's flush thread may not
-            // run before ExitProcess, so this is the only reliable output path.
+
+            // Stronger guarantee than tracing::error!() alone, which may be dropped if the background thread is already panicking.
             eprintln!("[PANIC] thread='{thread_name}' location={location} message={msg}");
             tracing::error!(
                 target: "panic",
                 location = %location,
                 message = %msg,
                 thread = thread_name,
-                "thread panicked — process will abort"
+                "thread panicked - process will abort"
             );
         }));
     });
@@ -552,7 +551,7 @@ pub fn spawn_visualizer_loop(
 
                     if needs_reinit {
                         if let Some(ref s) = stream {
-                            tracing::info!(target: VIS_TARGET, old_device = %s.device_name, new_device = ?current_device, "output device changed — reinitialising FFTStream");
+                            tracing::info!(target: VIS_TARGET, old_device = %s.device_name, new_device = ?current_device, "output device changed - reinitialising FFTStream");
                         } else {
                             tracing::info!(target: VIS_TARGET, device = ?current_device, "creating FFTStream");
                         }
@@ -592,7 +591,7 @@ pub fn spawn_visualizer_loop(
                     .copied()
                     .or_else(|| panic_val.downcast_ref::<String>().map(|s| s.as_str()))
                     .unwrap_or("<non-string panic payload>");
-                tracing::error!(target: VIS_TARGET, panic = msg, "visualizer thread panicked — stream will be unavailable until restart");
+                tracing::error!(target: VIS_TARGET, panic = msg, "visualizer thread panicked - stream will be unavailable until restart");
             }
         })
         .expect("failed to spawn visualizer thread");
