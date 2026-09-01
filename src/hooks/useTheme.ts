@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useRuntime } from "../runtime/context";
-import { applyTheme, themeDataToCss } from "../utils/config";
+import { applyTheme, themeDataToCss } from "../utils/theme";
 
 export function useThemeCss(): void {
   const runtime = useRuntime();

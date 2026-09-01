@@ -15,6 +15,7 @@ mod file;
 mod logging;
 mod media;
 mod system;
+mod theme;
 
 struct AppStateInner {
     config: config::Config,
@@ -199,13 +200,13 @@ pub fn run(args: cli::Args) {
             config::close_settings,
             config::toggle_settings_visibility,
             // theme commands
-            config::preview_theme,
-            config::list_themes,
-            config::get_theme,
-            config::set_active_theme,
-            config::save_theme,
-            config::delete_theme,
-            config::open_themes_folder,
+            theme::preview_theme,
+            theme::list_themes,
+            theme::get_theme,
+            theme::set_active_theme,
+            theme::save_theme,
+            theme::delete_theme,
+            theme::open_themes_folder,
             // layout commands
             config::list_layouts,
             config::get_layout,
@@ -223,7 +224,7 @@ pub fn run(args: cli::Args) {
             // onboarding commands
             config::set_onboarding,
             // theme generation
-            config::generate_theme,
+            theme::generate_theme,
             // file persistence commands
             file::get_kv,
             file::set_kv,
@@ -239,7 +240,7 @@ pub fn run(args: cli::Args) {
                 info!("config load failed ({e}), using defaults");
                 config::write_default_config()
             });
-            config::ensure_default_themes();
+            theme::ensure_default_themes();
             config::ensure_default_layouts();
 
             let dev = args.dev;
