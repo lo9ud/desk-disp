@@ -12,6 +12,10 @@ type DevModeContextType = {
   // Sourced from the `--dev` CLI flag, not user-editable
   active: boolean;
 
+  // Whether the dev-mode render harness should be active
+  devRenderHarness: boolean;
+  toggleDevRenderHarness: () => void;
+
   // Toolbox Settings
   setToolboxSettings: (update: (settings: DevModeToolboxSettings) => DevModeToolboxSettings) => void;
   toolboxSettings: DevModeToolboxSettings;
@@ -26,13 +30,17 @@ const DEFAULT_TOOLBOX_SETTINGS: DevModeToolboxSettings = {
 
 const DevModeContext = createContext<DevModeContextType>({
   active: false,
+  devRenderHarness: false,
+  toggleDevRenderHarness: () => {},
   toolboxSettings: DEFAULT_TOOLBOX_SETTINGS,
-} as DevModeContextType);
+  setToolboxSettings: () => {}
+} satisfies DevModeContextType);
 
 export function DevModeProvider({ children }: { children: React.ReactNode }) {
   const runtime = useRuntime();
-  let [value, setValue] = useState<Omit<DevModeContextType, "setToolboxSettings">>(() => ({
+  let [value, setValue] = useState<Omit<DevModeContextType, "setToolboxSettings"|"toggleDevRenderHarness">>(() => ({
     active: runtime.cli.dev,
+    devRenderHarness: false,
     toolboxSettings: DEFAULT_TOOLBOX_SETTINGS,
   }));
   const contextValue = useMemo(() => {
@@ -40,6 +48,9 @@ export function DevModeProvider({ children }: { children: React.ReactNode }) {
       ...value,
       setToolboxSettings: (update: (settings: DevModeToolboxSettings) => DevModeToolboxSettings) => {
         setValue((prev) => ({ ...prev, toolboxSettings: update(prev.toolboxSettings) }));
+      },
+      toggleDevRenderHarness: () => {
+        setValue((prev) => ({ ...prev, devRenderHarness: !prev.devRenderHarness }));
       }
     };
   }, [value]);

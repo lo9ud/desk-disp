@@ -1,0 +1,99 @@
+.revealRow {
+grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.4rem;
+  border-left: 2px solid transparent;
+  border-radius: 4px;
+}
+
+.revealRow[data-hidden] {
+  background: var(--ui-bg-subtle);
+  border-left-color: var(--ui-accent-border);
+}
+
+.revealRow[data-inactive] {
+  border-left-color: var(--ui-warning-border);
+}
+
+.revealRow[data-span] > *:not(.conditionMarks) {
+  grid-column: 1 / -1;
+}
+
+.conditionMarks {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.conditionMark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 1px 6px;
+  border: 1px solid var(--ui-warning-border);
+  border-radius: 999px;
+  background: var(--ui-warning-tint);
+  font-family: var(--ui-font-mono);
+  font-size: 0.65rem;
+  color: var(--ui-text-muted);
+}
+
+.conditionMark[data-met] {
+  border-color: var(--ui-border-subtle);
+  background: transparent;
+  color: var(--ui-text-subtle);
+}
+
+.conditionKind {
+  font-weight: 600;
+  color: var(--ui-text-subtle);
+}
+
+.conditionTarget {
+  user-select: text;
+}
+
+.conditionState {
+  font-weight: 600;
+  color: var(--ui-warning-text);
+}
+
+.conditionMark[data-met] .conditionState {
+  color: var(--ui-text-subtle);
+}
+
+.optionBranch {
+  grid-column: 1 / -1;
+  margin: 0.15rem 0;
+  padding: 0.4rem;
+  border: 1px dashed var(--ui-border-subtle);
+  border-radius: 6px;
+}
+
+.optionBranch[data-active] {
+  border-style: solid;
+  border-color: var(--ui-accent-border);
+}
+
+.optionBranchLabel {
+  margin-bottom: 0.3rem;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ui-text-subtle);
+}
+
+.optionBranch[data-active] .optionBranchLabel {
+  color: var(--ui-accent-text);
+}
+
+.optionBranchRows {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 0.5rem;
+}

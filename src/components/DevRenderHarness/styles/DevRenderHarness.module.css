@@ -1,0 +1,530 @@
+.harness {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+
+  display: grid;
+  grid-template:
+    "header header header" auto
+    "picker centre side" 1fr
+    / 260px 1fr 360px;
+}
+
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--ui-border-subtle);
+  background: var(--ui-panel);
+}
+
+.title {
+  font-weight: 650;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+}
+
+.viewSwitch,
+.decorations {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.decorations {
+  flex-wrap: wrap;
+}
+
+.headerActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.empty {
+  padding: 24px;
+  color: var(--ui-text-subtle);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Shared scrollbar opt-in: App.css hides scrollbars globally. */
+.pickerList,
+.inspectorScroll,
+.mosaicTiles {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  &::-webkit-scrollbar {
+    display: block;
+    width: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--ui-border);
+    border-radius: 4px;
+  }
+}
+
+/* ===== Picker ===== */
+
+.picker {
+  grid-area: picker;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-right: 1px solid var(--ui-border-subtle);
+  background: var(--ui-panel);
+}
+
+.pickerHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  user-select: text;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pickerCount {
+  font-size: 0.7rem;
+  color: var(--ui-text-subtle);
+}
+
+.pickerList {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pickerGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pickerGroupLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ui-text-subtle);
+  padding: 2px 4px;
+}
+
+.pickerItem {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ui-text);
+  font-family: var(--ui-font);
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pickerItem:hover {
+  background: var(--ui-control);
+}
+
+.pickerItem[data-selected] {
+  background: var(--ui-accent-fill);
+  border-color: var(--ui-accent-border);
+  color: var(--ui-accent-text);
+}
+
+.pickerItemName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickerItemTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.tag {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 1px solid var(--tag-color);
+  color: var(--tag-color);
+}
+
+/* ===== Centre ===== */
+
+.centre {
+  grid-area: centre;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Stage ===== */
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stageArea {
+  flex: 1;
+  min-height: 0;
+  margin: 16px;
+  overflow: auto;
+  display: flex;
+  border: 1px dashed var(--ui-border-subtle);
+  background: var(--ui-bg-subtle);
+
+  &::-webkit-scrollbar {
+    display: block;
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--ui-border);
+    border-radius: 4px;
+  }
+}
+
+.stageBox {
+  position: relative;
+  flex-shrink: 0;
+  margin: auto;
+  outline: 1px solid var(--ui-selection-border);
+}
+
+.handle {
+  position: absolute;
+  background: transparent;
+}
+
+.handle:hover {
+  background: var(--ui-selection);
+}
+
+.handle[data-handle="n"] {
+  top: -4px;
+  left: 8px;
+  right: 8px;
+  height: 8px;
+}
+.handle[data-handle="s"] {
+  bottom: -4px;
+  left: 8px;
+  right: 8px;
+  height: 8px;
+}
+.handle[data-handle="w"] {
+  left: -4px;
+  top: 8px;
+  bottom: 8px;
+  width: 8px;
+}
+.handle[data-handle="e"] {
+  right: -4px;
+  top: 8px;
+  bottom: 8px;
+  width: 8px;
+}
+.handle[data-handle="nw"] {
+  top: -4px;
+  left: -4px;
+  width: 12px;
+  height: 12px;
+}
+.handle[data-handle="ne"] {
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+}
+.handle[data-handle="sw"] {
+  bottom: -4px;
+  left: -4px;
+  width: 12px;
+  height: 12px;
+}
+.handle[data-handle="se"] {
+  bottom: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+}
+
+.stageBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--ui-border-subtle);
+  background: var(--ui-panel);
+}
+
+.readoutContainer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+
+    place-items: center stretch;
+    gap: 12px 8px;
+}
+
+.readout {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+}
+
+.readoutValue {
+    display: inline-block;
+    width: 6ch;
+    padding: 0 2px;
+    border-bottom: 1px dotted var(--ui-text);
+    /* App.css turns selection off globally, which stops the field selecting. */
+    user-select: text;
+}
+
+.readoutMuted {
+  color: var(--ui-text-subtle);
+  font-size: 0.75rem;
+}
+
+.spanPicker {
+  display: grid;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 4px;
+}
+
+.spanCell {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.spanCell[data-on] {
+  background: var(--ui-accent-solid);
+  border-color: var(--ui-accent-solid);
+}
+
+/* ===== Mosaic ===== */
+
+.mosaic {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mosaicBar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--ui-border-subtle);
+  background: var(--ui-panel);
+}
+
+.mosaicSpanControls {
+  display: grid;
+  grid-template-columns: max-content 10rem;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.mosaicTiles {
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 20px;
+  padding: 16px;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tileLabel {
+  font-size: 0.75rem;
+  color: var(--ui-text-muted);
+}
+
+.tileBox {
+  flex-shrink: 0;
+  outline: 1px dashed var(--ui-border-subtle);
+  background: var(--ui-bg-subtle);
+}
+
+/* ===== Inspector ===== */
+
+.side {
+  grid-area: side;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--ui-border-subtle);
+  background: var(--ui-panel);
+}
+
+.inspector {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaTitle {
+  font-weight: 650;
+}
+
+.metaTags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.metaCategory {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ui-text-subtle);
+}
+
+.metaDesc {
+  font-size: 0.75rem;
+  color: var(--ui-text-muted);
+}
+
+.metaFacts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 1px 8px;
+  font-size: 0.7rem;
+
+  & dt {
+    color: var(--ui-text-subtle);
+  }
+}
+
+.mono {
+  font-family: var(--ui-font-mono);
+  user-select: text;
+}
+
+.presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid var(--ui-border-subtle);
+  border-bottom: 1px solid var(--ui-border-subtle);
+}
+
+.presetDots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.presetDot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.presetDot[data-active] {
+  border-color: var(--ui-text-muted);
+  background: var(--ui-text-muted);
+}
+
+.inspectorScroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.jsonBlock {
+  margin-top: 8px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.jsonHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: var(--ui-panel-raised);
+}
+
+.json {
+  margin: 0;
+  padding: 8px;
+  max-height: 16rem;
+  overflow: auto;
+  font-family: var(--ui-font-mono);
+  font-size: 0.7rem;
+  color: var(--ui-text-muted);
+  white-space: pre;
+  /* App.css turns selection off globally; this block exists to be copied. */
+  user-select: text;
+}

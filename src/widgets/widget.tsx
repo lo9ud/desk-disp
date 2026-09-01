@@ -1,4 +1,11 @@
-import { CSSProperties, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  CSSProperties,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { widgetPlacementToProps } from "../utils/config";
 import styles from "./styles/widget.module.css";
 import { getWidgetEntry } from "../registry/defRegistry";
@@ -44,7 +51,12 @@ export default function Widget({
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
   const [boundingInnerRect, setBoundingInnerRect] = useState<DOMRect | null>(null);
 
-  useLayoutEffect(() => {
+  const measuring =
+    devMode.active &&
+    (devMode.toolboxSettings.showMissingBackground ||
+      devMode.toolboxSettings.displayWidgetUsedSpace);
+
+  const measure = useCallback(() => {
     if (!containerRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
@@ -63,7 +75,24 @@ export default function Widget({
     const bottom = Math.max(...rects.map((r) => r.bottom)) - rect.top;
 
     setBoundingInnerRect(new DOMRect(left, top, right - left, bottom - top));
-  }, [children]);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!measuring || !containerRef.current) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(containerRef.current);
+    window.addEventListener("scroll", measure, true);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", measure);
+    };
+  }, [measure, measuring]);
+
+  useLayoutEffect(() => {
+    if (measuring) measure();
+  }, [measure, measuring, children]);
 
   const style: CSSProperties = {
     gridColumn: `${col} / span ${colSpan}`,
@@ -75,21 +104,25 @@ export default function Widget({
     ? [devMode.toolboxSettings.displayWidgetCells && styles.widgetDevCells]
     : [];
 
+  const overlayStyle: CSSProperties | undefined =
+    boundingInnerRect && containerRect
+      ? {
+          position: "fixed",
+          left: containerRect.left + boundingInnerRect.left,
+          top: containerRect.top + boundingInnerRect.top,
+          width: boundingInnerRect.width,
+          height: boundingInnerRect.height,
+        }
+      : undefined;
+
   return (
     <>
-      {devMode.active &&
+      {measuring &&
         devMode.toolboxSettings.showMissingBackground &&
-        boundingInnerRect &&
-        containerRect && (
+        overlayStyle && (
           <div
             className={styles.widgetDevMissingBackground}
-            style={{
-              position: "absolute",
-              left: containerRect.left + boundingInnerRect.left,
-              top: containerRect.top + boundingInnerRect.top,
-              width: boundingInnerRect.width,
-              height: boundingInnerRect.height,
-            }}
+            style={overlayStyle}
           />
         )}
       <div
@@ -100,20 +133,10 @@ export default function Widget({
       >
         {children}
       </div>
-      {devMode.active &&
+      {measuring &&
         devMode.toolboxSettings.displayWidgetUsedSpace &&
-        boundingInnerRect && 
-        containerRect && (
-          <div
-            className={styles.widgetDevUsedSpace}
-            style={{
-              position: "absolute",
-              left: containerRect.left + boundingInnerRect.left,
-              top: containerRect.top + boundingInnerRect.top,
-              width: boundingInnerRect.width,
-              height: boundingInnerRect.height,
-            }}
-          />
+        overlayStyle && (
+          <div className={styles.widgetDevUsedSpace} style={overlayStyle} />
         )}
     </>
   );

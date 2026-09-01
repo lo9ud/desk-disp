@@ -5,6 +5,7 @@ import {
   ArrowsRightLeftIcon,
   PlusIcon,
   BugAntIcon,
+  WrenchScrewdriverIcon,
 } from "@heroicons/react/16/solid";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRuntime } from "../runtime/context";
@@ -145,8 +146,7 @@ export default function WindowControls() {
         // Opening a native <select> can report focus leaving with no
         // relatedTarget while the dropdown is still open; activeElement stays
         // inside the bar in that case.
-        const next = (e.relatedTarget ??
-          document.activeElement) as Node | null;
+        const next = (e.relatedTarget ?? document.activeElement) as Node | null;
         if (next && e.currentTarget.contains(next)) return;
         focused.current = false;
         syncRevealed();
@@ -265,16 +265,24 @@ export default function WindowControls() {
             <ControlSeparator />
             <HoverWrapper
               Element={Button}
-              variant="icon"
+              variant={devMode.toolboxSettings.showToolbox ? "icon_accent" : "icon"}
               hoverText="Show Dev Toolbox"
-              onClick={() => (
+              onClick={() =>
                 devMode.setToolboxSettings((s) => ({
                   ...s,
                   showToolbox: !s.showToolbox,
                 }))
-              )}
+              }
             >
               <BugAntIcon />
+            </HoverWrapper>
+            <HoverWrapper
+              Element={Button}
+              variant={devMode.devRenderHarness ? "icon_accent" : "icon"}
+              hoverText="Toggle Dev Render Harness"
+              onClick={() => devMode.toggleDevRenderHarness()}
+            >
+              <WrenchScrewdriverIcon />
             </HoverWrapper>
           </>
         )}

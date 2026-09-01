@@ -17,6 +17,7 @@ import { useThemeCss } from "./hooks/useTheme";
 import { logger } from "./utils/logger";
 import { DevModeProvider, useDevMode } from "./context/DevModeContext";
 import DevModeToolbox from "./components/DevModeToolbox";
+import DevRenderHarness from "./components/DevRenderHarness";
 
 const { error } = logger("app");
 
@@ -25,7 +26,7 @@ const windowLabel = getCurrentWindow().label;
 /* Main display view  */
 
 function MainContent({ gridDims }: { gridDims: GridDims }) {
-  const { toolboxSettings } = useDevMode();
+  const { toolboxSettings, devRenderHarness } = useDevMode();
   const { active: editModeActive } = useEditMode();
   return (
     <>
@@ -33,15 +34,19 @@ function MainContent({ gridDims }: { gridDims: GridDims }) {
         <EditGrid />
       ) : (
         <>
-          <Grid
-            cols={gridDims.cols}
-            rows={gridDims.rows}
-            gap={gridDims.gap}
-            padding={gridDims.padding}
-            className="container"
-          >
-            <Widgets />
-          </Grid>
+          {devRenderHarness ? (
+            <DevRenderHarness />
+          ) : (
+            <Grid
+              cols={gridDims.cols}
+              rows={gridDims.rows}
+              gap={gridDims.gap}
+              padding={gridDims.padding}
+              className="container"
+            >
+              <Widgets />
+            </Grid>
+          )}
           <WindowControls />
           {toolboxSettings.showToolbox && <DevModeToolbox />}
         </>
@@ -81,8 +86,14 @@ function MainView({ activeLayoutId }: { activeLayoutId: string }) {
 
   useEffect(() => {
     runtime.config.get().then((config) => applyPreferences(config.preferences));
-    const offChanged = runtime.events.on("preferences::changed", applyPreferences);
-    const offPreview = runtime.events.on("preferences::preview", applyPreferences);
+    const offChanged = runtime.events.on(
+      "preferences::changed",
+      applyPreferences,
+    );
+    const offPreview = runtime.events.on(
+      "preferences::preview",
+      applyPreferences,
+    );
     return () => {
       offChanged();
       offPreview();

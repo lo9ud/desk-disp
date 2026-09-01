@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import {
   getWidgetDefinition,
   LocalValues,
@@ -18,6 +24,15 @@ import { RangeInput, SelectInput, TextInput } from "./inputs";
 import InputGroup from "./inputs/InputGroup";
 import { Modal } from "../primitives/Modal";
 import { Button } from "../primitives/Button";
+import styles from "./styles/WidgetSettingsPanel.module.css";
+
+/**
+ * Whether `showWhen`/`enableWhen` (and a select's subordinate settings)
+ * take effect, or are reported.
+ */
+export type SettingsConditionMode = "apply" | "reveal";
+
+const ConditionModeContext = createContext<SettingsConditionMode>("apply");
 
 function evalCondition(
   cond: SettingCondition,
@@ -28,6 +43,33 @@ function evalCondition(
   return Array.isArray(cond.is)
     ? (cond.is as unknown[]).includes(val)
     : val === cond.is;
+}
+
+/**
+ * What a condition is actually testing, for reveal mode chips.
+ */
+function describeCondition(cond: SettingCondition): string {
+  if ("when" in cond) return "ƒ(settings)";
+  const accepted = Array.isArray(cond.is) ? cond.is : [cond.is];
+  return `${cond.key} is ${accepted.map((v) => JSON.stringify(v)).join(" | ")}`;
+}
+
+function ConditionChip({
+  kind,
+  cond,
+  met,
+}: {
+  kind: "showWhen" | "enableWhen";
+  cond: SettingCondition;
+  met: boolean;
+}) {
+  return (
+    <span className={styles.conditionMark} data-met={met || undefined}>
+      <span className={styles.conditionKind}>{kind}</span>
+      <span className={styles.conditionTarget}>{describeCondition(cond)}</span>
+      <span className={styles.conditionState}>{String(met)}</span>
+    </span>
+  );
 }
 
 function MarkerText({
@@ -135,10 +177,36 @@ function StaticSelectRow({
   onChange: (key: string, val: unknown) => void;
   onSetEphemeral: (key: string, val: unknown) => void;
 }) {
+  const mode = useContext(ConditionModeContext);
   const selectVal = typeof value === "string" ? value : "";
   const currentOption = options[selectVal];
   const subDef =
     typeof currentOption === "object" ? currentOption.settings : undefined;
+
+  // Which option is chosen is the other way this schema hides settings, so
+  // reveal mode has to open every branch, not just the selected one.
+  const branches =
+    mode === "reveal"
+      ? Object.entries(options).filter(
+          (entry): entry is [string, SelectOptionDef & { settings: WidgetSettingsDefinition }] =>
+            typeof entry[1] === "object" && !!entry[1].settings,
+        )
+      : [];
+
+  const rows = (def: WidgetSettingsDefinition) =>
+    Object.entries(def).map(([key, setting]) => (
+      <SettingRow
+        key={key}
+        label={setting.label}
+        settingKey={key}
+        def={setting}
+        value={allValues[key]}
+        allValues={allValues}
+        onChange={onChange}
+        onSetEphemeral={onSetEphemeral}
+      />
+    ));
+
   return (
     <>
       <SelectInput
@@ -151,19 +219,20 @@ function StaticSelectRow({
         }))}
         disabled={disabled}
       />
-      {subDef &&
-        Object.entries(subDef).map(([key, setting]) => (
-          <SettingRow
-            key={key}
-            label={setting.label}
-            settingKey={key}
-            def={setting}
-            value={allValues[key]}
-            allValues={allValues}
-            onChange={onChange}
-            onSetEphemeral={onSetEphemeral}
-          />
-        ))}
+      {mode === "reveal"
+        ? branches.map(([key, opt]) => (
+            <div
+              key={key}
+              className={styles.optionBranch}
+              data-active={key === selectVal || undefined}
+            >
+              <div className={styles.optionBranchLabel}>
+                when {label} = {opt.label}
+              </div>
+              <div className={styles.optionBranchRows}>{rows(opt.settings)}</div>
+            </div>
+          ))
+        : subDef && rows(subDef)}
     </>
   );
 }
@@ -569,11 +638,72 @@ function SettingRow({
   onChange: (key: string, val: unknown) => void;
   onSetEphemeral: (key: string, val: unknown) => void;
 }) {
-  if (def.showWhen && !evalCondition(def.showWhen, allValues)) return null;
-  const disabled = def.enableWhen
+  const mode = useContext(ConditionModeContext);
+  const hidden = def.showWhen ? !evalCondition(def.showWhen, allValues) : false;
+  const inactive = def.enableWhen
     ? !evalCondition(def.enableWhen, allValues)
     : false;
 
+  if (hidden && mode === "apply") return null;
+  const disabled = mode === "apply" ? inactive : false;
+
+  const row = (
+    <SettingRowBody
+      label={label}
+      settingKey={settingKey}
+      def={def}
+      value={value}
+      allValues={allValues}
+      disabled={disabled}
+      onChange={onChange}
+      onSetEphemeral={onSetEphemeral}
+    />
+  );
+  if (mode === "apply") return row;
+  return (
+    <div
+      className={styles.revealRow}
+      data-hidden={hidden || undefined}
+      data-inactive={inactive || undefined}
+      // Cases that render one full-width element instead of a label/control
+      // pair, which the subgrid would otherwise squeeze into the label column.
+      data-span={
+        def.type === "group" || def.type === "indicator" ? "" : undefined
+      }
+    >
+      {(def.showWhen || def.enableWhen) && (
+        <div className={styles.conditionMarks}>
+          {def.showWhen && (
+            <ConditionChip kind="showWhen" cond={def.showWhen} met={!hidden} />
+          )}
+          {def.enableWhen && (
+            <ConditionChip
+              kind="enableWhen"
+              cond={def.enableWhen}
+              met={!inactive}
+            />
+          )}
+        </div>
+      )}
+      {row}
+    </div>
+  );
+}
+
+/**
+ * Type dispatch only -- SettingRow above owns the condition handling, so this
+ * takes `disabled` already resolved and never decides whether to render at all.
+ */
+function SettingRowBody({
+  label,
+  settingKey,
+  def,
+  value,
+  allValues,
+  disabled,
+  onChange,
+  onSetEphemeral,
+}: RowProps<Entry>) {
   switch (def.type) {
     case "boolean":
       return (
@@ -665,6 +795,7 @@ export function SettingsForm({
   schema,
   values,
   ephemeral,
+  conditionMode = "apply",
   onChange,
   onSetEphemeral,
 }: {
@@ -672,25 +803,28 @@ export function SettingsForm({
   schema: WidgetSettingsDefinition;
   values: Record<string, unknown>;
   ephemeral: Record<string, unknown>;
+  conditionMode?: SettingsConditionMode;
   onChange: (key: string, val: unknown) => void;
   onSetEphemeral: (key: string, val: unknown) => void;
 }) {
   const allValues = { ...values, ...ephemeral };
   return (
-    <InputGroup label={title}>
-      {Object.entries(schema).map(([key, setting]) => (
-        <SettingRow
-          key={key}
-          label={setting.label}
-          settingKey={key}
-          def={setting}
-          value={values[key]}
-          allValues={allValues}
-          onChange={onChange}
-          onSetEphemeral={onSetEphemeral}
-        />
-      ))}
-    </InputGroup>
+    <ConditionModeContext value={conditionMode}>
+      <InputGroup label={title}>
+        {Object.entries(schema).map(([key, setting]) => (
+          <SettingRow
+            key={key}
+            label={setting.label}
+            settingKey={key}
+            def={setting}
+            value={values[key]}
+            allValues={allValues}
+            onChange={onChange}
+            onSetEphemeral={onSetEphemeral}
+          />
+        ))}
+      </InputGroup>
+    </ConditionModeContext>
   );
 }
 
