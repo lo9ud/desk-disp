@@ -17,3 +17,4 @@ export type { Clock } from "./clock";
 export { fixedClock, systemClock } from "./clock";
 export { memoryBackend } from "./persistence/memoryBackend";
 export { useSubscription } from "./hooks/useSubscription";
+export { useThemeCss } from "./hooks/useTheme";

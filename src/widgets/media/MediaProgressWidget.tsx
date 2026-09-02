@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { registerWidget } from "../../registry/defRegistry";
-import { useSubscription } from "../../hooks";
+import { useSubscription } from "../../runtime";
 import styles from "./styles/MediaProgressWidget.module.css";
 import { formatMs } from "../../utils/format";
 

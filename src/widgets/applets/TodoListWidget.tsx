@@ -5,7 +5,7 @@ import {
   LiveObject,
   useGroupCollection,
   useInstanceKeyValue,
-} from "../../../runtime/persistence/hooks";
+} from "../../runtime/persistence/hooks";
 import styles from "./styles/TodoListWidget.module.css";
 import {
   ChevronDownIcon,
@@ -17,8 +17,8 @@ import {
   AppletSettingsDefinition,
   AppletSettingsProps,
   registerApplet,
-} from "../Applet";
-import { combineClassNames } from "../../../utils/format";
+} from "./Applet";
+import { combineClassNames } from "../../utils/format";
 
 const TODO_LIST_SETTINGS_DEF = {} satisfies AppletSettingsDefinition;
 
@@ -354,7 +354,7 @@ const TodoListWidget = registerApplet(TodoList, {
   category: "productivity",
   tags: ["interactive"],
   settingsDef: TODO_LIST_SETTINGS_DEF,
-  minSize: [null, null],
+  minSize: [310, 200],
   maxSize: [null, null],
 });
 

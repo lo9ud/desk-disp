@@ -1,6 +1,6 @@
 import { registerWidget } from "../../registry/defRegistry";
 import styles from "./styles/MediaControlsWidget.module.css";
-import { useSubscription } from "../../hooks";
+import { useSubscription } from "../../runtime";
 import {
   BackwardIcon,
   ForwardIcon,

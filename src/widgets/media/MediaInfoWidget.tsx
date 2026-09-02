@@ -1,4 +1,4 @@
-import { useSubscription } from "../../hooks";
+import { useSubscription } from "../../runtime";
 import { registerWidget } from "../../registry/defRegistry";
 import styles from "./styles/MediaInfoWidget.module.css";
 

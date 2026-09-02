@@ -8,6 +8,7 @@ import {
   WrenchScrewdriverIcon,
 } from "@heroicons/react/16/solid";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useWindowEvent } from "../hooks/useWindowEvent";
 import { useRuntime } from "../runtime/context";
 import type { LayoutInfo, ThemeInfo } from "../ffi_types";
 import styles from "./styles/WindowControls.module.css";
@@ -36,26 +37,22 @@ export default function WindowControls() {
     setRevealed(hovered.current || focused.current);
   }, [setRevealed]);
 
-  useEffect(() => {
-    const onBlur = () => {
-      // Only focus is given up here. Hover is left alone: another window taking
-      // focus doesn't move the pointer, and clearing it would hide the bar out
-      // from under a pointer still resting on it, with no leave event coming to
-      // put it back. A native <select> popup is exempt entirely - it takes focus
-      // while the user is still working in the bar.
-      const active = document.activeElement;
-      const inBar =
-        active instanceof HTMLElement && barRef.current?.contains(active);
-      if (inBar && active instanceof HTMLSelectElement) return;
-      // Drop it rather than just forgetting it, or returning to this window
-      // restores focus to whatever was clicked and re-reveals the bar.
-      if (inBar) active.blur();
-      focused.current = false;
-      syncRevealed();
-    };
-    window.addEventListener("blur", onBlur);
-    return () => window.removeEventListener("blur", onBlur);
-  }, [syncRevealed]);
+  useWindowEvent("blur", () => {
+    // Only focus is given up here. Hover is left alone: another window taking
+    // focus doesn't move the pointer, and clearing it would hide the bar out
+    // from under a pointer still resting on it, with no leave event coming to
+    // put it back. A native <select> popup is exempt entirely - it takes focus
+    // while the user is still working in the bar.
+    const active = document.activeElement;
+    const inBar =
+      active instanceof HTMLElement && barRef.current?.contains(active);
+    if (inBar && active instanceof HTMLSelectElement) return;
+    // Drop it rather than just forgetting it, or returning to this window
+    // restores focus to whatever was clicked and re-reveals the bar.
+    if (inBar) active.blur();
+    focused.current = false;
+    syncRevealed();
+  });
   const [themes, setThemes] = useState<ThemeInfo[]>([]);
   const [activeTheme, setActiveTheme] = useState<string | null>(null);
   const [layouts, setLayouts] = useState<LayoutInfo[]>([]);

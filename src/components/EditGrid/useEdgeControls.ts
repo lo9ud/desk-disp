@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { useTimeout } from "../../hooks/useTimeout";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
 import { GridDims } from "../../utils/validation";
 import { getBlockedWidgetIds } from "./gridMath";
@@ -17,21 +18,17 @@ export function useEdgeControls(
   const [flashingIds, setFlashingIds] = useState<ReadonlySet<string>>(
     new Set(),
   );
-  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clearing first and re-setting on the next frame is what restarts the CSS
+  // animation when the same widget blocks twice in a row.
+  useTimeout(() => setFlashingIds(new Set()), flashingIds.size > 0 ? 620 : null);
 
   function tryRemoveEdge(edge: RemoveEdge) {
     if (!editRegistry) return;
     const blocked = getBlockedWidgetIds(editRegistry, edge, dims);
     if (blocked.length > 0) {
-      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
       setFlashingIds(new Set());
-      requestAnimationFrame(() => {
-        setFlashingIds(new Set(blocked));
-        flashTimeoutRef.current = setTimeout(
-          () => setFlashingIds(new Set()),
-          620,
-        );
-      });
+      requestAnimationFrame(() => setFlashingIds(new Set(blocked)));
       return;
     }
     switch (edge) {

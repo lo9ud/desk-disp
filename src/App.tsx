@@ -13,7 +13,7 @@ import WindowControls from "./components/WindowControls";
 import Tour from "./onboarding/Tour";
 import { PersistenceProvider } from "./context/PersistenceContext";
 import { useRuntime } from "./runtime/context";
-import { useThemeCss } from "./hooks/useTheme";
+import { useThemeCss } from "./runtime/hooks/useTheme";
 import { logger } from "./utils/logger";
 import { DevModeProvider, useDevMode } from "./context/DevModeContext";
 import DevModeToolbox from "./components/DevModeToolbox";

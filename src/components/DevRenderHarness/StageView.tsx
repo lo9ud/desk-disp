@@ -1,23 +1,26 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Grid from "../../widgets/Grid";
 import { RenderWidget } from "../../widgets/widget";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
 import { Button } from "../../primitives/Button";
 import {
+  Bound,
+  declaredLimit,
+  DEFAULT_STAGE_SPAN,
   HARNESS_GRID,
   HARNESS_INSTANCE_ID,
+  hasLimit,
+  limitText,
   NO_PADDING,
   Size,
+  spanOfSize,
   sizeOfSpan,
   Span,
-  spanOfSize,
+  StageSize,
 } from "./harness";
+import type { WidgetDefinition } from "../../registry/defRegistry";
 import styles from "./styles/DevRenderHarness.module.css";
 import { Input } from "../../primitives/Input";
-
-const MIN_PX = 32;
-
-const DEFAULT_SPAN: Span = { cols: 2, rows: 2 };
 
 const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 type Handle = (typeof HANDLES)[number];
@@ -40,31 +43,17 @@ interface Drag {
   start: Size;
 }
 
-function atLeastMin(size: Size): Size {
-  return { w: Math.max(MIN_PX, size.w), h: Math.max(MIN_PX, size.h) };
-}
-
-export function StageView({ registry }: { registry: InstanceRegistry }) {
-  const areaRef = useRef<HTMLDivElement>(null);
-  const [area, setArea] = useState<Size | null>(null);
-  const [size, setSize] = useState<Size | null>(null);
+export function StageView({
+  registry,
+  def,
+  stage,
+}: {
+  registry: InstanceRegistry;
+  def: WidgetDefinition;
+  stage: StageSize;
+}) {
+  const { areaRef, area, size, setSize } = stage;
   const dragRef = useRef<Drag | null>(null);
-
-  useLayoutEffect(() => {
-    const el = areaRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() =>
-      setArea({ w: el.clientWidth, h: el.clientHeight }),
-    );
-    observer.observe(el);
-    setArea({ w: el.clientWidth, h: el.clientHeight });
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!area) return;
-    setSize((prev) => prev ?? sizeOfSpan(DEFAULT_SPAN, area));
-  }, [area]);
 
   function onHandleDown(e: React.PointerEvent, handle: Handle) {
     if (!size) return;
@@ -84,7 +73,7 @@ export function StageView({ registry }: { registry: InstanceRegistry }) {
     if (drag.handle.includes("w")) w = drag.start.w - dx * 2;
     if (drag.handle.includes("s")) h = drag.start.h + dy * 2;
     if (drag.handle.includes("n")) h = drag.start.h - dy * 2;
-    setSize(atLeastMin({ w, h }));
+    setSize({ w, h });
   }
 
   function onHandleUp(e: React.PointerEvent) {
@@ -92,7 +81,7 @@ export function StageView({ registry }: { registry: InstanceRegistry }) {
     e.currentTarget.releasePointerCapture(e.pointerId);
   }
 
-  const span = size && area ? spanOfSize(size, area) : DEFAULT_SPAN;
+  const span = size && area ? spanOfSize(size, area) : DEFAULT_STAGE_SPAN;
 
   return (
     <div className={styles.stage}>
@@ -146,18 +135,16 @@ export function StageView({ registry }: { registry: InstanceRegistry }) {
             )}
             <span> px</span>
           </div>
-          <Button
-            size="sm"
-            onClick={() => area && setSize({ w: area.w, h: area.h })}
-          >
+          <Button size="sm" onClick={stage.fill}>
             Fill area
           </Button>
-          <Button
-            size="sm"
-            onClick={() => area && setSize(sizeOfSpan(DEFAULT_SPAN, area))}
-          >
+          <Button size="sm" onClick={stage.reset}>
             Reset
           </Button>
+        </div>
+        <div className={styles.clampToggles}>
+          <ClampToggle bound="min" def={def} stage={stage} />
+          <ClampToggle bound="max" def={def} stage={stage} />
         </div>
         <SpanPicker
           value={span}
@@ -165,6 +152,37 @@ export function StageView({ registry }: { registry: InstanceRegistry }) {
         />
       </div>
     </div>
+  );
+}
+
+function ClampToggle({
+  bound,
+  def,
+  stage,
+}: {
+  bound: Bound;
+  def: WidgetDefinition;
+  stage: StageSize;
+}) {
+  const limit = declaredLimit(def, bound);
+  const declared = hasLimit(limit);
+  const on = stage.clamp[bound];
+
+  return (
+    <Button
+      size="sm"
+      variant={on ? "accent" : "ghost"}
+      disabled={!declared}
+      aria-pressed={on}
+      title={
+        declared
+          ? `Stop the stage going ${bound === "min" ? "below" : "above"} the widget's declared ${bound} size (${limitText(limit)})`
+          : `This widget declares no ${bound} size`
+      }
+      onClick={() => stage.toggleClamp(bound)}
+    >
+      Clamp {bound}
+    </Button>
   );
 }
 
@@ -181,7 +199,7 @@ function SizeField({
 
   function nudge(by: number) {
     setDraft(null);
-    onCommit(Math.max(MIN_PX, Math.round(value) + by));
+    onCommit(Math.round(value) + by);
   }
 
   return (

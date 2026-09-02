@@ -7,6 +7,8 @@ import {
   useState,
 } from "react";
 import { WidgetPlacement } from "../../ffi_types";
+import { useEnterTransition } from "../../hooks/useEnterTransition";
+import { useViewportSize } from "../../hooks/useViewportSize";
 import { useEditMode } from "../../context/EditModeContext";
 import { getWidgetDefinition } from "../../registry/defRegistry";
 import {
@@ -48,38 +50,11 @@ import { WidgetTile } from "./WidgetTile";
 /** Drives the band inset animation: full-bleed on mount, inset once entered,
  *  and back to full-bleed while closing before actually leaving edit mode. */
 function useBandTransition(onExited: () => void) {
-  const [entered, setEntered] = useState(false);
   const [closing, setClosing] = useState(false);
-  const exitedRef = useRef(false);
-
-  useEffect(() => {
-    // Double rAF so the full-bleed initial state is committed before the
-    // inset flips, otherwise the entry transition never plays.
-    let raf2: number;
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setEntered(true));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, []);
-
-  const finishExit = () => {
-    if (exitedRef.current) return;
-    exitedRef.current = true;
-    onExited();
-  };
-
-  useEffect(() => {
-    if (!closing) return;
-    const t = window.setTimeout(finishExit, 280);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [closing]);
+  const { shown, finishExit } = useEnterTransition(!closing, 280, onExited);
 
   return {
-    bandOpen: entered && !closing,
+    bandOpen: shown,
     closing,
     beginExit: () => setClosing(true),
     handleTransitionEnd: (e: React.TransitionEvent, container: HTMLElement | null) => {
@@ -88,20 +63,6 @@ function useBandTransition(onExited: () => void) {
       }
     },
   };
-}
-
-function useViewportSize() {
-  const [size, setSize] = useState({
-    w: window.innerWidth,
-    h: window.innerHeight,
-  });
-  useEffect(() => {
-    const onResize = () =>
-      setSize({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return size;
 }
 
 /** Synthetic instance id for placement validation of a not-yet-added widget;

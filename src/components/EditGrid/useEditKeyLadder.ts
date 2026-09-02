@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useLatest } from "../../hooks/useLatest";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 
 export interface KeyLadderState {
   /** Ignore all keys (e.g. while the exit animation is running). */
@@ -40,11 +41,11 @@ function isTextTarget(target: EventTarget | null): boolean {
 export function useEditKeyLadder(state: KeyLadderState) {
   // Handlers close over fresh state via a ref so the window listener is
   // attached exactly once.
-  const stateRef = useRef(state);
-  stateRef.current = state;
+  const stateRef = useLatest(state);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+  useWindowEvent(
+    "keydown",
+    (e) => {
       const s = stateRef.current;
       if (s.suspended || s.tourActive || isTextTarget(e.target)) return;
 
@@ -71,9 +72,7 @@ export function useEditKeyLadder(state: KeyLadderState) {
         e.preventDefault();
         s.onSave();
       }
-    };
-    window.addEventListener("keydown", handler, { capture: true });
-    return () =>
-      window.removeEventListener("keydown", handler, { capture: true });
-  }, []);
+    },
+    { capture: true },
+  );
 }

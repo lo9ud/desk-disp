@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useViewportSize } from "../../hooks/useViewportSize";
 import Grid from "../../widgets/Grid";
 import { RenderWidget } from "../../widgets/widget";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
@@ -9,7 +10,6 @@ import {
   NO_PADDING,
   sizeOfSpan,
   Span,
-  useViewportSize,
 } from "./harness";
 import styles from "./styles/DevRenderHarness.module.css";
 

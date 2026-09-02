@@ -1,1 +1,2 @@
-import "./todolist/TodoListWidget";
+import "./ScratchpadWidget";
+import "./TodoListWidget";

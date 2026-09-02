@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useLatest } from "./useLatest";
 
 /**
  * Maintains a rolling array of the last `length` values of `value`.
@@ -19,8 +20,7 @@ export function useHistory<T>(
   fill: T = null as unknown as T,
 ): readonly T[] {
   const [history, setHistory] = useState<T[]>(new Array(length).fill(fill));
-  const lengthRef = useRef(length);
-  lengthRef.current = length;
+  const lengthRef = useLatest(length);
 
   useEffect(() => {
     setHistory((h) => {

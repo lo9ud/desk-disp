@@ -1,4 +1,4 @@
-import { useSubscription } from "../../hooks";
+import { useSubscription } from "../../runtime";
 import { Bar, PieChart, Readout } from "../../primitives";
 import {
   registerWidget,

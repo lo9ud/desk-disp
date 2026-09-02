@@ -1,5 +1,7 @@
 import { FunnelIcon, XMarkIcon } from "@heroicons/react/16/solid";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useEnterTransition } from "../../../hooks/useEnterTransition";
+import { useInterval } from "../../../hooks/useInterval";
 import { Button } from "../../../primitives/Button";
 import { Input } from "../../../primitives/Input";
 import {
@@ -47,7 +49,7 @@ export function AddRail({
   onExited: () => void;
 }) {
   const railRef = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
+  const { shown, finishExit } = useEnterTransition(open, 350, onExited);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<
@@ -56,25 +58,6 @@ export function AddRail({
   const [selectedTag, setSelectedTag] = useState<keyof typeof TAGS | null>(
     null,
   );
-
-  useEffect(() => {
-    if (!open) {
-      setShown(false);
-      // transitionend is the normal exit path; this covers it not firing.
-      const t = window.setTimeout(onExited, 350);
-      return () => window.clearTimeout(t);
-    }
-    // Double rAF so the closed position is committed before the slide-in.
-    let raf2: number;
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setShown(true));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
 
   // Built from the whole catalog, not the filtered `defs` below: filtering
   // decides what gets *rendered*, and rebuilding the registry per keystroke
@@ -125,14 +108,7 @@ export function AddRail({
       (selectedTag === null || def.tags?.includes(selectedTag)),
   );
 
-  useEffect(() => {
-    if (!open) return;
-    const interval = setInterval(
-      () => registry.advanceAll(),
-      PRESET_INTERVAL_MS,
-    );
-    return () => clearInterval(interval);
-  }, [registry, open]);
+  useInterval(() => registry.advanceAll(), open ? PRESET_INTERVAL_MS : null);
 
   return (
     <div
@@ -142,7 +118,7 @@ export function AddRail({
       data-open={shown || undefined}
       data-placing={placing || undefined}
       onTransitionEnd={(e) => {
-        if (!open && e.target === railRef.current) onExited();
+        if (!open && e.target === railRef.current) finishExit();
       }}
     >
       <div className={styles.railHeader}>

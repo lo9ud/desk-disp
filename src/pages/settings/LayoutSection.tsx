@@ -71,7 +71,7 @@ export default function LayoutSection() {
     e.stopPropagation();
     setRenamingId(id);
     setRenameValue(layouts.find((l) => l.id === id)?.name ?? "");
-    setTimeout(() => renameInputRef.current?.select(), 0);
+    requestAnimationFrame(() => renameInputRef.current?.select());
   }
 
   async function handleRenameConfirm(id: string) {

@@ -12,15 +12,35 @@ import {
 } from "../../registry/settingsDefaults";
 import { SettingsForm, useEphemeralValues } from "../WidgetSettingsPanel";
 import { logger } from "../../utils/logger";
+import { Bound, declaredLimit, hasLimit, limitText } from "./harness";
 import styles from "./styles/DevRenderHarness.module.css";
 
 const { warn } = logger("dev-render-harness");
 
 type JsonView = "settings" | "preset";
 
-function sizeText(size: [number | null, number | null]): string {
-  const [w, h] = size;
-  return `${w ?? "—"} × ${h ?? "—"}`;
+function LimitFact({
+  def,
+  bound,
+  onApply,
+}: {
+  def: WidgetDefinition;
+  bound: Bound;
+  onApply?: (bound: Bound) => void;
+}) {
+  const limit = declaredLimit(def, bound);
+  const text = limitText(limit);
+  if (!onApply || !hasLimit(limit)) return text;
+
+  return (
+    <Button
+      variant="inline"
+      title={`Size the stage to this ${bound}`}
+      onClick={() => onApply(bound)}
+    >
+      {text}
+    </Button>
+  );
 }
 
 function presetDiff(
@@ -40,11 +60,14 @@ export function HarnessInspector({
   settings,
   onChange,
   onReplace,
+  onApplyLimit,
 }: {
   def: WidgetDefinition;
   settings: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
   onReplace: (settings: Record<string, unknown>) => void;
+  /** Absent when there is no stage to size — the facts then read as plain text. */
+  onApplyLimit?: (bound: Bound) => void;
 }) {
   const { ephemeral, setEphemeral } = useEphemeralValues();
   const [presetIndex, setPresetIndex] = useState(0);
@@ -103,9 +126,13 @@ export function HarnessInspector({
           <dt>id</dt>
           <dd className={styles.mono}>{def.id}</dd>
           <dt>min size</dt>
-          <dd>{sizeText(def.minSize)}</dd>
+          <dd>
+            <LimitFact def={def} bound="min" onApply={onApplyLimit} />
+          </dd>
           <dt>max size</dt>
-          <dd>{sizeText(def.maxSize)}</dd>
+          <dd>
+            <LimitFact def={def} bound="max" onApply={onApplyLimit} />
+          </dd>
           <dt>settings</dt>
           <dd>{Object.keys(def.settingsDef).length}</dd>
         </dl>

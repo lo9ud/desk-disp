@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WidgetPlacement } from "../../ffi_types";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
+import { useLatest } from "../../hooks/useLatest";
 import { GridDims } from "../../utils/validation";
 import { beginDragCursor, endDragCursor } from "./dragCursor";
 import { checkGhostValid, computeGhostPlacement, posToCellCoord } from "./gridMath";
@@ -42,7 +43,7 @@ export function useGridInteraction(
   const containerRef = useRef<HTMLDivElement>(null);
   const [interaction, setInteraction] = useState<Interaction | null>(null);
   const [ghost, setGhost] = useState<GhostState | null>(null);
-  const interactionRef = useRef<Interaction | null>(null);
+  const interactionRef = useLatest(interaction);
   const paddingDragRef = useRef<PaddingDragState | null>(null);
   const gapDragRef = useRef<{ startX: number; startGap: number } | null>(null);
   const pendingDragRef = useRef<{
@@ -50,10 +51,6 @@ export function useGridInteraction(
     startY: number;
     moved: boolean;
   } | null>(null);
-
-  useEffect(() => {
-    interactionRef.current = interaction;
-  }, [interaction]);
 
   const handlePointerMove = useCallback(
     (e: PointerEvent) => {

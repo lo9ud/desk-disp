@@ -1,4 +1,5 @@
-import { useHistory, useSubscription } from "../../hooks";
+import { useHistory } from "../../hooks";
+import { useSubscription } from "../../runtime";
 import { LineGraph, Readout } from "../../primitives";
 import { registerWidget } from "../../registry/defRegistry";
 import { formatBps } from "../../utils/format";

@@ -1,5 +1,5 @@
 import { PauseIcon } from "@heroicons/react/24/solid";
-import { useSubscription } from "../../hooks";
+import { useSubscription } from "../../runtime";
 import {
   registerWidget,
   WidgetSettingsDefinition,

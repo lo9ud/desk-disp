@@ -11,7 +11,8 @@ import { getWidgetDefinition } from "../../registry/defRegistry";
 import { defaultSettingsForWidget } from "../../registry/settingsDefaults";
 import { PreviewEnvironment } from "../../preview/PreviewEnvironment";
 import { useUiController } from "../../ui/context";
-import { useHarnessInstance } from "./harness";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { useHarnessInstance, useStageSize } from "./harness";
 import { HarnessInspector } from "./HarnessInspector";
 import { MosaicView } from "./MosaicView";
 import { StageView } from "./StageView";
@@ -43,19 +44,16 @@ export default function DevRenderHarness() {
 
   const def = selectedId ? getWidgetDefinition(selectedId) : undefined;
   const registry = useHarnessInstance(selectedId, settings, runtimeKey);
+  const stage = useStageSize(def);
 
   const select = useCallback((id: string) => {
     setSelectedId(id);
     setSettings(defaultSettingsForWidget(id));
   }, []);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") toggleDevRenderHarness();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [toggleDevRenderHarness]);
+  useWindowEvent("keydown", (e) => {
+    if (e.key === "Escape") toggleDevRenderHarness();
+  });
 
   // Prevent standard UI chrome from appearing while the harness is open
   useEffect(() => {
@@ -133,7 +131,7 @@ export default function DevRenderHarness() {
         {def ? (
           <PreviewEnvironment key={runtimeKey}>
             {view === "stage" ? (
-              <StageView registry={registry} />
+              <StageView registry={registry} def={def} stage={stage} />
             ) : (
               <MosaicView registry={registry} />
             )}
@@ -157,6 +155,7 @@ export default function DevRenderHarness() {
               setSettings((prev) => ({ ...prev, [key]: value }))
             }
             onReplace={setSettings}
+            onApplyLimit={view === "stage" ? stage.applyLimit : undefined}
           />
         ) : (
           <div className={styles.empty}>No widget selected.</div>

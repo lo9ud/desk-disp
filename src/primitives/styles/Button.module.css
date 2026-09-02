@@ -31,6 +31,17 @@
     opacity: 0.4;
     cursor: default;
   }
+
+  &:disabled:hover {
+    border-color: var(--ui-border-hover);
+    background: var(--ui-control);
+  }
+
+  & > svg {
+    /* Make sure icons adjacent to button text are visible */
+    min-width: 1rem;
+    min-height: 1rem;
+  }
 }
 
 .sm {
@@ -145,6 +156,39 @@
     height: 90%;
     margin: 0;
     padding: 0;
+  }
+}
+
+/*
+ * Sits in a line of text rather than beside other buttons: inherits the
+ * surrounding type and marks itself with a dotted underline instead of chrome.
+ * Must stay below the variants it undoes -- specificity is equal, so the reset
+ * only holds on source order (the same footing `.icon` sits on).
+ */
+.inline {
+  display: inline-block;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted var(--ui-text-subtle);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+
+  &:hover:not(:disabled) {
+    background: transparent;
+    color: var(--ui-accent-text);
+    border-bottom-color: currentColor;
+  }
+
+  &:active:not(:disabled) {
+    background: transparent;
+    color: var(--ui-accent-text-strong);
+  }
+
+  &:disabled:hover {
+    background: transparent;
+    border-bottom-color: var(--ui-text-subtle);
   }
 }
 

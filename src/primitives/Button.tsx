@@ -1,6 +1,6 @@
 import styles from "./styles/Button.module.css";
 import { combineClassNames } from "../utils/format";
-import { ReactNode, useEffect } from "react";
+import { useWindowEvent } from "../hooks/useWindowEvent";
 
 type ButtonSize = "sm" | "md";
 
@@ -11,6 +11,7 @@ const variantClass = {
   accent: [styles.accent],
   danger: [styles.danger],
   warning: [styles.warning],
+  inline: [styles.inline],
   icon: [styles.icon],
   icon_ghost: [styles.icon, styles.ghost],
   icon_danger: [styles.icon, styles.danger],
@@ -84,21 +85,17 @@ export function Button({
   keybind,
   ...props
 }: ButtonProps & React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  useEffect(() => {
-    if (!keybind) return;
-    const [keys, callback] = keybind;
-    const handler = (e: KeyboardEvent) => {
-      if (
-        keys.every((k) => e.getModifierState(k) || e.key.toLowerCase() === k)
-      ) {
+  useWindowEvent(
+    "keydown",
+    (e) => {
+      if (!keybind) return;
+      const [keys, callback] = keybind;
+      if (keys.every((k) => e.getModifierState(k) || e.key.toLowerCase() === k)) {
         callback();
       }
-    };
-    window.addEventListener("keydown", handler);
-    return () => {
-      window.removeEventListener("keydown", handler);
-    };
-  }, [keybind]);
+    },
+    { enabled: !!keybind },
+  );
   const classes = variantClass[variant] ?? [];
   return (
     <button
@@ -117,35 +114,35 @@ export function Button({
   );
 }
 
-const keyIconMap: Record<string, string> = {
-  shift: "⇧",
-  ctrl: "⌃",
-  alt: "⌥",
-  meta: "⌘",
-  enter: "⏎",
-  return: "⏎",
-  space: "␣",
-  tab: "⇥",
-  backspace: "⌫",
-  esc: "Esc",
-  escape: "Esc",
-  up: "↑",
-  down: "↓",
-  left: "←",
-  right: "→",
+const keyIconMap: Record<string, [string, string]> = {
+  shift: ["⇧", "Shift"],
+  ctrl: ["⌃", "Control"],
+  alt: ["⌥", "Alt"],
+  meta: ["⌘", "Meta"],
+  enter: ["⏎", "Enter"],
+  return: ["⏎", "Return"],
+  space: ["␣", "Space"],
+  tab: ["⇥", "Tab"],
+  backspace: ["⌫", "Backspace"],
+  esc: ["Esc", "Escape"],
+  escape: ["Esc", "Escape"],
+  up: ["↑", "Up"],
+  down: ["↓", "Down"],
+  left: ["←", "Left"],
+  right: ["→", "Right"],
 };
 
-const keyIcons = new Proxy({} as Record<string, ReactNode>, {
+const keyIcons = new Proxy({} as Record<string, string>, {
   get: (_, key: string) => {
     key = key.toLowerCase().trim();
-    if (key in keyIconMap) return keyIconMap[key];
+    if (key in keyIconMap) return keyIconMap[key][0] || keyIconMap[key][1];
     if (key.length === 1 && key >= "a" && key <= "z") return key.toUpperCase();
     return null;
   },
 });
 
 function KeyIcon({ keyStr }: { keyStr: string }) {
-  const icon = keyIcons[keyStr] ?? keyStr;
+  const icon: string = keyIcons[keyStr] ?? keyStr;
   return <kbd className={styles.keyIcon}>{icon}</kbd>;
 }
 

@@ -1,4 +1,5 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
+import { useLatest } from "./useLatest";
 
 /**
  * Returns a debounced version of `fn` that fires `delay` ms after the last
@@ -11,30 +12,48 @@ import { useCallback, useRef } from "react";
  * useDebouncedAsyncValue), where firing mid-interaction isn't a feature.
  * The latest arguments are always used when it fires.
  */
+export interface DebouncedCallback<T extends (...args: never[]) => void> {
+  (...args: Parameters<T>): void;
+  /** Fire the pending call now, if there is one. */
+  flush(): void;
+  /** Drop the pending call without firing it. */
+  cancel(): void;
+}
+
 export function useDebouncedCallback<T extends (...args: never[]) => void>(
   fn: T,
   delay: number,
   maxWait?: number,
-): T {
-  const fnRef = useRef(fn);
-  fnRef.current = fn;
+): DebouncedCallback<T> {
+  const fnRef = useLatest(fn);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestArgs = useRef<Parameters<T> | null>(null);
 
-  const fire = useCallback(() => {
+  const cancel = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     if (maxTimerRef.current) { clearTimeout(maxTimerRef.current); maxTimerRef.current = null; }
-    if (latestArgs.current) fnRef.current(...latestArgs.current);
+    latestArgs.current = null;
   }, []);
 
-  return useCallback((...args: Parameters<T>) => {
-    latestArgs.current = args;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(fire, delay);
-    if (maxWait !== undefined && !maxTimerRef.current) {
-      maxTimerRef.current = setTimeout(fire, maxWait);
-    }
-  }, [delay, maxWait, fire]) as T;
+  const fire = useCallback(() => {
+    const args = latestArgs.current;
+    cancel();
+    if (args) fnRef.current(...args);
+  }, [cancel, fnRef]);
+
+  return useMemo(() => {
+    const debounced = ((...args: Parameters<T>) => {
+      latestArgs.current = args;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(fire, delay);
+      if (maxWait !== undefined && !maxTimerRef.current) {
+        maxTimerRef.current = setTimeout(fire, maxWait);
+      }
+    }) as DebouncedCallback<T>;
+    debounced.flush = fire;
+    debounced.cancel = cancel;
+    return debounced;
+  }, [delay, maxWait, fire, cancel]);
 }

@@ -6,6 +6,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { useResizeObserver } from "../hooks/useResizeObserver";
+import { useWindowEvent } from "../hooks/useWindowEvent";
 import { widgetPlacementToProps } from "../utils/config";
 import styles from "./styles/widget.module.css";
 import { getWidgetEntry } from "../registry/defRegistry";
@@ -77,18 +79,17 @@ export default function Widget({
     setBoundingInnerRect(new DOMRect(left, top, right - left, bottom - top));
   }, []);
 
-  useLayoutEffect(() => {
-    if (!measuring || !containerRef.current) return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(containerRef.current);
-    window.addEventListener("scroll", measure, true);
-    window.addEventListener("resize", measure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("scroll", measure, true);
-      window.removeEventListener("resize", measure);
-    };
-  }, [measure, measuring]);
+  const observeContainer = useResizeObserver(measure, measuring);
+  const setContainer = useCallback(
+    (el: HTMLDivElement | null) => {
+      containerRef.current = el;
+      observeContainer(el);
+    },
+    [observeContainer],
+  );
+
+  useWindowEvent("scroll", measure, { capture: true, enabled: measuring });
+  useWindowEvent("resize", measure, { enabled: measuring });
 
   useLayoutEffect(() => {
     if (measuring) measure();
@@ -126,7 +127,7 @@ export default function Widget({
           />
         )}
       <div
-        ref={containerRef}
+        ref={setContainer}
         className={combineClassNames(styles.widget, className, ...devStyles)}
         style={style}
         data-widget-id={instanceId}

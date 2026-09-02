@@ -8,6 +8,9 @@ import {
 } from "react";
 import { useEditMode } from "../context/EditModeContext";
 import type { ChapterStatus } from "../ffi_types";
+import { useInterval } from "../hooks/useInterval";
+import { useLatest } from "../hooks/useLatest";
+import { useWindowEvent } from "../hooks/useWindowEvent";
 import { useRuntime } from "../runtime/context";
 import { FLAG_NAMES } from "../ui/UiController";
 import { useUiController } from "../ui/context";
@@ -52,8 +55,7 @@ export default function Tour() {
   // Read through a ref so ctx keeps a stable identity: it is a dependency of the
   // target-resolution effect, which would otherwise restart on every unrelated
   // config broadcast and re-run its scroll-into-view.
-  const configRef = useRef(config);
-  configRef.current = config;
+  const configRef = useLatest(config);
   const ctx = useMemo<TourCtx>(
     () => ({
       monitorCount,
@@ -255,11 +257,7 @@ export default function Tour() {
   // pointing at, so a positive requirement is put back. The rail is left alone:
   // closing it is the expected outcome of picking a card, and reopening it would
   // race the advance. Setting an unchanged value bails out of a re-render.
-  useEffect(() => {
-    if (!live) return;
-    const t = setInterval(() => applyRequires("reassert"), 250);
-    return () => clearInterval(t);
-  }, [live, applyRequires]);
+  useInterval(() => applyRequires("reassert"), live ? 250 : null);
 
   useEffect(() => {
     if (!live || targets.status !== "unresolved") return;
@@ -271,9 +269,9 @@ export default function Tour() {
   // alongside normal use, so swallowing Enter and Escape there would be theft.
   const capturesKeys =
     live || (phase === "invite" && chapter?.invite?.mode === "modal");
-  useEffect(() => {
-    if (!capturesKeys) return;
-    const onKey = (e: KeyboardEvent) => {
+  useWindowEvent(
+    "keydown",
+    (e) => {
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -284,20 +282,19 @@ export default function Tour() {
         if (phase === "invite") start();
         else if (live && !step?.action) next();
       }
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [capturesKeys, phase, live, step, start, next, leave]);
+    },
+    { capture: true, enabled: capturesKeys },
+  );
 
   // The cut-out removes the hole from hit-testing, so without this the target is
   // fully live. Activation is blocked rather than the whole pointer surface, so
   // :hover still lights the control up the way it normally would.
   const interactive = step ? (step.interactive ?? !!step.action) : false;
   const markBoxes = marks.boxes;
-  useEffect(() => {
-    const guardTargets = !interactive && targets.els.length > 0;
-    if (!live || (!guardTargets && markBoxes.length === 0)) return;
-    const block = (e: Event) => {
+  const guardTargets = !interactive && targets.els.length > 0;
+  useWindowEvent(
+    ["pointerdown", "mousedown", "click"],
+    (e) => {
       const inTarget = targets.els.some((el) => el.contains(e.target as Node));
       // An interactive target wins: on the move step the mark sits under the
       // widget once it is dragged there, and blocking would stop the drag.
@@ -313,24 +310,28 @@ export default function Tour() {
       e.stopPropagation();
       // Once per interaction, not once per event in the sequence.
       if (e.type === "click") setShakeKey((k) => k + 1);
-    };
-    const types = ["pointerdown", "mousedown", "click"];
-    types.forEach((t) => document.addEventListener(t, block, true));
-    return () =>
-      types.forEach((t) => document.removeEventListener(t, block, true));
-  }, [live, interactive, targets.els, markBoxes]);
+    },
+    {
+      target: document,
+      capture: true,
+      enabled: live && (guardTargets || markBoxes.length > 0),
+    },
+  );
 
   // The hole is clipped away, so the click already reached the real element.
   // Observing it must not prevent or stop anything.
-  useEffect(() => {
-    if (!live || step?.action?.advanceOn !== "click") return;
-    const onClick = (e: MouseEvent) => {
+  useWindowEvent(
+    "click",
+    (e) => {
       const target = e.target as Node;
       if (targets.els.some((el) => el.contains(target))) next();
-    };
-    document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
-  }, [live, step, targets.els, next]);
+    },
+    {
+      target: document,
+      capture: true,
+      enabled: live && step?.action?.advanceOn === "click",
+    },
+  );
 
   useEffect(() => {
     const advanceOn = step?.action?.advanceOn;
