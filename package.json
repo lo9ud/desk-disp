@@ -10,11 +10,15 @@
     "watch-mem": "node scripts/webview-memory-snapshot.mjs",
     "dev": "vite",
     "typecheck": "tsc",
-    "build": "tsc && vite build",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "lint:rust": "cd src-tauri && cargo clippy --all-targets -- -D missing_docs -D clippy::missing_docs_in_private_items -D clippy::missing_errors_doc -D clippy::missing_panics_doc -D clippy::missing_safety_doc -D clippy::doc_markdown",
+    "lint:all": "pnpm lint && pnpm lint:rust",
+    "build": "eslint src --max-warnings 0 && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:predev": "pnpm dev",
-    "tauri:prebuild": "pnpm gen-types && pnpm gen-licenses && pnpm build",
+    "tauri:prebuild": "pnpm gen-types && pnpm gen-licenses && pnpm lint:rust && pnpm build",
     "gen-icons": "tauri icon ./icon-dark.svg -o ./src-tauri/icons/dark --ios-color #1a1a1a && tauri icon ./icon-light.svg -o ./src-tauri/icons/light --ios-color #ffffff"
   },
   "dependencies": {
@@ -28,13 +32,19 @@
     "react-icons": "^5.7.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tauri-apps/cli": "^2.11.4",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^10.9.1",
+    "eslint-plugin-jsdoc": "^64.3.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-tsdoc": "^0.5.2",
     "license-checker-rseidelsohn": "^4.4.2",
     "type-fest": "^5.8.0",
     "typescript": "~5.8.3",
+    "typescript-eslint": "^8.69.0",
     "typescript-plugin-css-modules": "^5.2.0",
     "vite": "^7.3.6"
   }
