@@ -61,9 +61,7 @@ function emptyStats(): EventStats {
   ) as EventStats;
 }
 
-/**
- * Counts every backend event while the toolbox is open.
- */
+
 function useEventStats(): { stats: EventStats; since: number } {
   const { events } = useRuntime();
   const statsRef = useRef<EventStats>(emptyStats());

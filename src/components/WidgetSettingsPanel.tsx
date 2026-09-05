@@ -26,10 +26,7 @@ import { Modal } from "../primitives/Modal";
 import { Button } from "../primitives/Button";
 import styles from "./styles/WidgetSettingsPanel.module.css";
 
-/**
- * Whether `showWhen`/`enableWhen` (and a select's subordinate settings)
- * take effect, or are reported.
- */
+
 export type SettingsConditionMode = "apply" | "reveal";
 
 const ConditionModeContext = createContext<SettingsConditionMode>("apply");
@@ -45,9 +42,7 @@ function evalCondition(
     : val === cond.is;
 }
 
-/**
- * What a condition is actually testing, for reveal mode chips.
- */
+
 function describeCondition(cond: SettingCondition): string {
   if ("when" in cond) return "ƒ(settings)";
   const accepted = Array.isArray(cond.is) ? cond.is : [cond.is];
@@ -690,10 +685,7 @@ function SettingRow({
   );
 }
 
-/**
- * Type dispatch only -- SettingRow above owns the condition handling, so this
- * takes `disabled` already resolved and never decides whether to render at all.
- */
+
 function SettingRowBody({
   label,
   settingKey,
@@ -785,11 +777,7 @@ interface WidgetSettingsPanelProps {
   onClose?: () => void;
 }
 
-/**
- * The schema-driven form itself, with no opinion about where its values live.
- * Hosted two ways: by the modal WidgetSettingsPanel below, and by edit mode's
- * anchored SettingsPanel. Keep it free of registry/edit-mode imports.
- */
+
 export function SettingsForm({
   title,
   schema,
@@ -828,12 +816,7 @@ export function SettingsForm({
   );
 }
 
-/**
- * Session-only trigger results (see TriggerRow), keyed by the trigger's own
- * settingKey. Merged into what compute functions read, but never persisted --
- * and reset on every mount, which is correct for "last connection test
- * result"-style data.
- */
+
 export function useEphemeralValues() {
   const [ephemeral, setEphemeral] = useState<Record<string, unknown>>({});
   const set = useCallback((key: string, val: unknown) => {

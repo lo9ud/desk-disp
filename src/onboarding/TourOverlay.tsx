@@ -20,7 +20,7 @@ export function TourOverlay({
   onScrimClick,
 }: {
   boxes: Box[];
-  /** Ringed without being cut out, so they stay under the scrim and inert. */
+  /** Ringed without being cut out */
   marks?: Box[];
   render?: RenderStyle;
   /** Bumped on a rejected click; remounting replays the shake. */

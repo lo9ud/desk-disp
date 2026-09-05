@@ -19,9 +19,16 @@ import { StageView } from "./StageView";
 import { WidgetPicker } from "./WidgetPicker";
 import styles from "./styles/DevRenderHarness.module.css";
 
+/**
+ * Which view is currently selected in the DevRenderHarness.
+ * 
+ * Stage view shows a single widget in a resizeable container. Mosaic view shows the widget in various sizes and aspect ratios.
+ */
 type View = "stage" | "mosaic";
 
-/** The dev-toolbox decorations worth reaching without leaving the harness. */
+/**
+ * Labels for the various dev decorations
+ */
 const DECORATIONS = {
   displayWidgetCells: "Cell bounds",
   displayWidgetUsedSpace: "Used space",
@@ -29,7 +36,9 @@ const DECORATIONS = {
 } as const;
 
 /**
- * A workshop for authoring widgets
+ * A workshop for experimenting with widgets in isolation, with a live preview runtime and a settings inspector.
+ * 
+ * This is a dev-only component, not intended for production use.
  */
 export default function DevRenderHarness() {
   const { toggleDevRenderHarness, toolboxSettings, setToolboxSettings } =

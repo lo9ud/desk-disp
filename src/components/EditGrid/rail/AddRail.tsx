@@ -33,7 +33,7 @@ export function AddRail({
 }: {
   open: boolean;
   width: number;
-  /** Transient "no space" flag from a failed click-to-place. */
+  
   noSpace: boolean;
   /** `settings` is the preset the card was showing when it was picked. */
   onPick: (defId: string, settings: Record<string, any> | undefined) => void;

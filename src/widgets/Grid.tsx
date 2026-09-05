@@ -1,7 +1,7 @@
 import { createContext, CSSProperties, useContext, useMemo } from "react";
 import styles from "./styles/Grid.module.css";
 import { combineClassNames } from "../utils/format";
-import type { GridPadding } from "../utils/validation";
+import type { GridPadding } from "../ffi_types";
 
 export type GridSize = { cols: number; rows: number; gap: number; padding: GridPadding };
 

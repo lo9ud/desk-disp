@@ -2,17 +2,13 @@ import { useEffect } from "react";
 import { useLatest } from "./useLatest";
 
 export interface WindowEventOptions {
-  /** Defaults to `window`. */
   target?: Window | Document;
   capture?: boolean;
-  /** Skip wiring entirely while false. */
   enabled?: boolean;
 }
 
 /**
  * Subscribes to one or more events for as long as the component is mounted.
- * The handler is read through a ref, so an inline closure neither re-wires the
- * listener nor goes stale, and only the event names affect the subscription.
  */
 export function useWindowEvent<K extends keyof WindowEventMap>(
   type: K | K[],

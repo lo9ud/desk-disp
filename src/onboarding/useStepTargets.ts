@@ -23,6 +23,8 @@ export interface StepTargets {
 
 const EMPTY: StepTargets = { status: "pending", els: [], boxes: [] };
 
+const NONE: StepTargets = { status: "none", els: [], boxes: [] };
+
 /**
  * Resolves a step's elements and keeps their boxes current. Measurement is
  * continuous rather than event-driven: the band inset, the add-mode stage
@@ -35,17 +37,15 @@ export function useStepTargets(
   ctx: TourCtx,
   active: boolean,
 ): StepTargets {
-  const [state, setState] = useState<StepTargets>(EMPTY);
+  // Tagged with the step it was measured from, so the previous step's boxes
+  // can't be read as this one's in the frame before the first tick lands.
+  const [measured, setMeasured] = useState<{
+    step: Step;
+    targets: StepTargets;
+  } | null>(null);
 
   useEffect(() => {
-    if (!active || !step) {
-      setState(EMPTY);
-      return;
-    }
-    if (!step.targets) {
-      setState({ status: "none", els: [], boxes: [] });
-      return;
-    }
+    if (!active || !step?.targets) return;
 
     let raf = 0;
     let els: HTMLElement[] = [];
@@ -78,12 +78,15 @@ export function useStepTargets(
         const key = boxKey(boxes);
         if (key !== lastKey) {
           lastKey = key;
-          setState({ status: "resolved", els, boxes });
+          setMeasured({ step, targets: { status: "resolved", els, boxes } });
         }
       } else if (performance.now() - lastSeen > RESOLVE_TIMEOUT_MS) {
         // Present but clipped to nothing, or never rendered at all. Either way
         // a ring would point at empty space, so the step is dropped instead.
-        setState({ status: "unresolved", els: [], boxes: [] });
+        setMeasured({
+          step,
+          targets: { status: "unresolved", els: [], boxes: [] },
+        });
         return;
       } else if (els.length > 0 && !scrolled) {
         scrolled = true;
@@ -97,5 +100,7 @@ export function useStepTargets(
     return () => cancelAnimationFrame(raf);
   }, [step, ctx, active]);
 
-  return state;
+  if (!active || !step) return EMPTY;
+  if (!step.targets) return NONE;
+  return measured?.step === step ? measured.targets : EMPTY;
 }

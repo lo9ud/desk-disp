@@ -62,8 +62,7 @@ export function TourCard({
   /** Inline decline button, for a choice being offered rather than a dismissal. */
   onSkip?: () => void;
   skipLabel?: string;
-  /** Leaves the whole tour. Rendered as card chrome, away from step navigation,
-   *  so its scope doesn't read as "skip this step". */
+  /** Leaves the whole tour. */
   onClose?: () => void;
   prefer?: Side;
   /** Parks the card in the top-right instead of centring it, for an offer that

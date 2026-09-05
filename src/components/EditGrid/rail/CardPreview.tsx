@@ -5,15 +5,7 @@ import { RenderWidget } from "../../../widgets/widget";
 import styles from "../styles/rail.module.css";
 import { PreviewInstanceRegistry } from "./previewRegistry";
 
-/**
- * Live widget render for a gallery card, fed mocked data. Mounted only once
- * the card scrolls into view so a large catalog doesn't spin up dozens of
- * animated widgets at once.
- *
- * The instance lives in the rail's shared PreviewInstanceRegistry rather than
- * in a per-card throwaway one, so the rail can drive every card's preset
- * through a single registry it holds.
- */
+
 export function CardPreview({
   registry,
   def,
@@ -33,7 +25,7 @@ export function CardPreview({
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
           setVisible(true);
-          observer.disconnect();
+          observer.disconnect(); // TODO: maybe remain observing to hide the preview when scrolled out of view? possibly add timeout so scrolling in and out doesn't thrash the preview on/off
         }
       },
       { rootMargin: "100%" },

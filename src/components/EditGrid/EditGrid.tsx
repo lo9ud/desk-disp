@@ -47,8 +47,7 @@ import { useSaveFlow } from "./useSaveFlow";
 import { useSizeErrors } from "./useSizeErrors";
 import { WidgetTile } from "./WidgetTile";
 
-/** Drives the band inset animation: full-bleed on mount, inset once entered,
- *  and back to full-bleed while closing before actually leaving edit mode. */
+
 function useBandTransition(onExited: () => void) {
   const [closing, setClosing] = useState(false);
   const { shown, finishExit } = useEnterTransition(!closing, 280, onExited);
@@ -93,13 +92,21 @@ export default function EditGrid() {
   // an empty stand-in keeps the hook call unconditional.
   const emptyRegistry = useMemo(() => new InstanceRegistry(), []);
   const allIds = useWidgetInstanceIds(editRegistry ?? emptyRegistry);
-  const [openSettingsId, setOpenSettingsId] = useState<string | null>(null);
   const tileRefs = useRef(new Map<string, HTMLElement>());
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [paddingGuideEdge, setPaddingGuideEdge] = useState<PaddingEdge | null>(
     null,
   );
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // The settings panel belongs to the selected widget, so the two are one piece
+  // of state: selecting elsewhere cannot leave a panel behind on the widget it
+  // moved away from.
+  const [selection, setSelection] = useState<{
+    id: string | null;
+    settingsOpen: boolean;
+  }>({ id: null, settingsOpen: false });
+  const selectedId = selection.id;
+  const openSettingsId = selection.settingsOpen ? selection.id : null;
 
   // Add mode: null = off; pendingCell = where a rail click will place.
   const [addMode, setAddMode] = useState<{
@@ -118,9 +125,16 @@ export default function EditGrid() {
     useBandTransition(cancel);
 
   const handleTrueClick = useCallback((id: string) => {
-    setSelectedId((prev) => (prev === id ? null : id));
+    setSelection((prev) =>
+      prev.id === id
+        ? { id: null, settingsOpen: false }
+        : { id, settingsOpen: false },
+    );
   }, []);
-  const handleDragBegin = useCallback((id: string) => setSelectedId(id), []);
+  const handleDragBegin = useCallback(
+    (id: string) => setSelection({ id, settingsOpen: false }),
+    [],
+  );
 
   const {
     containerRef,
@@ -141,14 +155,6 @@ export default function EditGrid() {
     handleDragBegin,
   );
 
-  // The settings panel belongs to the selected widget; selection moving away
-  // takes it with it.
-  useEffect(() => {
-    if (openSettingsId && openSettingsId !== selectedId) {
-      setOpenSettingsId(null);
-    }
-  }, [selectedId, openSettingsId]);
-
   // Measured from the live tile so the panel can be placed beside it. Tracked
   // in state (not read at render) so a move/resize of the edited widget
   // re-places the panel.
@@ -157,11 +163,9 @@ export default function EditGrid() {
   // Allows forcing rerender and remeasurement of the anchor after the stage has completed animations
   const [stageSettled, setStageSettled] = useState(0);
   useLayoutEffect(() => {
-    if (!openSettingsId) {
-      setSettingsAnchor(null);
-      setSettingsBounds(null);
-      return;
-    }
+    // Nothing reads either rect while the panel is closed, and this re-measures
+    // before paint whenever it opens, so a stale one is never seen.
+    if (!openSettingsId) return;
     const el = tileRefs.current.get(openSettingsId);
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -174,13 +178,12 @@ export default function EditGrid() {
   // Settings and the add rail are mutually exclusive: both want the same
   // screen space, and opening settings over the rail looked accidental.
   function toggleSettings(id: string) {
-    setSelectedId(id);
     exitAddMode();
-    setOpenSettingsId((prev) => (prev === id ? null : id));
+    setSelection({ id, settingsOpen: openSettingsId !== id });
   }
 
   function closeSettings() {
-    setOpenSettingsId(null);
+    setSelection((prev) => ({ ...prev, settingsOpen: false }));
   }
 
   const sizeErrors = useSizeErrors(dims, editRegistry, allIds, widgetErrors);
@@ -203,8 +206,7 @@ export default function EditGrid() {
   const emptyCells = computeEmptyCells(occupied, dims);
 
   function enterAddMode(pendingCell: { col: number; row: number } | null) {
-    setSelectedId(null);
-    setOpenSettingsId(null);
+    setSelection({ id: null, settingsOpen: false });
     setNoSpace(false);
     setAddMode({ pendingCell });
     setRailMounted(true);
@@ -216,12 +218,7 @@ export default function EditGrid() {
     setNoSpace(false);
   }
 
-  /** Add the widget, leave add mode, and select it; settings open after the
-   *  stage has animated back to 1:1.
-   *
-   *  `settings` is the gallery preset the card was showing when it was picked,
-   *  so what lands on the grid is what the user was looking at. Falls back to
-   *  the plain defaults for any caller that isn't the rail. */
+  
   function placeWidget(
     defId: string,
     placement: WidgetPlacement,
@@ -234,7 +231,7 @@ export default function EditGrid() {
     );
     exitAddMode();
     if (!newId) return;
-    setSelectedId(newId);
+    setSelection({ id: newId, settingsOpen: false });
     const def = getWidgetDefinition(defId);
     if (def?.settingsDef && Object.keys(def.settingsDef).length > 0) {
       pendingSettingsIdRef.current = newId;
@@ -248,8 +245,7 @@ export default function EditGrid() {
     const id = pendingSettingsIdRef.current;
     const t = window.setTimeout(() => {
       pendingSettingsIdRef.current = null;
-      setSelectedId(id);
-      setOpenSettingsId(id);
+      setSelection({ id, settingsOpen: true });
     }, 260);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -347,8 +343,10 @@ export default function EditGrid() {
         // Drop any deferred auto-open, or its timer lands after this and
         // reopens a panel the caller just asked to close.
         pendingSettingsIdRef.current = null;
-        setSelectedId(settingsOpen ?? selected);
-        setOpenSettingsId(settingsOpen);
+        setSelection({
+          id: settingsOpen ?? selected,
+          settingsOpen: settingsOpen !== null,
+        });
       },
       setAddOpen: (open: boolean) => {
         if (open) enterAddMode(null);
@@ -372,7 +370,7 @@ export default function EditGrid() {
     settingsOpen: openSettingsId !== null,
     closeSettings,
     hasSelection: selectedId !== null,
-    deselect: () => setSelectedId(null),
+    deselect: () => setSelection({ id: null, settingsOpen: false }),
     onCancel: handleCancelClick,
     onSave: handleSaveClick,
     saving,
@@ -396,7 +394,9 @@ export default function EditGrid() {
             }
           }}
           onPointerDown={(e) => {
-            if (e.target === e.currentTarget) setSelectedId(null);
+            if (e.target === e.currentTarget) {
+              setSelection({ id: null, settingsOpen: false });
+            }
           }}
         >
           <div
@@ -406,7 +406,9 @@ export default function EditGrid() {
             style={gridContainerStyle(dims)}
             onTransitionEnd={(e) => handleTransitionEnd(e, containerRef.current)}
             onPointerDown={(e) => {
-              if (e.target === e.currentTarget) setSelectedId(null);
+              if (e.target === e.currentTarget) {
+                setSelection({ id: null, settingsOpen: false });
+              }
             }}
           >
             {allIds.map((id) => {
@@ -436,8 +438,9 @@ export default function EditGrid() {
                   onToggleSettings={() => toggleSettings(id)}
                   onRemove={() => {
                     removeWidget(id);
-                    setSelectedId((prev) => (prev === id ? null : prev));
-                    if (openSettingsId === id) closeSettings();
+                    setSelection((prev) =>
+                      prev.id === id ? { id: null, settingsOpen: false } : prev,
+                    );
                   }}
                   onDragStart={(e) => startDrag(e, id)}
                   onResizeStart={(e, dir) => startResize(e, id, dir)}
@@ -464,7 +467,6 @@ export default function EditGrid() {
               emptyCells={emptyCells}
               pendingCell={addMode?.pendingCell ?? null}
               onSelect={(col, row) => {
-                setSelectedId(null);
                 enterAddMode({ col, row });
               }}
             />

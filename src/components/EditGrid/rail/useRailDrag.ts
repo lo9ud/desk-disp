@@ -4,9 +4,7 @@ import { beginDragCursor, endDragCursor } from "../dragCursor";
 const DRAG_THRESHOLD_PX = 4;
 
 /**
- * Card-to-canvas drag for the add rail. Entirely separate from
- * useGridInteraction: the pointer is captured on the card element, so all
- * tracking runs through the card's own handlers, never the grid container's.
+ * Card-to-canvas drag for the add rail.
  */
 export function useRailDrag(opts: {
   railRef: React.RefObject<HTMLDivElement | null>;

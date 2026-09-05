@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTimeout } from "../../hooks/useTimeout";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
-import { GridDims } from "../../utils/validation";
+import { GridDims } from "../../utils/grid";
 import { getBlockedWidgetIds } from "./gridMath";
 import { RemoveEdge } from "./types";
 

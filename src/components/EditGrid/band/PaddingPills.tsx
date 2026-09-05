@@ -3,7 +3,7 @@ import {
   ArrowsUpDownIcon,
 } from "@heroicons/react/16/solid";
 import { combineClassNames } from "../../../utils/format";
-import type { GridPadding } from "../../../utils/validation";
+import type { GridPadding } from "../../../ffi_types";
 import styles from "../styles/band.module.css";
 import { PaddingEdge } from "../types";
 

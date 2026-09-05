@@ -1,5 +1,5 @@
 import { WidgetPlacement } from "../../ffi_types";
-import type { GridPadding } from "../../utils/validation";
+import type { GridPadding } from "../../ffi_types";
 
 export type ResizeDir = "tl" | "t" | "tr" | "r" | "br" | "b" | "bl" | "l";
 

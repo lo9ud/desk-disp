@@ -3,8 +3,9 @@ import { useLatest } from "./useLatest";
 
 /**
  * Calls `callback` once, `delay` ms after `delay` was last set, or not at all
- * while it is null -- so arming and cancelling are both expressed by the
- * delay. Cleared on unmount and whenever `delay` changes.
+ * while it is null
+ * 
+ * Cleared on unmount and whenever `delay` changes.
  */
 export function useTimeout(callback: () => void, delay: number | null): void {
   const saved = useLatest(callback);

@@ -12,7 +12,8 @@ import { genWidgetId, InstanceRegistry } from "../registry/instanceRegistry";
 import { useRuntime } from "../runtime/context";
 import { useUiController } from "../ui/context";
 import { logger } from "../utils/logger";
-import { GridDims, validateLayout } from "../utils/validation";
+import { GridDims } from "../utils/grid";
+import { validateLayout } from "../components/EditGrid/validation";
 import { errorSeverity, WidgetError } from "../utils/widgetErrors";
 
 const { warn } = logger("edit-mode");
@@ -25,8 +26,7 @@ interface EditModeContextValue {
   editRegistry: InstanceRegistry | null;
   enterEditMode: (opts?: {
     newLayout?: { id: string; name: string };
-    /** Start from a prepared registry instead of cloning the live one. A tour
-     *  hands in its own; nothing reaches disk unless save() runs. */
+    /** Start from a prepared registry instead of cloning the live one. */
     draft?: InstanceRegistry;
   }) => void;
   save: () => Promise<void>;

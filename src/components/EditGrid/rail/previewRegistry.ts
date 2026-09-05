@@ -11,25 +11,19 @@ import { presetSettingsForWidget } from "../../../registry/settingsDefaults";
 export const PRESET_INTERVAL_MS = 5000;
 
 /**
- * How long auto-advance stays off after a manual step. Deliberately far longer
- * than PRESET_INTERVAL_MS: stepping by hand is how a user pauses the carousel
- * to study one preset before placing it, so it has to outlast a glance.
+ * How long auto-advance stays off after a manual step.
  */
 export const PRESET_PAUSE_MS = 30000;
 
 export interface PreviewWidgetInstance extends WidgetInstance {
   /**
-   * Which preset the preview is showing. **0 is the widget's own defaults**,
-   * always present, so every card has something to step through; the
-   * definition's declared `presetsSettings` start at 1.
+   * Which preset the preview is showing. 0 is the widget's own defaults.
    */
   presetIndex: number;
-  /** 1 (defaults only) + however many presets the definition declares. */
+  /** 1 (defaults only) + N presets */
   presetCount: number;
   /**
-   * The instance's default settings, kept aside so each preset is layered over
-   * a clean base rather than over whatever the previous preset left behind.
-   * This is what lets a preset be written partially.
+   * The instance's default settings
    */
   baseSettings: Record<string, any>;
 }
@@ -41,17 +35,11 @@ export interface PreviewWidgetInstance extends WidgetInstance {
  * when the card is placed.
  */
 export class PreviewInstanceRegistry extends InstanceRegistry {
-  // NOTE: deliberately no `instances` field of its own. Re-declaring it to
-  // narrow the value type would run a fresh `new Map()` initializer *after*
-  // super(), silently replacing the base's map -- and base methods would then
-  // be writing into a map the subclass never meant to hand them. Reads narrow
-  // through `preview()` below instead.
 
   /**
    * Per-instance timestamp before which the timer leaves that preview alone.
-   * Kept out of the instance objects on purpose: a pause is not something any
-   * subscriber renders, and storing it there would churn instance identity (and
-   * so re-render the card) on every expiry sweep.
+   * 
+   * Kept out of the instance objects on purpose: storing it there would churn instance identity on every expiry sweep.
    */
   private readonly resumeAt = new Map<string, number>();
 
@@ -93,7 +81,7 @@ export class PreviewInstanceRegistry extends InstanceRegistry {
     index: number,
   ): Record<string, any> {
     // Index 0 is the defaults, so the definition's own declared list is offset
-    // by one -- presetSettingsForWidget indexes that list, not this one.
+    // by one
     if (index === 0) return { ...inst.baseSettings };
     return {
       ...inst.baseSettings,
@@ -104,18 +92,12 @@ export class PreviewInstanceRegistry extends InstanceRegistry {
   private applyPreset(inst: PreviewWidgetInstance, index: number): void {
     if (inst.presetCount <= 1) return;
 
-    // Modulo, but correct for negatives too -- stepping back from 0 should wrap
-    // to the last preset, and JS's `%` would hand back a negative index.
+    // Account for wrapping and negative deltas, so the caller doesn't have to.
     const presetIndex =
       ((index % inst.presetCount) + inst.presetCount) % inst.presetCount;
     if (presetIndex === inst.presetIndex) return;
 
-    // Replace the instance object rather than mutating it in place. This is the
-    // whole contract of the registry: useWidgetInstance feeds
-    // getInstanceSnapshot -- which returns the stored object itself -- straight
-    // to useSyncExternalStore, and React bails out of the render when the new
-    // snapshot is reference-equal to the old one. An in-place
-    // `inst.settings = ...` updates the store and renders nothing at all.
+    // Replace the instance object rather than mutating it in place to trigger useSyncExternalStore updates in any subscribed components.
     const next: PreviewWidgetInstance = {
       ...inst,
       presetIndex,
@@ -135,10 +117,6 @@ export class PreviewInstanceRegistry extends InstanceRegistry {
     return this.preview(id)?.presetCount ?? 0;
   }
 
-  /**
-   * The settings the preview is showing right now -- what a widget placed from
-   * this card should start out with, rather than the bare defaults.
-   */
   currentSettings(id: string): Record<string, any> | undefined {
     const inst = this.preview(id);
     return inst && { ...inst.settings };
@@ -189,9 +167,7 @@ export class PreviewInstanceRegistry extends InstanceRegistry {
 }
 
 /**
- * Subscribed read of a preview's current preset. Reading
- * `registry.getPresetIndex()` in a render body instead would never update --
- * nothing would be listening for the change.
+ * Subscribed read of a preview's current preset.
  */
 export function usePreviewPreset(
   id: string,

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { WidgetPlacement } from "../../ffi_types";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
 import { useLatest } from "../../hooks/useLatest";
-import { GridDims } from "../../utils/validation";
+import { GridDims } from "../../utils/grid";
 import { beginDragCursor, endDragCursor } from "./dragCursor";
 import { checkGhostValid, computeGhostPlacement, posToCellCoord } from "./gridMath";
 import {
@@ -18,7 +18,7 @@ import {
 const PADDING_STEP = 10;
 const GAP_STEP = 5;
 
-/** Pointer travel below this is a click, not a drag. */
+
 const DRAG_THRESHOLD_PX = 4;
 
 const RESIZE_CURSORS: Record<ResizeDir, string> = {

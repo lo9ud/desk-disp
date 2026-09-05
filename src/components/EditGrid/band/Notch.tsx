@@ -29,8 +29,7 @@ export function Notch({
   registry: InstanceRegistry | null;
   hasBlockingErrors: boolean;
   saving: boolean;
-  /** Set when the session is a tour's throwaway draft, which must never be
-   *  promoted over the real layout. */
+  
   saveDisabled?: boolean;
   onSave: () => void;
   onCancel: () => void;

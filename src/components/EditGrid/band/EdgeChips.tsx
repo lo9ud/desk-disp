@@ -1,6 +1,6 @@
 import { MinusIcon, PlusIcon } from "@heroicons/react/16/solid";
 import { combineClassNames } from "../../../utils/format";
-import { GridDims } from "../../../utils/validation";
+import { GridDims } from "../../../utils/grid";
 import styles from "../styles/band.module.css";
 import { RemoveEdge } from "../types";
 

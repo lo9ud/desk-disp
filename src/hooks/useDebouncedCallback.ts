@@ -4,12 +4,8 @@ import { useLatest } from "./useLatest";
 /**
  * Returns a debounced version of `fn` that fires `delay` ms after the last
  * call. If `maxWait` is given, it also guarantees a call at least every
- * `maxWait` ms while calls keep arriving -- useful for "keep giving live
- * feedback during a long continuous interaction" (e.g. ColorInput's own
- * usage). Omit `maxWait` for a pure trailing debounce that never fires
- * while calls are still arriving, only once they stop -- the right choice
- * for "wait until the user is done, then compute" uses (see
- * useDebouncedAsyncValue), where firing mid-interaction isn't a feature.
+ * `maxWait` ms while calls keep arriving.
+ * 
  * The latest arguments are always used when it fires.
  */
 export interface DebouncedCallback<T extends (...args: never[]) => void> {

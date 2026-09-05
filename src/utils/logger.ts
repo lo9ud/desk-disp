@@ -126,11 +126,11 @@ function emit(
 }
 
 export interface Logger {
-  trace(message: string, hint?: string): void;
-  debug(message: string, hint?: string): void;
-  info(message: string, hint?: string): void;
-  warn(message: string, hint?: string): void;
-  error(message: string, hint?: string): void;
+  trace(this:void, message: string, hint?: string): void;
+  debug(this:void, message: string, hint?: string): void;
+  info(this:void, message: string, hint?: string): void;
+  warn(this:void, message: string, hint?: string): void;
+  error(this:void, message: string, hint?: string): void;
 }
 
 /**

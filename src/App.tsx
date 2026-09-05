@@ -6,7 +6,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import SettingsPage from "./pages/settings/SettingsPage";
 import { LayoutFile, Preferences } from "./ffi_types";
 import { EditModeProvider, useEditMode } from "./context/EditModeContext";
-import type { GridDims } from "./utils/validation";
+import type { GridDims } from "./utils/grid";
 import { Widgets } from "./widgets/widget";
 import EditGrid from "./components/EditGrid";
 import WindowControls from "./components/WindowControls";

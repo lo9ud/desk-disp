@@ -20,7 +20,6 @@ export function usePersistence(): PersistenceContextValue {
 
 interface PersistenceProviderProps {
   activeLayoutId: string;
-  /** Called to get the current layout state to persist. */
   getLayout: () => LayoutFile;
   children: React.ReactNode;
 }

@@ -12,7 +12,7 @@ export interface EnterTransition {
 /**
  * Drives a CSS enter/exit transition. `shown` flips on a frame after `open`
  * does, since the closed state has to be committed first or the entry
- * transition never plays. On close, `onExited` fires once -- from
+ * transition never plays. On close, `onExited` fires once from
  * `finishExit`, or from `exitMs` as the fallback for a transitionend that
  * never arrives.
  */
@@ -22,14 +22,20 @@ export function useEnterTransition(
   onExited?: () => void,
 ): EnterTransition {
   const [shown, setShown] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
   const exited = useRef(false);
   const savedOnExited = useLatest(onExited);
 
+  // Adjusted during render rather than from an effect: the closed state has to
+  // be committed before the entry transition, and an effect would only get
+  // there a painted frame later.
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    setShown(false);
+  }
+
   useEffect(() => {
-    if (!open) {
-      setShown(false);
-      return;
-    }
+    if (!open) return;
     exited.current = false;
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {

@@ -12,8 +12,7 @@ export type MockStreams = { [K in StreamName]: MockStreamSpec<K> };
 
 const TAU = Math.PI * 2;
 
-/** 0..1 sinusoid. Pure over t: no Math.random anywhere in this module, so
- *  output is fully determined by the injected clock. */
+/** 0..1 sinusoid */
 function wave(t: number, periodMs: number, phase = 0): number {
   return 0.5 + 0.5 * Math.sin((TAU * t) / periodMs + phase);
 }

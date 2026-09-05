@@ -1,24 +1,7 @@
-import { WidgetPlacement } from "../ffi_types";
-import { WidgetInstance } from "../registry/instanceRegistry";
-import { OutOfBoundsError, OverlapError, WidgetError } from "./widgetErrors";
-
-export interface GridPadding {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
-
-export function uniformPadding(n: number): GridPadding {
-  return { top: n, right: n, bottom: n, left: n };
-}
-
-export interface GridDims {
-  cols: number;
-  rows: number;
-  gap: number;
-  padding: GridPadding;
-}
+import { WidgetPlacement } from "../../ffi_types";
+import { WidgetInstance } from "../../registry/instanceRegistry";
+import { GridDims } from "../../utils/grid";
+import { OutOfBoundsError, OverlapError, WidgetError } from "../../utils/widgetErrors";
 
 export function boxesOverlap(a: WidgetPlacement, b: WidgetPlacement): boolean {
   return !(

@@ -66,7 +66,7 @@ export function HarnessInspector({
   settings: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
   onReplace: (settings: Record<string, unknown>) => void;
-  /** Absent when there is no stage to size — the facts then read as plain text. */
+  
   onApplyLimit?: (bound: Bound) => void;
 }) {
   const { ephemeral, setEphemeral } = useEphemeralValues();

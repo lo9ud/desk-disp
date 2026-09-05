@@ -42,7 +42,6 @@ export default function Tour() {
   const [index, setIndex] = useState(0);
   const [shakeKey, setShakeKey] = useState(0);
   const scratch = useRef<Record<string, string | undefined>>({});
-  /** High-water mark, so backtracking before leaving doesn't lower `reached`. */
   const furthest = useRef(0);
 
   useEffect(() => {
@@ -55,11 +54,11 @@ export default function Tour() {
   // Read through a ref so ctx keeps a stable identity: it is a dependency of the
   // target-resolution effect, which would otherwise restart on every unrelated
   // config broadcast and re-run its scroll-into-view.
-  const configRef = useLatest(config);
+  const latestConfig = useLatest(config);
   const ctx = useMemo<TourCtx>(
     () => ({
       monitorCount,
-      statusOf: (id) => configRef.current?.onboarding[id]?.status ?? "unseen",
+      statusOf: (id) => latestConfig.current?.onboarding[id]?.status ?? "unseen",
       editState: () => ui.surface("editGrid")?.read() ?? null,
       scratch: scratch.current,
     }),

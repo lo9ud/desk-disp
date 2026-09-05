@@ -1,7 +1,8 @@
 import { CSSProperties } from "react";
 import { WidgetPlacement } from "../../ffi_types";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
-import { boxesOverlap, GridDims } from "../../utils/validation";
+import { GridDims } from "../../utils/grid";
+import { boxesOverlap } from "./validation";
 import { errorSeverity, TooSmallError, WidgetError } from "../../utils/widgetErrors";
 import { GhostState, Interaction, RemoveEdge, ResizeDir } from "./types";
 
@@ -216,8 +217,7 @@ export function gridContainerStyle(dims: GridDims): CSSProperties {
   } as CSSProperties;
 }
 
-/** First empty cell in reading order (row-major); computeEmptyCells is
- *  col-major, so it can't be reused for this. */
+
 export function firstFitCell(
   occupied: Set<string>,
   dims: GridDims,

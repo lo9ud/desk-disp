@@ -13,7 +13,7 @@ interface BarProps {
   color?: IndicatorColor;
   /** Number of segments for blocks/blocks-fade variants. */
   blocks?: number;
-  /** Override track height, e.g. "10px". */
+  /** Override track height */
   height?: string;
   className?: string;
 }

@@ -30,11 +30,6 @@ export function union(boxes: Box[]): Box | null {
   return { x, y, w: right - x, h: bottom - y };
 }
 
-/**
- * Overlapping subpaths cancel under `evenodd`, so two holes that intersect leave
- * a patch of scrim in the intersection. Merging to bounding boxes over-cuts a
- * little but never produces that artifact.
- */
 export function mergeOverlapping(boxes: Box[]): Box[] {
   const out = [...boxes];
   for (let merged = true; merged; ) {
@@ -101,8 +96,6 @@ export function resolveTargets(
   );
 }
 
-/** Ancestors that clip, collected once per step so the measure loop only has to
- *  intersect rects. */
 export function clippingAncestors(el: Element): Element[] {
   const out: Element[] = [];
   let node = el.parentElement;
@@ -123,8 +116,6 @@ export function visibleBox(el: Element, clippers: Element[]): Box | null {
   return intersect(box, viewportBox());
 }
 
-/** Scrolls only when the element isn't already fully in view, so a step doesn't
- *  jolt the page for nothing. */
 export function ensureVisible(el: Element, clippers: Element[]): void {
   const full = toBox(el.getBoundingClientRect());
   const seen = visibleBox(el, clippers);
@@ -149,11 +140,7 @@ function roundedRectPath(b: Box, radius: number): string {
   ].join(" ");
 }
 
-/**
- * Outer viewport rect plus one subpath per hole. Used as `clip-path`, not an SVG
- * mask, because clipping also removes the holes from hit-testing — which is what
- * lets a click land on the real element underneath.
- */
+
 export function cutoutPath(holes: Box[], radius = 6): string {
   const v = viewportBox();
   const outer = `M0 0 H${v.w} V${v.h} H0 Z`;

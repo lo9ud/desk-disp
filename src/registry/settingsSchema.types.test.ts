@@ -11,6 +11,9 @@ import {
   WidgetSettingsProps,
 } from "./defRegistry";
 
+declare const emptyObjectSymbol: unique symbol;
+type EmptyObject = {[emptyObjectSymbol]?: never};
+
 /**
  * Expands an intersection of object types into a single flat object type, so
  * the equality check below isn't tripped up by how a type was built (e.g.

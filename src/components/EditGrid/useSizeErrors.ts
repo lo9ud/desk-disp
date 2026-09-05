@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useViewportSize } from "../../hooks/useViewportSize";
 import { getWidgetDefinition } from "../../registry/defRegistry";
 import { InstanceRegistry } from "../../registry/instanceRegistry";
-import { GridDims } from "../../utils/validation";
+import { GridDims } from "../../utils/grid";
 import { TooSmallError, WidgetError } from "../../utils/widgetErrors";
 import { checkWidgetSize } from "./gridMath";
 
