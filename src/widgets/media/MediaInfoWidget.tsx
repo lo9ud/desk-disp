@@ -24,7 +24,7 @@ export function MediaInfo() {
   );
 }
 
-const MediaInfoWidget = registerWidget(MediaInfo, {
+registerWidget(MediaInfo, {
   id: "media_info",
   name: "Media Info",
   description: "Shows the current track title, album, and artist",
@@ -34,5 +34,3 @@ const MediaInfoWidget = registerWidget(MediaInfo, {
   minSize: [null, null],
   maxSize: [null, null],
 });
-
-export default MediaInfoWidget;

@@ -282,7 +282,7 @@ function useNoteDraft(note: LiveObject<ScratchNote> | undefined) {
   return { value, set, flush, discard };
 }
 
-const ScratchpadWidget = registerApplet(Scratchpad, {
+registerApplet(Scratchpad, {
   id: "scratchpad",
   name: "Scratchpad",
   description: "Jot down stray notes and ideas without leaving your desktop.",
@@ -292,5 +292,3 @@ const ScratchpadWidget = registerApplet(Scratchpad, {
   minSize: [null, null],
   maxSize: [null, null],
 });
-
-export default ScratchpadWidget;

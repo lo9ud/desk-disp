@@ -46,7 +46,7 @@ export function CPU({
   );
 }
 
-const CPUWidget = registerWidget(CPU, {
+registerWidget(CPU, {
   id: "cpu",
   name: "CPU Usage",
   description: "Shows current CPU usage",
@@ -70,5 +70,3 @@ const CPUWidget = registerWidget(CPU, {
     },
   ],
 });
-
-export default CPUWidget;

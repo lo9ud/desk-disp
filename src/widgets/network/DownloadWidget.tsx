@@ -26,7 +26,7 @@ export function Download() {
   );
 }
 
-const DownloadWidget = registerWidget(Download, {
+registerWidget(Download, {
   id: "download",
   name: "Download Speed",
   description: "Shows current network download speed",
@@ -36,5 +36,3 @@ const DownloadWidget = registerWidget(Download, {
   minSize: [null, null],
   settingsDef: {},
 });
-
-export default DownloadWidget;

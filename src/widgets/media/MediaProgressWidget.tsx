@@ -46,7 +46,11 @@ export function MediaProgress() {
   // Sync play/pause state
   useEffect(() => {
     if (!animRef.current) return;
-    playing ? animRef.current.play() : animRef.current.pause();
+    if (playing) {
+      animRef.current.play();
+    } else {
+      animRef.current.pause();
+    }
   }, [playing]);
 
   return (
@@ -62,7 +66,7 @@ export function MediaProgress() {
   );
 }
 
-const MediaProgressWidget = registerWidget(MediaProgress, {
+registerWidget(MediaProgress, {
   id: "media_progress",
   name: "Media Progress",
   description: "Shows the current track's playback progress",
@@ -72,5 +76,3 @@ const MediaProgressWidget = registerWidget(MediaProgress, {
   minSize: [null, null],
   maxSize: [null, null],
 });
-
-export default MediaProgressWidget;

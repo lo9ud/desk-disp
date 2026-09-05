@@ -146,7 +146,7 @@ export function AlbumArt({
   );
 }
 
-const AlbumArtWidget = registerWidget(AlbumArt, {
+registerWidget(AlbumArt, {
   id: "album_art",
   name: "Album Art",
   description: "Shows the current track's album art",
@@ -182,5 +182,3 @@ const AlbumArtWidget = registerWidget(AlbumArt, {
     },
   ],
 });
-
-export default AlbumArtWidget;

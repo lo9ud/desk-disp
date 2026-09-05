@@ -27,7 +27,7 @@ export function Upload() {
   );
 }
 
-const UploadWidget = registerWidget(Upload, {
+registerWidget(Upload, {
   id: "upload",
   name: "Upload Speed",
   description: "Shows current network upload speed",
@@ -37,5 +37,3 @@ const UploadWidget = registerWidget(Upload, {
   minSize: [null, null],
   settingsDef: {},
 });
-
-export default UploadWidget;

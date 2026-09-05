@@ -65,7 +65,7 @@ export function Quote(_props: WidgetSettingsProps<typeof QUOTE_WIDGET_SETTINGS_D
   );
 }
 
-const QuoteWidget = registerWidget(Quote, {
+registerWidget(Quote, {
   id: "quote",
   name: "Quote",
   description: "Displays a quotes from a configuable source.",
@@ -75,8 +75,6 @@ const QuoteWidget = registerWidget(Quote, {
   minSize: [null, null],
   maxSize: [null, null],
 });
-
-export default QuoteWidget;
 
 function getQuote() {
   // Placeholder for fetching quote logic

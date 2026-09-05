@@ -24,7 +24,7 @@ export function MediaDetail({
   );
 }
 
-const MediaDetailWidget = registerWidget(MediaDetail, {
+registerWidget(MediaDetail, {
   id: "media_detail",
   name: "Media Detail",
   description: "Shows media info, progress bar, and playback controls",
@@ -34,5 +34,3 @@ const MediaDetailWidget = registerWidget(MediaDetail, {
   category: "media",
   tags: [],
 });
-
-export default MediaDetailWidget;

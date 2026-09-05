@@ -64,7 +64,7 @@ export function Swap({
   );
 }
 
-const SwapWidget = registerWidget(Swap, {
+registerWidget(Swap, {
   id: "swap",
   name: "Swap Usage",
   description: "Shows current swap usage",
@@ -88,5 +88,3 @@ const SwapWidget = registerWidget(Swap, {
   ],
   settingsDef: SWAP_WIDGET_SETTINGS_DEF,
 });
-
-export default SwapWidget;

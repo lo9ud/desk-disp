@@ -278,7 +278,7 @@ export function SettingsTest(
   );
 }
 
-const SettingsTestWidget = registerWidget(SettingsTest, {
+registerWidget(SettingsTest, {
   id: "settings_test",
   name: "Settings Test",
   description:
@@ -289,5 +289,3 @@ const SettingsTestWidget = registerWidget(SettingsTest, {
   minSize: [null, null],
   maxSize: [null, null],
 });
-
-export default SettingsTestWidget;

@@ -58,7 +58,7 @@ export function Memory({
   );
 }
 
-const MemoryWidget = registerWidget(Memory, {
+registerWidget(Memory, {
   id: "memory",
   name: "Memory Usage",
   description: "Shows current memory usage",
@@ -82,5 +82,3 @@ const MemoryWidget = registerWidget(Memory, {
   ],
   settingsDef: MEMORY_WIDGET_SETTINGS_DEF,
 });
-
-export default MemoryWidget;

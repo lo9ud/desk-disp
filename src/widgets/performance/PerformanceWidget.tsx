@@ -31,7 +31,7 @@ export function Performance({ style }: WidgetSettingsProps<typeof PERFORMANCE_WI
   );
 }
 
-const PerformanceWidget = registerWidget(Performance, {
+registerWidget(Performance, {
   id: "performance",
   name: "Performance",
   description: "Shows CPU, memory, and swap usage",
@@ -46,5 +46,3 @@ const PerformanceWidget = registerWidget(Performance, {
   ],
   settingsDef: PERFORMANCE_WIDGET_SETTINGS_DEF,
 });
-
-export default PerformanceWidget;

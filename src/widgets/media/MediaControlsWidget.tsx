@@ -29,7 +29,7 @@ export function MediaControls() {
   );
 }
 
-const MediaControlsWidget = registerWidget(MediaControls, {
+registerWidget(MediaControls, {
   id: "media_controls",
   name: "Media Controls",
   description: "Playback controls for the current media session",
@@ -39,5 +39,3 @@ const MediaControlsWidget = registerWidget(MediaControls, {
   minSize: [null, null],
   maxSize: [null, null],
 });
-
-export default MediaControlsWidget;

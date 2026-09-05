@@ -307,7 +307,7 @@ function VisualizerCanvas({
   return <canvas ref={canvasRef} className={styles.visualizer} />;
 }
 
-const VisualizerWidget = registerWidget(Visualizer, {
+registerWidget(Visualizer, {
   id: "visualizer",
   name: "Visualizer",
   description:
@@ -333,8 +333,6 @@ const VisualizerWidget = registerWidget(Visualizer, {
     }
   ],
 });
-
-export default VisualizerWidget;
 
 // anchor: "near"   -> anchored at the near edge along the length axis (y / x); grows toward the far edge.
 // anchor: "far"    -> anchored at the far edge (y+h / x+w); grows toward the near edge.

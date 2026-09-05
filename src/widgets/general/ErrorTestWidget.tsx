@@ -39,7 +39,7 @@ export function ErrorTest({
   );
 }
 
-const ErrorTestWidget = registerWidget(ErrorTest, {
+registerWidget(ErrorTest, {
   id: "error_test",
   name: "Error Test",
   description:
@@ -50,5 +50,3 @@ const ErrorTestWidget = registerWidget(ErrorTest, {
   minSize: [null, null],
   maxSize: [null, null],
 });
-
-export default ErrorTestWidget;

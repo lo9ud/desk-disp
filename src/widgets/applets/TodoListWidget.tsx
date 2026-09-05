@@ -346,7 +346,7 @@ function List({ items }: { items: LiveObject<TodoList> }) {
   );
 }
 
-const TodoListWidget = registerApplet(TodoList, {
+registerApplet(TodoList, {
   id: "todo_list",
   name: "Todo List",
   description:
@@ -357,5 +357,3 @@ const TodoListWidget = registerApplet(TodoList, {
   minSize: [310, 200],
   maxSize: [null, null],
 });
-
-export default TodoListWidget;

@@ -12,7 +12,7 @@ export function Bandwidth() {
   );
 }
 
-const BandwidthWidget = registerWidget(Bandwidth, {
+registerWidget(Bandwidth, {
   id: "bandwidth",
   name: "Bandwidth",
   description: "Shows network upload and download speeds",
@@ -22,5 +22,3 @@ const BandwidthWidget = registerWidget(Bandwidth, {
   minSize: [null, null],
   maxSize: [null, null],
 });
-
-export default BandwidthWidget;
