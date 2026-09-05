@@ -16,13 +16,25 @@ export function MediaControls() {
   const playing = data?.playing ?? null;
   return (
     <div className={styles.container}>
-      <button disabled={!active} className={styles.control} onClick={(_) => media.previous()}>
+      <button
+        disabled={!active}
+        className={styles.control}
+        onClick={(_) => void media.previous()}
+      >
         <BackwardIcon />
       </button>
-      <button disabled={!active} className={styles.control} onClick={(_) => media.toggle()}>
+      <button
+        disabled={!active}
+        className={styles.control}
+        onClick={(_) => void media.toggle()}
+      >
         {playing ? <PauseIcon /> : <PlayIcon />}
       </button>
-      <button disabled={!active} className={styles.control} onClick={(_) => media.next()}>
+      <button
+        disabled={!active}
+        className={styles.control}
+        onClick={(_) => void media.next()}
+      >
         <ForwardIcon />
       </button>
     </div>
