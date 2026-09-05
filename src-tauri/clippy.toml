@@ -1,0 +1,13 @@
+# `doc_markdown` flags identifier-shaped words in prose that aren't in backticks.
+# `..` keeps clippy's own list; the rest is this project's vocabulary. Add to it
+# as real false positives show up rather than pre-emptively.
+doc-valid-idents = [
+    "..",
+    "AppData",
+    "LocalAppData",
+    "OKLCH",
+    "SMTC",
+    "WASAPI",
+    "WebView2",
+    "WinRT",
+]

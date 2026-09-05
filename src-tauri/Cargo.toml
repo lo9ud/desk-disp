@@ -46,3 +46,15 @@ uuid = { version = "1", features = ["v4"] }
 
 [profile.release]
 debug = true
+
+# Warn during development; `pnpm lint:rust` re-runs these as `-D` so a release
+# build fails on them. See CLAUDE.md > Documentation standard.
+[lints.rust]
+missing_docs = "warn"
+
+[lints.clippy]
+missing_docs_in_private_items = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+missing_safety_doc = "warn"
+doc_markdown = "warn"
